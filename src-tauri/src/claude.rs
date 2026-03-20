@@ -82,7 +82,7 @@ impl SessionManager {
             let buffers = Arc::clone(&self.output_buffers);
             std::thread::spawn(move || {
                 let reader = BufReader::new(stdout);
-                for line in reader.lines().flatten() {
+                for line in reader.lines().map_while(Result::ok) {
                     if let Ok(mut b) = buffers.lock() {
                         b.entry(task_id_clone.clone()).or_default().push(line.clone());
                     }
@@ -98,7 +98,7 @@ impl SessionManager {
             let buffers = Arc::clone(&self.output_buffers);
             std::thread::spawn(move || {
                 let reader = BufReader::new(stderr);
-                for line in reader.lines().flatten() {
+                for line in reader.lines().map_while(Result::ok) {
                     if let Ok(mut b) = buffers.lock() {
                         b.entry(task_id_clone.clone()).or_default().push(line.clone());
                     }
