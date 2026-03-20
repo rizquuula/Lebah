@@ -21,6 +21,9 @@ make clean   # clean build artifacts
 - `src-tauri/src/` — Rust backend (Tauri commands, SQLite, Claude CLI management)
 - `src/` — Svelte frontend (kanban board UI)
 
+## Code Style
+- Keep all files under 300 lines; split into smaller modules if a file approaches this limit
+
 ## Git
 - Do NOT add `Co-Authored-By` lines to commit messages
 

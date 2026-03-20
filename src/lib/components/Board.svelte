@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import { tasks, loadTasks } from "../stores/tasks";
-  import { COLUMNS, type Task, type TaskColumn } from "../types";
+  import { COLUMNS, COLUMN_COLORS, type Task, type TaskColumn } from "../types";
   import Column from "./Column.svelte";
   import TaskModal from "./TaskModal.svelte";
 
@@ -26,6 +26,7 @@
         label={col.label}
         items={tasksByColumn($tasks, col.key)}
         onAddTask={() => (activeColumn = col)}
+        color={COLUMN_COLORS[col.key]}
       />
     </div>
   {/each}
@@ -35,6 +36,7 @@
   <TaskModal
     task={null}
     columnLabel={activeColumn.label}
+    columnColor={COLUMN_COLORS[activeColumn.key]}
     onClose={() => (activeColumn = null)}
   />
 {/if}

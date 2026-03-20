@@ -28,6 +28,14 @@ export const COLUMNS: { key: TaskColumn; label: string }[] = [
   { key: "Completed", label: "Completed" },
 ];
 
+export const COLUMN_COLORS: Record<TaskColumn, string> = {
+  Todo: "#89b4fa",
+  InProgress: "#f9e2af",
+  Review: "#cba6f7",
+  Merge: "#a6e3a1",
+  Completed: "#94e2d5",
+};
+
 export const STATUS_COLORS: Record<TaskStatus, string> = {
   Idle: "#6b7280",
   Running: "#eab308",

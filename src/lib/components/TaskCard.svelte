@@ -38,56 +38,59 @@
   <p class="description">{task.description}</p>
 
   <div class="controls">
-    <button class="btn-icon" title="Edit" on:click={() => (showEditModal = true)}>
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-      </svg>
-    </button>
+    {#if task.column !== "Todo"}
+      <label class="toggle" title="Use Plan">
+        <div class="toggle-track" class:active={task.use_plan}>
+          <div class="toggle-thumb"></div>
+        </div>
+        <input type="checkbox" checked={task.use_plan} on:change={togglePlan} class="sr-only" />
+        <span class="toggle-label">Plan</span>
+      </label>
 
-    <label class="toggle" title="Use Plan">
-      <div class="toggle-track" class:active={task.use_plan}>
-        <div class="toggle-thumb"></div>
-      </div>
-      <input type="checkbox" checked={task.use_plan} on:change={togglePlan} class="sr-only" />
-      <span class="toggle-label">Plan</span>
-    </label>
+      <button
+        class="btn-icon play"
+        class:active={isRunning}
+        title={isRunning ? "Stop" : "Run"}
+        on:click={handlePlay}
+      >
+        {#if isRunning}
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor">
+            <rect x="1" y="1" width="10" height="10" rx="1"/>
+          </svg>
+        {:else}
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor">
+            <path d="M2 1.5l9 4.5-9 4.5V1.5z"/>
+          </svg>
+        {/if}
+      </button>
 
-    <button
-      class="btn-icon play"
-      class:active={isRunning}
-      title={isRunning ? "Stop" : "Run"}
-      on:click={handlePlay}
-    >
-      {#if isRunning}
-        <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor">
-          <rect x="1" y="1" width="10" height="10" rx="1"/>
+      <button
+        class="btn-icon terminal-btn"
+        class:active={showTerminal}
+        title="Terminal"
+        on:click={() => (showTerminal = !showTerminal)}
+      >
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <polyline points="4 17 10 11 4 5"/>
+          <line x1="12" y1="19" x2="20" y2="19"/>
         </svg>
-      {:else}
-        <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor">
-          <path d="M2 1.5l9 4.5-9 4.5V1.5z"/>
+      </button>
+    {/if}
+
+    <div class="actions">
+      <button class="btn-icon" title="Edit" on:click={() => (showEditModal = true)}>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
         </svg>
-      {/if}
-    </button>
-
-    <button
-      class="btn-icon terminal-btn"
-      class:active={showTerminal}
-      title="Terminal"
-      on:click={() => (showTerminal = !showTerminal)}
-    >
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-        <polyline points="4 17 10 11 4 5"/>
-        <line x1="12" y1="19" x2="20" y2="19"/>
-      </svg>
-    </button>
-
-    <button class="btn-icon delete" title="Delete" on:click={() => deleteTask(task.id)}>
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-        <polyline points="3 6 5 6 21 6"/>
-        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
-      </svg>
-    </button>
+      </button>
+      <button class="btn-icon delete" title="Delete" on:click={() => deleteTask(task.id)}>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <polyline points="3 6 5 6 21 6"/>
+          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+        </svg>
+      </button>
+    </div>
   </div>
 
   <div class="meta">
@@ -208,8 +211,10 @@
     color: #89b4fa;
     border-color: rgba(137, 180, 250, 0.25);
   }
-  .btn-icon.delete {
+  .actions {
     margin-left: auto;
+    display: flex;
+    gap: 6px;
   }
   .btn-icon.delete:hover {
     background: rgba(243, 139, 168, 0.2);
