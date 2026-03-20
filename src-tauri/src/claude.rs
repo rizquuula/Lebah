@@ -70,8 +70,4 @@ impl SessionManager {
         }
     }
 
-    pub fn is_running(&self, task_id: &str) -> bool {
-        let sessions = self.sessions.lock().unwrap_or_else(|e| e.into_inner());
-        sessions.contains_key(task_id)
-    }
 }
