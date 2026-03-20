@@ -1,4 +1,4 @@
-.PHONY: help setup dev build clean setup-rust setup-node setup-tauri
+.PHONY: help setup dev build clean clean-soft setup-rust setup-node setup-tauri
 .DEFAULT_GOAL := help
 
 help:
@@ -9,7 +9,8 @@ help:
 	@echo "  setup   Install dependencies (Tauri CLI, npm packages, cargo deps)"
 	@echo "  dev     Run in development mode"
 	@echo "  build   Build for production"
-	@echo "  clean   Clean build artifacts"
+	@echo "  clean       Clean all build artifacts and dependencies"
+	@echo "  clean-soft  Clear caches only (Vite, Cargo incremental)"
 	@echo ""
 
 setup: setup-rust setup-node setup-tauri
@@ -32,6 +33,12 @@ dev:
 build:
 	cargo tauri build
 
-clean:
-	rm -rf dist node_modules
+clean-soft:
+	@echo "Clearing caches..."
+	rm -rf node_modules/.vite dist
+	cd src-tauri && cargo clean --profile dev
+
+clean: clean-soft
+	@echo "Cleaning all..."
+	rm -rf node_modules
 	cd src-tauri && cargo clean
