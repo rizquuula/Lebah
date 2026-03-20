@@ -22,11 +22,15 @@
     await updateTask({ ...task, use_plan: !task.use_plan });
   }
 
+  async function toggleYolo() {
+    await updateTask({ ...task, yolo: !task.yolo });
+  }
+
   async function handlePlay() {
     if (task.status === "Running") {
       await stopClaudeSession(task.id);
     } else {
-      await runClaudeSession(task.id, task.description, task.use_plan, task.claude_path, task.claude_command);
+      await runClaudeSession(task.id, task.description, task.use_plan, task.yolo, task.claude_path, task.claude_command);
     }
   }
 </script>
@@ -48,13 +52,22 @@
 
   <div class="controls">
     {#if task.column !== "Todo"}
-      <label class="toggle" title="Use Plan">
-        <div class="toggle-track" class:active={task.use_plan}>
-          <div class="toggle-thumb"></div>
-        </div>
-        <input type="checkbox" checked={task.use_plan} on:change={togglePlan} class="sr-only" />
-        <span class="toggle-label">Plan</span>
-      </label>
+      <div class="toggles">
+        <label class="toggle" title="Use Plan">
+          <div class="toggle-track" class:active={task.use_plan}>
+            <div class="toggle-thumb"></div>
+          </div>
+          <input type="checkbox" checked={task.use_plan} on:change={togglePlan} class="sr-only" />
+          <span class="toggle-label">Plan</span>
+        </label>
+        <label class="toggle yolo-toggle" title="Skip permissions (--dangerously-skip-permissions)">
+          <div class="toggle-track" class:active={task.yolo} class:yolo={task.yolo}>
+            <div class="toggle-thumb"></div>
+          </div>
+          <input type="checkbox" checked={task.yolo} on:change={toggleYolo} class="sr-only" />
+          <span class="toggle-label">Yolo</span>
+        </label>
+      </div>
 
       <button
         class="btn-icon play"
@@ -194,6 +207,11 @@
     gap: 6px;
     flex-wrap: wrap;
   }
+  .toggles {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
   .btn-icon {
     background: rgba(82, 82, 91, 0.5);
     color: rgba(205, 214, 244, 0.7);
@@ -294,6 +312,14 @@
     left: 13px;
     background: #89b4fa;
     box-shadow: 0 0 6px rgba(137, 180, 250, 0.4);
+  }
+  .toggle-track.yolo {
+    background: rgba(249, 115, 22, 0.25);
+    border-color: rgba(249, 115, 22, 0.4);
+  }
+  .toggle-track.yolo .toggle-thumb {
+    background: #f97316;
+    box-shadow: 0 0 6px rgba(249, 115, 22, 0.4);
   }
   .toggle-label {
     user-select: none;

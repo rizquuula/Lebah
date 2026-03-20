@@ -72,6 +72,7 @@ pub struct Task {
     pub column: TaskColumn,
     pub status: TaskStatus,
     pub use_plan: bool,
+    pub yolo: bool,
     pub sort_order: i32,
     pub created_at: String,
     pub claude_path: Option<String>,

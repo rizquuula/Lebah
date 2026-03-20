@@ -42,6 +42,10 @@ impl Database {
             conn.execute_batch("ALTER TABLE tasks ADD COLUMN claude_command TEXT;")
                 .map_err(|e| e.to_string())?;
         }
+        if !columns.contains(&"yolo".to_string()) {
+            conn.execute_batch("ALTER TABLE tasks ADD COLUMN yolo INTEGER NOT NULL DEFAULT 1;")
+                .map_err(|e| e.to_string())?;
+        }
 
         Ok(Database { conn: Mutex::new(conn) })
     }
@@ -49,7 +53,7 @@ impl Database {
     pub fn get_tasks(&self) -> Result<Vec<Task>, String> {
         let conn = self.conn.lock().map_err(|e| e.to_string())?;
         let mut stmt = conn
-            .prepare("SELECT id, description, column_name, status, use_plan, sort_order, created_at, claude_path, claude_command FROM tasks ORDER BY sort_order")
+            .prepare("SELECT id, description, column_name, status, use_plan, sort_order, created_at, claude_path, claude_command, yolo FROM tasks ORDER BY sort_order")
             .map_err(|e| e.to_string())?;
 
         let tasks = stmt
@@ -66,6 +70,7 @@ impl Database {
                     created_at: row.get(6)?,
                     claude_path: row.get(7)?,
                     claude_command: row.get(8)?,
+                    yolo: row.get::<_, i32>(9)? != 0,
                 })
             })
             .map_err(|e| e.to_string())?
@@ -78,7 +83,7 @@ impl Database {
     pub fn create_task(&self, id: &str, description: &str, created_at: &str, claude_path: Option<&str>, claude_command: Option<&str>) -> Result<(), String> {
         let conn = self.conn.lock().map_err(|e| e.to_string())?;
         conn.execute(
-            "INSERT INTO tasks (id, description, column_name, status, use_plan, sort_order, created_at, claude_path, claude_command) VALUES (?1, ?2, 'Todo', 'Idle', 0, 0, ?3, ?4, ?5)",
+            "INSERT INTO tasks (id, description, column_name, status, use_plan, yolo, sort_order, created_at, claude_path, claude_command) VALUES (?1, ?2, 'Todo', 'Idle', 0, 1, 0, ?3, ?4, ?5)",
             params![id, description, created_at, claude_path, claude_command],
         ).map_err(|e| e.to_string())?;
         Ok(())
@@ -87,12 +92,13 @@ impl Database {
     pub fn update_task(&self, task: &Task) -> Result<(), String> {
         let conn = self.conn.lock().map_err(|e| e.to_string())?;
         conn.execute(
-            "UPDATE tasks SET description = ?1, column_name = ?2, status = ?3, use_plan = ?4, sort_order = ?5, claude_path = ?6, claude_command = ?7 WHERE id = ?8",
+            "UPDATE tasks SET description = ?1, column_name = ?2, status = ?3, use_plan = ?4, yolo = ?5, sort_order = ?6, claude_path = ?7, claude_command = ?8 WHERE id = ?9",
             params![
                 task.description,
                 task.column.as_str(),
                 task.status.as_str(),
                 task.use_plan as i32,
+                task.yolo as i32,
                 task.sort_order,
                 task.claude_path,
                 task.claude_command,

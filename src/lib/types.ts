@@ -7,6 +7,7 @@ export interface Task {
   column: TaskColumn;
   status: TaskStatus;
   use_plan: boolean;
+  yolo: boolean;
   sort_order: number;
   created_at: string;
   claude_path: string | null;

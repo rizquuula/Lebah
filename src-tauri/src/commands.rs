@@ -28,6 +28,7 @@ pub fn create_task(
         column: TaskColumn::Todo,
         status: TaskStatus::Idle,
         use_plan: false,
+        yolo: true,
         sort_order: 0,
         created_at,
         claude_path,
@@ -57,6 +58,7 @@ pub fn run_claude_session(
     id: String,
     description: String,
     use_plan: bool,
+    yolo: bool,
     claude_path: Option<String>,
     claude_command: Option<String>,
     db: State<'_, Database>,
@@ -65,7 +67,7 @@ pub fn run_claude_session(
 ) -> Result<(), String> {
     let project_path = project_state.path.lock().map_err(|e| e.to_string())?.clone();
     db.update_task_status(&id, "Running")?;
-    session_manager.run_session(&app, &id, &description, use_plan, claude_path.as_deref(), claude_command.as_deref(), project_path.as_deref())?;
+    session_manager.run_session(&app, &id, &description, use_plan, yolo, claude_path.as_deref(), claude_command.as_deref(), project_path.as_deref())?;
 
     let app_dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
     let db_for_thread = Database::new(&app_dir)?;

@@ -21,6 +21,7 @@ impl SessionManager {
         task_id: &str,
         description: &str,
         use_plan: bool,
+        yolo: bool,
         claude_path: Option<&str>,
         claude_command: Option<&str>,
         project_path: Option<&str>,
@@ -41,6 +42,10 @@ impl SessionManager {
 
         if use_plan {
             cmd.arg("--plan");
+        }
+
+        if yolo {
+            cmd.arg("--dangerously-skip-permissions");
         }
 
         // Add custom command/args if provided

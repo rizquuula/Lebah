@@ -46,10 +46,11 @@ export async function runClaudeSession(
   id: string,
   description: string,
   usePlan: boolean,
+  yolo: boolean,
   claudePath: string | null = null,
   claudeCommand: string | null = null,
 ): Promise<void> {
-  await invoke("run_claude_session", { id, description, usePlan, claudePath, claudeCommand });
+  await invoke("run_claude_session", { id, description, usePlan, yolo, claudePath, claudeCommand });
   await loadTasks();
 }
 
