@@ -92,7 +92,7 @@
   }
   :global(body) {
     margin: 0;
-    background: #0a0a1a;
+    background: #09090b;
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     color: #cdd6f4;
     overflow: hidden;
@@ -102,9 +102,8 @@
     position: fixed;
     inset: 0;
     background:
-      radial-gradient(ellipse 800px 600px at 20% 20%, rgba(137, 180, 250, 0.08) 0%, transparent 70%),
-      radial-gradient(ellipse 600px 400px at 80% 80%, rgba(203, 166, 247, 0.06) 0%, transparent 70%),
-      radial-gradient(ellipse 500px 500px at 50% 50%, rgba(166, 227, 161, 0.04) 0%, transparent 70%);
+      radial-gradient(ellipse 800px 600px at 20% 20%, rgba(113, 113, 122, 0.06) 0%, transparent 70%),
+      radial-gradient(ellipse 600px 400px at 80% 80%, rgba(113, 113, 122, 0.04) 0%, transparent 70%);
     pointer-events: none;
     z-index: 0;
     animation: bgShift 20s ease-in-out infinite alternate;
@@ -140,7 +139,7 @@
     align-items: center;
     padding: 14px 20px;
     gap: 16px;
-    background: rgba(24, 24, 37, 0.6);
+    background: rgba(24, 24, 27, 0.6);
     backdrop-filter: blur(20px) saturate(1.5);
     -webkit-backdrop-filter: blur(20px) saturate(1.5);
     border-bottom: 1px solid rgba(137, 180, 250, 0.1);
@@ -230,7 +229,7 @@
     font-size: 12px;
     font-family: 'JetBrains Mono', 'Fira Code', monospace;
     color: rgba(205, 214, 244, 0.6);
-    background: rgba(49, 50, 68, 0.4);
+    background: rgba(63, 63, 70, 0.4);
     padding: 5px 10px;
     border-radius: 6px;
     border: 1px solid rgba(255, 255, 255, 0.04);

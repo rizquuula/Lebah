@@ -108,7 +108,7 @@
 
 <style>
   .card {
-    background: rgba(49, 50, 68, 0.4);
+    background: rgba(63, 63, 70, 0.4);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
     border: 1px solid rgba(255, 255, 255, 0.06);
@@ -163,7 +163,7 @@
     flex-wrap: wrap;
   }
   .btn-icon {
-    background: rgba(69, 71, 90, 0.5);
+    background: rgba(82, 82, 91, 0.5);
     color: rgba(205, 214, 244, 0.7);
     border: 1px solid rgba(255, 255, 255, 0.05);
     border-radius: 7px;
@@ -237,7 +237,7 @@
     width: 28px;
     height: 16px;
     border-radius: 8px;
-    background: rgba(69, 71, 90, 0.6);
+    background: rgba(82, 82, 91, 0.6);
     border: 1px solid rgba(255, 255, 255, 0.08);
     position: relative;
     transition: all 0.25s ease;

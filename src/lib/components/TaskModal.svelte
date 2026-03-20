@@ -5,6 +5,7 @@
   export let task: Task | null = null;
   export let onClose: () => void;
   export let columnLabel: string = "";
+  export let columnColor: string = "#89b4fa";
 
   let description = task?.description ?? "";
   let claudePath = task?.claude_path ?? "";
@@ -37,7 +38,7 @@
     <div class="modal-glow"></div>
     <h3>{task ? "Edit Task" : "New Task"}</h3>
     {#if columnLabel && !task}
-      <div class="stage-badge">Adding to <span>{columnLabel}</span></div>
+      <div class="stage-badge">Adding to <span style="--stage-color: {columnColor}">{columnLabel}</span></div>
     {/if}
     <form on:submit|preventDefault={handleSubmit}>
       <label class="field-label">Description</label>
@@ -94,7 +95,7 @@
     to { opacity: 1; }
   }
   .modal {
-    background: rgba(30, 30, 46, 0.75);
+    background: rgba(39, 39, 42, 0.75);
     backdrop-filter: blur(24px) saturate(1.5);
     -webkit-backdrop-filter: blur(24px) saturate(1.5);
     border: 1px solid rgba(137, 180, 250, 0.12);
@@ -139,9 +140,9 @@
     margin-top: -10px;
   }
   .stage-badge span {
-    color: #89b4fa;
-    background: rgba(137, 180, 250, 0.1);
-    border: 1px solid rgba(137, 180, 250, 0.2);
+    color: var(--stage-color, #89b4fa);
+    background: color-mix(in srgb, var(--stage-color, #89b4fa) 13%, transparent);
+    border: 1px solid color-mix(in srgb, var(--stage-color, #89b4fa) 25%, transparent);
     border-radius: 6px;
     padding: 2px 8px;
     font-weight: 600;
@@ -161,7 +162,7 @@
   }
   textarea, .text-input {
     width: 100%;
-    background: rgba(49, 50, 68, 0.5);
+    background: rgba(63, 63, 70, 0.5);
     color: #cdd6f4;
     border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: 10px;
@@ -205,12 +206,12 @@
     transition: all 0.2s ease;
   }
   .btn-cancel {
-    background: rgba(69, 71, 90, 0.5);
+    background: rgba(82, 82, 91, 0.5);
     color: rgba(205, 214, 244, 0.7);
     border: 1px solid rgba(255, 255, 255, 0.06);
   }
   .btn-cancel:hover {
-    background: rgba(69, 71, 90, 0.7);
+    background: rgba(82, 82, 91, 0.7);
     color: #cdd6f4;
   }
   .btn-save {

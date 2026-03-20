@@ -36,7 +36,7 @@
 
 <style>
   .terminal {
-    background: rgba(10, 10, 26, 0.7);
+    background: rgba(9, 9, 11, 0.7);
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
     color: rgba(224, 224, 224, 0.9);

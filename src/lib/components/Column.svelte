@@ -8,6 +8,7 @@
   export let label: string;
   export let items: Task[];
   export let onAddTask: () => void;
+  export let color: string = "#89b4fa";
 
   function handleDndConsider(e: CustomEvent) {
     items = e.detail.items;
@@ -24,7 +25,7 @@
   }
 </script>
 
-<div class="column">
+<div class="column" style="--col-color: {color}">
   <div class="column-header-glow"></div>
   <div class="header">
     <h2>{label}</h2>
@@ -50,10 +51,10 @@
 
 <style>
   .column {
-    background: rgba(30, 30, 46, 0.45);
+    background: rgba(39, 39, 42, 0.45);
     backdrop-filter: blur(16px) saturate(1.3);
     -webkit-backdrop-filter: blur(16px) saturate(1.3);
-    border: 1px solid rgba(137, 180, 250, 0.08);
+    border: 1px solid color-mix(in srgb, var(--col-color) 12%, transparent);
     border-radius: 14px;
     padding: 14px;
     display: flex;
@@ -65,8 +66,8 @@
     transition: border-color 0.3s ease, box-shadow 0.3s ease;
   }
   .column:hover {
-    border-color: rgba(137, 180, 250, 0.15);
-    box-shadow: 0 0 30px rgba(137, 180, 250, 0.05);
+    border-color: color-mix(in srgb, var(--col-color) 22%, transparent);
+    box-shadow: 0 0 30px color-mix(in srgb, var(--col-color) 8%, transparent);
   }
   .column-header-glow {
     position: absolute;
@@ -75,7 +76,7 @@
     transform: translateX(-50%);
     width: 60%;
     height: 1px;
-    background: linear-gradient(90deg, transparent, rgba(137, 180, 250, 0.3), transparent);
+    background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--col-color) 40%, transparent), transparent);
     opacity: 0.6;
   }
   .header {
@@ -95,8 +96,8 @@
     letter-spacing: 0.8px;
   }
   .count {
-    background: rgba(137, 180, 250, 0.12);
-    color: #89b4fa;
+    background: color-mix(in srgb, var(--col-color) 15%, transparent);
+    color: var(--col-color);
     font-size: 11px;
     font-weight: 600;
     padding: 2px 8px;
@@ -105,9 +106,9 @@
   }
   .btn-add {
     margin-left: auto;
-    background: rgba(137, 180, 250, 0.1);
-    color: #89b4fa;
-    border: 1px solid rgba(137, 180, 250, 0.15);
+    background: color-mix(in srgb, var(--col-color) 13%, transparent);
+    color: var(--col-color);
+    border: 1px solid color-mix(in srgb, var(--col-color) 20%, transparent);
     border-radius: 8px;
     width: 28px;
     height: 28px;
@@ -118,9 +119,9 @@
     transition: all 0.25s ease;
   }
   .btn-add:hover {
-    background: rgba(137, 180, 250, 0.25);
-    border-color: rgba(137, 180, 250, 0.4);
-    box-shadow: 0 0 12px rgba(137, 180, 250, 0.2);
+    background: color-mix(in srgb, var(--col-color) 28%, transparent);
+    border-color: color-mix(in srgb, var(--col-color) 45%, transparent);
+    box-shadow: 0 0 12px color-mix(in srgb, var(--col-color) 25%, transparent);
     transform: scale(1.1);
   }
   .btn-add:active {
