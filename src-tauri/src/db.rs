@@ -25,13 +25,31 @@ impl Database {
             );"
         ).map_err(|e| e.to_string())?;
 
+        // Migration: add claude_path and claude_command columns
+        let columns: Vec<String> = conn
+            .prepare("PRAGMA table_info(tasks)")
+            .map_err(|e| e.to_string())?
+            .query_map([], |row| row.get::<_, String>(1))
+            .map_err(|e| e.to_string())?
+            .filter_map(|r| r.ok())
+            .collect();
+
+        if !columns.contains(&"claude_path".to_string()) {
+            conn.execute_batch("ALTER TABLE tasks ADD COLUMN claude_path TEXT;")
+                .map_err(|e| e.to_string())?;
+        }
+        if !columns.contains(&"claude_command".to_string()) {
+            conn.execute_batch("ALTER TABLE tasks ADD COLUMN claude_command TEXT;")
+                .map_err(|e| e.to_string())?;
+        }
+
         Ok(Database { conn: Mutex::new(conn) })
     }
 
     pub fn get_tasks(&self) -> Result<Vec<Task>, String> {
         let conn = self.conn.lock().map_err(|e| e.to_string())?;
         let mut stmt = conn
-            .prepare("SELECT id, description, column_name, status, use_plan, sort_order, created_at FROM tasks ORDER BY sort_order")
+            .prepare("SELECT id, description, column_name, status, use_plan, sort_order, created_at, claude_path, claude_command FROM tasks ORDER BY sort_order")
             .map_err(|e| e.to_string())?;
 
         let tasks = stmt
@@ -46,6 +64,8 @@ impl Database {
                     use_plan: row.get::<_, i32>(4)? != 0,
                     sort_order: row.get(5)?,
                     created_at: row.get(6)?,
+                    claude_path: row.get(7)?,
+                    claude_command: row.get(8)?,
                 })
             })
             .map_err(|e| e.to_string())?
@@ -55,11 +75,11 @@ impl Database {
         Ok(tasks)
     }
 
-    pub fn create_task(&self, id: &str, description: &str, created_at: &str) -> Result<(), String> {
+    pub fn create_task(&self, id: &str, description: &str, created_at: &str, claude_path: Option<&str>, claude_command: Option<&str>) -> Result<(), String> {
         let conn = self.conn.lock().map_err(|e| e.to_string())?;
         conn.execute(
-            "INSERT INTO tasks (id, description, column_name, status, use_plan, sort_order, created_at) VALUES (?1, ?2, 'Todo', 'Idle', 0, 0, ?3)",
-            params![id, description, created_at],
+            "INSERT INTO tasks (id, description, column_name, status, use_plan, sort_order, created_at, claude_path, claude_command) VALUES (?1, ?2, 'Todo', 'Idle', 0, 0, ?3, ?4, ?5)",
+            params![id, description, created_at, claude_path, claude_command],
         ).map_err(|e| e.to_string())?;
         Ok(())
     }
@@ -67,13 +87,15 @@ impl Database {
     pub fn update_task(&self, task: &Task) -> Result<(), String> {
         let conn = self.conn.lock().map_err(|e| e.to_string())?;
         conn.execute(
-            "UPDATE tasks SET description = ?1, column_name = ?2, status = ?3, use_plan = ?4, sort_order = ?5 WHERE id = ?6",
+            "UPDATE tasks SET description = ?1, column_name = ?2, status = ?3, use_plan = ?4, sort_order = ?5, claude_path = ?6, claude_command = ?7 WHERE id = ?8",
             params![
                 task.description,
                 task.column.as_str(),
                 task.status.as_str(),
                 task.use_plan as i32,
                 task.sort_order,
+                task.claude_path,
+                task.claude_command,
                 task.id,
             ],
         ).map_err(|e| e.to_string())?;

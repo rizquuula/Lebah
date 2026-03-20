@@ -9,8 +9,16 @@ export async function loadTasks() {
   tasks.set(result);
 }
 
-export async function createTask(description: string): Promise<Task> {
-  const task = await invoke<Task>("create_task", { description });
+export async function createTask(
+  description: string,
+  claudePath: string | null = null,
+  claudeCommand: string | null = null,
+): Promise<Task> {
+  const task = await invoke<Task>("create_task", {
+    description,
+    claudePath,
+    claudeCommand,
+  });
   await loadTasks();
   return task;
 }
@@ -38,8 +46,10 @@ export async function runClaudeSession(
   id: string,
   description: string,
   usePlan: boolean,
+  claudePath: string | null = null,
+  claudeCommand: string | null = null,
 ): Promise<void> {
-  await invoke("run_claude_session", { id, description, usePlan });
+  await invoke("run_claude_session", { id, description, usePlan, claudePath, claudeCommand });
   await loadTasks();
 }
 

@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use std::sync::Mutex;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub enum TaskColumn {
@@ -73,4 +74,19 @@ pub struct Task {
     pub use_plan: bool,
     pub sort_order: i32,
     pub created_at: String,
+    pub claude_path: Option<String>,
+    pub claude_command: Option<String>,
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct GitStatus {
+    pub branch: String,
+    pub ahead: u32,
+    pub behind: u32,
+    pub changed_files: u32,
+}
+
+pub struct ProjectState {
+    pub path: Mutex<Option<String>>,
+}
+

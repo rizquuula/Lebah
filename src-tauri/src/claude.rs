@@ -21,6 +21,9 @@ impl SessionManager {
         task_id: &str,
         description: &str,
         use_plan: bool,
+        claude_path: Option<&str>,
+        claude_command: Option<&str>,
+        project_path: Option<&str>,
     ) -> Result<(), String> {
         let mut sessions = self.sessions.lock().map_err(|e| e.to_string())?;
 
@@ -28,11 +31,23 @@ impl SessionManager {
             return Err("Session already running for this task".to_string());
         }
 
-        let mut cmd = Command::new("claude");
+        let binary = claude_path.unwrap_or("claude");
+        let mut cmd = Command::new(binary);
         cmd.arg("--session-id").arg(task_id);
+
+        if let Some(project) = project_path {
+            cmd.current_dir(project);
+        }
 
         if use_plan {
             cmd.arg("--plan");
+        }
+
+        // Add custom command/args if provided
+        if let Some(extra) = claude_command {
+            for arg in extra.split_whitespace() {
+                cmd.arg(arg);
+            }
         }
 
         cmd.arg("--message").arg(description);

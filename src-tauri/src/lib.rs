@@ -5,10 +5,13 @@ mod models;
 
 use claude::SessionManager;
 use db::Database;
+use models::ProjectState;
+use std::sync::Mutex;
 use tauri::Manager;
 
 pub fn run() {
     tauri::Builder::default()
+        .plugin(tauri_plugin_dialog::init())
         .setup(|app| {
             let app_dir = app
                 .path()
@@ -17,6 +20,9 @@ pub fn run() {
             let database = Database::new(&app_dir).expect("Failed to initialize database");
             app.manage(database);
             app.manage(SessionManager::new());
+            app.manage(ProjectState {
+                path: Mutex::new(None),
+            });
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -27,6 +33,9 @@ pub fn run() {
             commands::move_task,
             commands::run_claude_session,
             commands::stop_claude_session,
+            commands::set_project_path,
+            commands::get_project_path,
+            commands::get_git_status,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

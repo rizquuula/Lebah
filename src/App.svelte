@@ -1,5 +1,28 @@
 <script lang="ts">
+  import { onMount, onDestroy } from "svelte";
+  import { open } from "@tauri-apps/plugin-dialog";
   import Board from "./lib/components/Board.svelte";
+  import { projectPath, gitStatus, openProject, loadProjectPath, refreshGitStatus } from "./lib/stores/project";
+
+  let gitPollInterval: ReturnType<typeof setInterval>;
+
+  onMount(async () => {
+    await loadProjectPath();
+    gitPollInterval = setInterval(() => {
+      if ($projectPath) refreshGitStatus();
+    }, 10000);
+  });
+
+  onDestroy(() => {
+    clearInterval(gitPollInterval);
+  });
+
+  async function handleOpenProject() {
+    const selected = await open({ directory: true, multiple: false });
+    if (selected && typeof selected === "string") {
+      await openProject(selected);
+    }
+  }
 </script>
 
 <main>
@@ -25,6 +48,39 @@
       <h1>LebahTempa</h1>
       <span class="subtitle">Claude Code Orchestrator</span>
     </div>
+
+    <div class="project-bar">
+      <button class="btn-open" on:click={handleOpenProject}>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/>
+        </svg>
+        Open Project
+      </button>
+
+      {#if $projectPath}
+        <span class="project-path" title={$projectPath}>{$projectPath}</span>
+      {/if}
+
+      {#if $gitStatus}
+        <div class="git-info">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="18" cy="18" r="3"/><circle cx="6" cy="6" r="3"/>
+            <path d="M6 21V9a9 9 0 009 9"/>
+          </svg>
+          <span class="branch-name">{$gitStatus.branch}</span>
+          {#if $gitStatus.ahead > 0}
+            <span class="git-badge ahead" title="{$gitStatus.ahead} ahead">↑{$gitStatus.ahead}</span>
+          {/if}
+          {#if $gitStatus.behind > 0}
+            <span class="git-badge behind" title="{$gitStatus.behind} behind">↓{$gitStatus.behind}</span>
+          {/if}
+          {#if $gitStatus.changed_files > 0}
+            <span class="git-badge changes" title="{$gitStatus.changed_files} changed files">●{$gitStatus.changed_files}</span>
+          {/if}
+        </div>
+      {/if}
+    </div>
+
     <div class="header-glow"></div>
   </header>
   <Board />
@@ -83,6 +139,7 @@
     display: flex;
     align-items: center;
     padding: 14px 20px;
+    gap: 16px;
     background: rgba(24, 24, 37, 0.6);
     backdrop-filter: blur(20px) saturate(1.5);
     -webkit-backdrop-filter: blur(20px) saturate(1.5);
@@ -112,6 +169,7 @@
     display: flex;
     align-items: center;
     gap: 12px;
+    flex-shrink: 0;
   }
   .logo-icon {
     display: flex;
@@ -136,5 +194,83 @@
     color: rgba(108, 112, 134, 0.8);
     padding-left: 4px;
     border-left: 1px solid rgba(108, 112, 134, 0.3);
+  }
+
+  /* Project bar */
+  .project-bar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-left: auto;
+    flex-shrink: 1;
+    min-width: 0;
+  }
+  .btn-open {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 14px;
+    background: rgba(137, 180, 250, 0.1);
+    color: #89b4fa;
+    border: 1px solid rgba(137, 180, 250, 0.15);
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 500;
+    white-space: nowrap;
+    transition: all 0.2s ease;
+    font-family: inherit;
+  }
+  .btn-open:hover {
+    background: rgba(137, 180, 250, 0.2);
+    border-color: rgba(137, 180, 250, 0.35);
+    box-shadow: 0 0 12px rgba(137, 180, 250, 0.15);
+  }
+  .project-path {
+    font-size: 12px;
+    font-family: 'JetBrains Mono', 'Fira Code', monospace;
+    color: rgba(205, 214, 244, 0.6);
+    background: rgba(49, 50, 68, 0.4);
+    padding: 5px 10px;
+    border-radius: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.04);
+    max-width: 300px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    direction: rtl;
+    text-align: left;
+  }
+  .git-info {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: rgba(205, 214, 244, 0.7);
+    font-size: 13px;
+    flex-shrink: 0;
+  }
+  .branch-name {
+    font-family: 'JetBrains Mono', 'Fira Code', monospace;
+    font-size: 12px;
+    color: #a6e3a1;
+  }
+  .git-badge {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 1px 6px;
+    border-radius: 8px;
+    font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  }
+  .git-badge.ahead {
+    background: rgba(137, 180, 250, 0.15);
+    color: #89b4fa;
+  }
+  .git-badge.behind {
+    background: rgba(243, 139, 168, 0.15);
+    color: #f38ba8;
+  }
+  .git-badge.changes {
+    background: rgba(249, 226, 175, 0.15);
+    color: #f9e2af;
   }
 </style>

@@ -24,7 +24,7 @@
     if (task.status === "Running") {
       await stopClaudeSession(task.id);
     } else {
-      await runClaudeSession(task.id, task.description, task.use_plan);
+      await runClaudeSession(task.id, task.description, task.use_plan, task.claude_path, task.claude_command);
     }
   }
 </script>

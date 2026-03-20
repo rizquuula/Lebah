@@ -9,6 +9,15 @@ export interface Task {
   use_plan: boolean;
   sort_order: number;
   created_at: string;
+  claude_path: string | null;
+  claude_command: string | null;
+}
+
+export interface GitStatus {
+  branch: string;
+  ahead: number;
+  behind: number;
+  changed_files: number;
 }
 
 export const COLUMNS: { key: TaskColumn; label: string }[] = [

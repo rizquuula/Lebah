@@ -6,14 +6,24 @@
   export let onClose: () => void;
 
   let description = task?.description ?? "";
+  let claudePath = task?.claude_path ?? "";
+  let claudeCommand = task?.claude_command ?? "";
 
   async function handleSubmit() {
     if (!description.trim()) return;
 
+    const pathVal = claudePath.trim() || null;
+    const cmdVal = claudeCommand.trim() || null;
+
     if (task) {
-      await updateTask({ ...task, description: description.trim() });
+      await updateTask({
+        ...task,
+        description: description.trim(),
+        claude_path: pathVal,
+        claude_command: cmdVal,
+      });
     } else {
-      await createTask(description.trim());
+      await createTask(description.trim(), pathVal, cmdVal);
     }
     onClose();
   }
@@ -26,11 +36,29 @@
     <div class="modal-glow"></div>
     <h3>{task ? "Edit Task" : "New Task"}</h3>
     <form on:submit|preventDefault={handleSubmit}>
+      <label class="field-label">Description</label>
       <textarea
         bind:value={description}
         placeholder="Describe the task for Claude..."
         rows="4"
       ></textarea>
+
+      <label class="field-label">Claude Code Path</label>
+      <input
+        type="text"
+        bind:value={claudePath}
+        placeholder="claude (default)"
+        class="text-input"
+      />
+
+      <label class="field-label">Extra Arguments</label>
+      <input
+        type="text"
+        bind:value={claudeCommand}
+        placeholder="e.g. --model opus --verbose"
+        class="text-input"
+      />
+
       <div class="actions">
         <button type="button" class="btn-cancel" on:click={onClose}>Cancel</button>
         <button type="submit" class="btn-save">
@@ -68,7 +96,7 @@
     border: 1px solid rgba(137, 180, 250, 0.12);
     border-radius: 16px;
     padding: 28px;
-    width: 480px;
+    width: 520px;
     max-width: 90vw;
     position: relative;
     overflow: hidden;
@@ -94,7 +122,20 @@
     font-size: 16px;
     font-weight: 600;
   }
-  textarea {
+  .field-label {
+    display: block;
+    font-size: 12px;
+    font-weight: 500;
+    color: rgba(205, 214, 244, 0.5);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 6px;
+    margin-top: 14px;
+  }
+  .field-label:first-of-type {
+    margin-top: 0;
+  }
+  textarea, .text-input {
     width: 100%;
     background: rgba(49, 50, 68, 0.5);
     color: #cdd6f4;
@@ -103,24 +144,29 @@
     padding: 12px;
     font-family: inherit;
     font-size: 14px;
-    resize: vertical;
     box-sizing: border-box;
     transition: border-color 0.25s ease, box-shadow 0.25s ease;
     line-height: 1.5;
   }
-  textarea:focus {
+  textarea {
+    resize: vertical;
+  }
+  .text-input {
+    height: 42px;
+  }
+  textarea:focus, .text-input:focus {
     outline: none;
     border-color: rgba(137, 180, 250, 0.35);
     box-shadow: 0 0 16px rgba(137, 180, 250, 0.08);
   }
-  textarea::placeholder {
+  textarea::placeholder, .text-input::placeholder {
     color: rgba(108, 112, 134, 0.6);
   }
   .actions {
     display: flex;
     justify-content: flex-end;
     gap: 8px;
-    margin-top: 16px;
+    margin-top: 20px;
   }
   button {
     padding: 9px 18px;
