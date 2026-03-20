@@ -27,15 +27,20 @@
 </script>
 
 <div class="column">
+  <div class="column-header-glow"></div>
   <div class="header">
     <h2>{label}</h2>
     <span class="count">{items.length}</span>
-    <button class="btn-add" on:click={() => (showNewModal = true)}>+</button>
+    <button class="btn-add" on:click={() => (showNewModal = true)}>
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+        <path d="M7 1v12M1 7h12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+      </svg>
+    </button>
   </div>
 
   <div
     class="task-list"
-    use:dndzone={{ items, flipDurationMs: 200, dropTargetStyle: { outline: "2px dashed #89b4fa" } }}
+    use:dndzone={{ items, flipDurationMs: 250, dropTargetStyle: { outline: "2px dashed rgba(137, 180, 250, 0.4)", borderRadius: "8px" } }}
     on:consider={handleDndConsider}
     on:finalize={handleDndFinalize}
   >
@@ -51,58 +56,86 @@
 
 <style>
   .column {
-    background: #1e1e2e;
-    border-radius: 8px;
-    padding: 12px;
-    min-width: 250px;
-    max-width: 300px;
-    flex: 1;
+    background: rgba(30, 30, 46, 0.45);
+    backdrop-filter: blur(16px) saturate(1.3);
+    -webkit-backdrop-filter: blur(16px) saturate(1.3);
+    border: 1px solid rgba(137, 180, 250, 0.08);
+    border-radius: 14px;
+    padding: 14px;
     display: flex;
     flex-direction: column;
     max-height: calc(100vh - 80px);
+    height: 100%;
+    position: relative;
+    overflow: hidden;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+  }
+  .column:hover {
+    border-color: rgba(137, 180, 250, 0.15);
+    box-shadow: 0 0 30px rgba(137, 180, 250, 0.05);
+  }
+  .column-header-glow {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 60%;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(137, 180, 250, 0.3), transparent);
+    opacity: 0.6;
   }
   .header {
     display: flex;
     align-items: center;
     gap: 8px;
-    margin-bottom: 12px;
+    margin-bottom: 14px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
   }
   h2 {
     margin: 0;
-    font-size: 14px;
+    font-size: 13px;
     font-weight: 600;
-    color: #cdd6f4;
+    color: rgba(205, 214, 244, 0.85);
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.8px;
   }
   .count {
-    background: #45475a;
-    color: #a6adc8;
-    font-size: 12px;
-    padding: 1px 7px;
+    background: rgba(137, 180, 250, 0.12);
+    color: #89b4fa;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 8px;
     border-radius: 10px;
+    transition: background 0.2s ease;
   }
   .btn-add {
     margin-left: auto;
-    background: #45475a;
-    color: #cdd6f4;
-    border: none;
-    border-radius: 4px;
-    width: 24px;
-    height: 24px;
-    font-size: 16px;
+    background: rgba(137, 180, 250, 0.1);
+    color: #89b4fa;
+    border: 1px solid rgba(137, 180, 250, 0.15);
+    border-radius: 8px;
+    width: 28px;
+    height: 28px;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
+    transition: all 0.25s ease;
   }
   .btn-add:hover {
-    background: #89b4fa;
-    color: #1e1e2e;
+    background: rgba(137, 180, 250, 0.25);
+    border-color: rgba(137, 180, 250, 0.4);
+    box-shadow: 0 0 12px rgba(137, 180, 250, 0.2);
+    transform: scale(1.1);
+  }
+  .btn-add:active {
+    transform: scale(0.95);
   }
   .task-list {
     flex: 1;
     overflow-y: auto;
     min-height: 50px;
+    padding-right: 2px;
   }
 </style>
