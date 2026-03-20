@@ -3,6 +3,7 @@
   import { STATUS_COLORS, type Task } from "../types";
   import TaskTerminal from "./TaskTerminal.svelte";
   import TaskModal from "./TaskModal.svelte";
+  import { portal } from "../actions/portal";
 
   export let task: Task;
 
@@ -113,7 +114,9 @@
 </div>
 
 {#if showEditModal}
-  <TaskModal {task} onClose={() => (showEditModal = false)} />
+  <div use:portal>
+    <TaskModal {task} onClose={() => (showEditModal = false)} />
+  </div>
 {/if}
 
 <style>
