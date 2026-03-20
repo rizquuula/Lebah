@@ -85,6 +85,15 @@ pub fn run_claude_session(
 }
 
 #[tauri::command]
+pub fn send_input(
+    id: String,
+    input: String,
+    session_manager: State<'_, SessionManager>,
+) -> Result<(), String> {
+    session_manager.send_input(&id, &input)
+}
+
+#[tauri::command]
 pub fn stop_claude_session(
     id: String,
     db: State<'_, Database>,

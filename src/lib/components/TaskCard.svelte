@@ -1,7 +1,7 @@
 <script lang="ts">
   import { updateTask, runClaudeSession, stopClaudeSession, deleteTask } from "../stores/tasks";
   import { STATUS_COLORS, type Task } from "../types";
-  import TaskTerminal from "./TaskTerminal.svelte";
+  import TerminalModal from "./TerminalModal.svelte";
   import TaskModal from "./TaskModal.svelte";
   import { portal } from "../actions/portal";
   import { dragHandle } from "svelte-dnd-action";
@@ -120,12 +120,13 @@
     <span class="status" style="color: {borderColor}">{task.status}</span>
   </div>
 
-  {#if showTerminal}
-    <div class="terminal-wrapper">
-      <TaskTerminal taskId={task.id} />
-    </div>
-  {/if}
 </div>
+
+{#if showTerminal}
+  <div use:portal>
+    <TerminalModal {task} onClose={() => (showTerminal = false)} />
+  </div>
+{/if}
 
 {#if showEditModal}
   <div use:portal>
@@ -342,13 +343,5 @@
     text-transform: uppercase;
     font-size: 10px;
     letter-spacing: 0.5px;
-  }
-  .terminal-wrapper {
-    margin-top: 8px;
-    animation: terminalSlide 0.3s ease-out;
-  }
-  @keyframes terminalSlide {
-    from { opacity: 0; max-height: 0; }
-    to { opacity: 1; max-height: 300px; }
   }
 </style>

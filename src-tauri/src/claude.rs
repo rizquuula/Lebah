@@ -1,17 +1,19 @@
 use std::collections::HashMap;
-use std::io::{BufRead, BufReader};
-use std::process::{Child, Command, Stdio};
+use std::io::{BufRead, BufReader, Write};
+use std::process::{Child, ChildStdin, Command, Stdio};
 use std::sync::Mutex;
 use tauri::{AppHandle, Emitter};
 
 pub struct SessionManager {
     pub sessions: Mutex<HashMap<String, Child>>,
+    pub stdins: Mutex<HashMap<String, ChildStdin>>,
 }
 
 impl SessionManager {
     pub fn new() -> Self {
         SessionManager {
             sessions: Mutex::new(HashMap::new()),
+            stdins: Mutex::new(HashMap::new()),
         }
     }
 
@@ -56,11 +58,12 @@ impl SessionManager {
         }
 
         cmd.arg("--message").arg(description);
-        cmd.stdout(Stdio::piped()).stderr(Stdio::piped());
+        cmd.stdin(Stdio::piped()).stdout(Stdio::piped()).stderr(Stdio::piped());
 
         let mut child = cmd.spawn().map_err(|e| format!("Failed to spawn claude: {}", e))?;
 
         let stdout = child.stdout.take();
+        let stdin = child.stdin.take();
         let task_id_clone = task_id.to_string();
         let app_clone = app.clone();
 
@@ -76,11 +79,32 @@ impl SessionManager {
             });
         }
 
+        if let Some(stdin) = stdin {
+            let mut stdins = self.stdins.lock().map_err(|e| e.to_string())?;
+            stdins.insert(task_id.to_string(), stdin);
+        }
+
         sessions.insert(task_id.to_string(), child);
         Ok(())
     }
 
+    pub fn send_input(&self, task_id: &str, input: &str) -> Result<(), String> {
+        let mut stdins = self.stdins.lock().map_err(|e| e.to_string())?;
+        if let Some(stdin) = stdins.get_mut(task_id) {
+            stdin.write_all(input.as_bytes()).map_err(|e| e.to_string())?;
+            stdin.write_all(b"\n").map_err(|e| e.to_string())?;
+            stdin.flush().map_err(|e| e.to_string())?;
+            Ok(())
+        } else {
+            Err("No running session for this task".to_string())
+        }
+    }
+
     pub fn stop_session(&self, task_id: &str) -> Result<(), String> {
+        let mut stdins = self.stdins.lock().map_err(|e| e.to_string())?;
+        stdins.remove(task_id);
+        drop(stdins);
+
         let mut sessions = self.sessions.lock().map_err(|e| e.to_string())?;
         if let Some(mut child) = sessions.remove(task_id) {
             child.kill().map_err(|e| e.to_string())?;

@@ -33,6 +33,7 @@ pub fn run() {
             commands::move_task,
             commands::run_claude_session,
             commands::stop_claude_session,
+            commands::send_input,
             commands::set_project_path,
             commands::get_project_path,
             commands::get_git_status,

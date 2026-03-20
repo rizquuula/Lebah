@@ -58,3 +58,7 @@ export async function stopClaudeSession(id: string): Promise<void> {
   await invoke("stop_claude_session", { id });
   await loadTasks();
 }
+
+export async function sendInput(id: string, input: string): Promise<void> {
+  await invoke("send_input", { id, input });
+}

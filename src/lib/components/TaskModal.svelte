@@ -41,23 +41,26 @@
       <div class="stage-badge">Adding to <span style="--stage-color: {columnColor}">{columnLabel}</span></div>
     {/if}
     <form on:submit|preventDefault={handleSubmit}>
-      <label class="field-label">Description</label>
+      <label class="field-label" for="task-description">Description</label>
       <textarea
+        id="task-description"
         bind:value={description}
         placeholder="Describe the task for Claude..."
         rows="4"
       ></textarea>
 
-      <label class="field-label">Claude Code Path</label>
+      <label class="field-label" for="task-claude-path">Claude Code Path</label>
       <input
+        id="task-claude-path"
         type="text"
         bind:value={claudePath}
         placeholder="claude (default)"
         class="text-input"
       />
 
-      <label class="field-label">Extra Arguments</label>
+      <label class="field-label" for="task-claude-command">Extra Arguments</label>
       <input
+        id="task-claude-command"
         type="text"
         bind:value={claudeCommand}
         placeholder="e.g. --model opus --verbose"
