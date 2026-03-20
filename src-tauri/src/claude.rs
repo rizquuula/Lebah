@@ -19,6 +19,7 @@ impl SessionManager {
         }
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub fn run_session(
         &self,
         app: &AppHandle,
@@ -81,13 +82,11 @@ impl SessionManager {
             let buffers = Arc::clone(&self.output_buffers);
             std::thread::spawn(move || {
                 let reader = BufReader::new(stdout);
-                for line in reader.lines() {
-                    if let Ok(line) = line {
-                        if let Ok(mut b) = buffers.lock() {
-                            b.entry(task_id_clone.clone()).or_default().push(line.clone());
-                        }
-                        let _ = app_clone.emit(&format!("claude-output-{}", task_id_clone), &line);
+                for line in reader.lines().flatten() {
+                    if let Ok(mut b) = buffers.lock() {
+                        b.entry(task_id_clone.clone()).or_default().push(line.clone());
                     }
+                    let _ = app_clone.emit(&format!("claude-output-{}", task_id_clone), &line);
                 }
             });
         }
@@ -99,13 +98,11 @@ impl SessionManager {
             let buffers = Arc::clone(&self.output_buffers);
             std::thread::spawn(move || {
                 let reader = BufReader::new(stderr);
-                for line in reader.lines() {
-                    if let Ok(line) = line {
-                        if let Ok(mut b) = buffers.lock() {
-                            b.entry(task_id_clone.clone()).or_default().push(line.clone());
-                        }
-                        let _ = app_clone.emit(&format!("claude-output-{}", task_id_clone), &line);
+                for line in reader.lines().flatten() {
+                    if let Ok(mut b) = buffers.lock() {
+                        b.entry(task_id_clone.clone()).or_default().push(line.clone());
                     }
+                    let _ = app_clone.emit(&format!("claude-output-{}", task_id_clone), &line);
                 }
             });
         }

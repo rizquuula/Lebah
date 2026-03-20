@@ -52,6 +52,7 @@ pub fn move_task(id: String, column: String, sort_order: i32, db: State<'_, Data
     db.move_task(&id, &column, sort_order)
 }
 
+#[allow(clippy::too_many_arguments)]
 #[tauri::command]
 pub fn run_claude_session(
     app: AppHandle,
