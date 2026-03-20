@@ -4,6 +4,7 @@
   import TaskTerminal from "./TaskTerminal.svelte";
   import TaskModal from "./TaskModal.svelte";
   import { portal } from "../actions/portal";
+  import { dragHandle } from "svelte-dnd-action";
 
   export let task: Task;
 
@@ -36,7 +37,7 @@
   style="--border-color: {borderColor}; --glow-color: {glowColor}"
 >
   <div class="card-border-top"></div>
-  <div class="drag-handle" title="Drag to move">
+  <div class="drag-handle" use:dragHandle title="Drag to move">
     <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
       <circle cx="9" cy="5" r="1.5"/><circle cx="15" cy="5" r="1.5"/>
       <circle cx="9" cy="12" r="1.5"/><circle cx="15" cy="12" r="1.5"/>
