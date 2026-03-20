@@ -31,7 +31,7 @@
       await stopClaudeSession(task.id);
     } else {
       try {
-        await runClaudeSession(task.id, task.description, task.use_plan, task.yolo, task.claude_path, task.claude_command);
+        await runClaudeSession(task.id, task.description, task.use_plan, task.yolo, task.claude_path, task.claude_command, task.worktree);
       } catch (e) {
         showTerminal = true;
       }

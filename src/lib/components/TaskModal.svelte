@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { invoke } from "@tauri-apps/api/core";
   import { createTask, updateTask } from "../stores/tasks";
   import type { Task } from "../types";
 
@@ -10,12 +11,28 @@
   let description = task?.description ?? "";
   let claudePath = task?.claude_path ?? "";
   let claudeCommand = task?.claude_command ?? "";
+  let worktree = task?.worktree ?? "";
+  let worktreeError = "";
 
   async function handleSubmit() {
     if (!description.trim()) return;
 
     const pathVal = claudePath.trim() || null;
     const cmdVal = claudeCommand.trim() || null;
+    const worktreeVal = worktree.trim() || null;
+
+    if (!task) {
+      if (!worktreeVal) {
+        worktreeError = "Worktree path is required";
+        return;
+      }
+      const exists = await invoke<boolean>("check_path_exists", { path: worktreeVal });
+      if (exists) {
+        worktreeError = "Path already exists";
+        return;
+      }
+    }
+    worktreeError = "";
 
     if (task) {
       await updateTask({
@@ -25,7 +42,7 @@
         claude_command: cmdVal,
       });
     } else {
-      await createTask(description.trim(), pathVal, cmdVal);
+      await createTask(description.trim(), pathVal, cmdVal, worktreeVal);
     }
     onClose();
   }
@@ -66,6 +83,23 @@
         placeholder="e.g. --model opus --verbose"
         class="text-input"
       />
+
+      <label class="field-label" for="task-worktree">Worktree Path</label>
+      {#if task}
+        <div class="text-input readonly-field">{task.worktree ?? "—"}</div>
+      {:else}
+        <input
+          id="task-worktree"
+          type="text"
+          bind:value={worktree}
+          placeholder="/path/to/worktree"
+          class="text-input"
+          class:input-error={!!worktreeError}
+        />
+        {#if worktreeError}
+          <div class="field-error">{worktreeError}</div>
+        {/if}
+      {/if}
 
       <div class="actions">
         <button type="button" class="btn-cancel" on:click={onClose}>Cancel</button>
@@ -189,6 +223,22 @@
   }
   textarea::placeholder, .text-input::placeholder {
     color: rgba(108, 112, 134, 0.6);
+  }
+  .readonly-field {
+    display: flex;
+    align-items: center;
+    color: rgba(205, 214, 244, 0.45);
+    cursor: default;
+    user-select: text;
+  }
+  .input-error {
+    border-color: rgba(239, 68, 68, 0.5) !important;
+    box-shadow: 0 0 12px rgba(239, 68, 68, 0.1);
+  }
+  .field-error {
+    font-size: 12px;
+    color: rgba(239, 68, 68, 0.85);
+    margin-top: 4px;
   }
   .actions {
     display: flex;

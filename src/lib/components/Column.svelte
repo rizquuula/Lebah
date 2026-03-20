@@ -30,11 +30,13 @@
   <div class="header">
     <h2>{label}</h2>
     <span class="count">{items.length}</span>
-    <button class="btn-add" on:click={onAddTask} title="Add task" aria-label="Add task">
-      <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-        <path d="M7 1v12M1 7h12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-      </svg>
-    </button>
+    {#if column === "Todo"}
+      <button class="btn-add" on:click={onAddTask} title="Add task" aria-label="Add task">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+          <path d="M7 1v12M1 7h12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+      </button>
+    {/if}
   </div>
 
   <div

@@ -29,6 +29,7 @@ impl SessionManager {
         yolo: bool,
         claude_path: Option<&str>,
         claude_command: Option<&str>,
+        worktree: Option<&str>,
         project_path: Option<&str>,
     ) -> Result<(), String> {
         let mut sessions = self.sessions.lock().map_err(|e| e.to_string())?;
@@ -58,6 +59,10 @@ impl SessionManager {
         if yolo {
             cmd.env("IS_SANDBOX", "1");
             cmd.arg("--dangerously-skip-permissions");
+        }
+
+        if let Some(wt) = worktree {
+            cmd.arg("--worktree").arg(wt);
         }
 
         if let Some(extra) = claude_command {

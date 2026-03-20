@@ -13,11 +13,13 @@ export async function createTask(
   description: string,
   claudePath: string | null = null,
   claudeCommand: string | null = null,
+  worktree: string | null = null,
 ): Promise<Task> {
   const task = await invoke<Task>("create_task", {
     description,
     claudePath,
     claudeCommand,
+    worktree,
   });
   await loadTasks();
   return task;
@@ -49,9 +51,10 @@ export async function runClaudeSession(
   yolo: boolean,
   claudePath: string | null = null,
   claudeCommand: string | null = null,
+  worktree: string | null = null,
 ): Promise<void> {
   try {
-    await invoke("run_claude_session", { id, description, usePlan, yolo, claudePath, claudeCommand });
+    await invoke("run_claude_session", { id, description, usePlan, yolo, claudePath, claudeCommand, worktree });
   } finally {
     await loadTasks();
   }

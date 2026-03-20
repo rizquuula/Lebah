@@ -12,6 +12,7 @@ export interface Task {
   created_at: string;
   claude_path: string | null;
   claude_command: string | null;
+  worktree: string | null;
 }
 
 export interface GitStatus {

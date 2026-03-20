@@ -37,7 +37,7 @@ setup-tauri:
 	cargo install tauri-cli --version "^2"
 
 dev:
-	cargo tauri dev
+	cargo tauri dev --no-watch
 
 build:
 	cargo tauri build

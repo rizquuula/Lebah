@@ -16,11 +16,12 @@ pub fn create_task(
     description: String,
     claude_path: Option<String>,
     claude_command: Option<String>,
+    worktree: Option<String>,
     db: State<'_, Database>,
 ) -> Result<Task, String> {
     let id = Uuid::new_v4().to_string();
     let created_at = chrono::Utc::now().to_rfc3339();
-    db.create_task(&id, &description, &created_at, claude_path.as_deref(), claude_command.as_deref())?;
+    db.create_task(&id, &description, &created_at, claude_path.as_deref(), claude_command.as_deref(), worktree.as_deref())?;
 
     Ok(Task {
         id,
@@ -33,6 +34,7 @@ pub fn create_task(
         created_at,
         claude_path,
         claude_command,
+        worktree,
     })
 }
 
@@ -42,7 +44,18 @@ pub fn update_task(task: Task, db: State<'_, Database>) -> Result<(), String> {
 }
 
 #[tauri::command]
+pub fn check_path_exists(path: String) -> bool {
+    std::path::Path::new(&path).exists()
+}
+
+#[tauri::command]
 pub fn delete_task(id: String, db: State<'_, Database>) -> Result<(), String> {
+    if let Ok(Some(worktree)) = db.get_task_worktree(&id) {
+        let path = std::path::Path::new(&worktree);
+        if path.is_dir() {
+            std::fs::remove_dir_all(path).map_err(|e| format!("Failed to delete worktree: {}", e))?;
+        }
+    }
     db.delete_task(&id)
 }
 
@@ -62,6 +75,7 @@ pub fn run_claude_session(
     yolo: bool,
     claude_path: Option<String>,
     claude_command: Option<String>,
+    worktree: Option<String>,
     db: State<'_, Database>,
     session_manager: State<'_, SessionManager>,
     project_state: State<'_, ProjectState>,
@@ -69,7 +83,7 @@ pub fn run_claude_session(
     let project_path = project_state.path.lock().map_err(|e| e.to_string())?.clone();
     db.update_task_status(&id, "Running")?;
 
-    if let Err(e) = session_manager.run_session(&app, &id, &description, use_plan, yolo, claude_path.as_deref(), claude_command.as_deref(), project_path.as_deref()) {
+    if let Err(e) = session_manager.run_session(&app, &id, &description, use_plan, yolo, claude_path.as_deref(), claude_command.as_deref(), worktree.as_deref(), project_path.as_deref()) {
         // Revert status if spawn failed
         let _ = db.update_task_status(&id, "Failed");
         return Err(e);

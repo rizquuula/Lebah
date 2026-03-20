@@ -46,6 +46,10 @@ impl Database {
             conn.execute_batch("ALTER TABLE tasks ADD COLUMN yolo INTEGER NOT NULL DEFAULT 1;")
                 .map_err(|e| e.to_string())?;
         }
+        if !columns.contains(&"worktree".to_string()) {
+            conn.execute_batch("ALTER TABLE tasks ADD COLUMN worktree TEXT;")
+                .map_err(|e| e.to_string())?;
+        }
 
         Ok(Database { conn: Mutex::new(conn) })
     }
@@ -53,7 +57,7 @@ impl Database {
     pub fn get_tasks(&self) -> Result<Vec<Task>, String> {
         let conn = self.conn.lock().map_err(|e| e.to_string())?;
         let mut stmt = conn
-            .prepare("SELECT id, description, column_name, status, use_plan, sort_order, created_at, claude_path, claude_command, yolo FROM tasks ORDER BY sort_order")
+            .prepare("SELECT id, description, column_name, status, use_plan, sort_order, created_at, claude_path, claude_command, yolo, worktree FROM tasks ORDER BY sort_order")
             .map_err(|e| e.to_string())?;
 
         let tasks = stmt
@@ -71,6 +75,7 @@ impl Database {
                     claude_path: row.get(7)?,
                     claude_command: row.get(8)?,
                     yolo: row.get::<_, i32>(9)? != 0,
+                    worktree: row.get(10)?,
                 })
             })
             .map_err(|e| e.to_string())?
@@ -80,11 +85,11 @@ impl Database {
         Ok(tasks)
     }
 
-    pub fn create_task(&self, id: &str, description: &str, created_at: &str, claude_path: Option<&str>, claude_command: Option<&str>) -> Result<(), String> {
+    pub fn create_task(&self, id: &str, description: &str, created_at: &str, claude_path: Option<&str>, claude_command: Option<&str>, worktree: Option<&str>) -> Result<(), String> {
         let conn = self.conn.lock().map_err(|e| e.to_string())?;
         conn.execute(
-            "INSERT INTO tasks (id, description, column_name, status, use_plan, yolo, sort_order, created_at, claude_path, claude_command) VALUES (?1, ?2, 'Todo', 'Idle', 0, 1, 0, ?3, ?4, ?5)",
-            params![id, description, created_at, claude_path, claude_command],
+            "INSERT INTO tasks (id, description, column_name, status, use_plan, yolo, sort_order, created_at, claude_path, claude_command, worktree) VALUES (?1, ?2, 'Todo', 'Idle', 0, 1, 0, ?3, ?4, ?5, ?6)",
+            params![id, description, created_at, claude_path, claude_command, worktree],
         ).map_err(|e| e.to_string())?;
         Ok(())
     }
@@ -106,6 +111,17 @@ impl Database {
             ],
         ).map_err(|e| e.to_string())?;
         Ok(())
+    }
+
+    pub fn get_task_worktree(&self, id: &str) -> Result<Option<String>, String> {
+        let conn = self.conn.lock().map_err(|e| e.to_string())?;
+        let mut stmt = conn
+            .prepare("SELECT worktree FROM tasks WHERE id = ?1")
+            .map_err(|e| e.to_string())?;
+        let worktree = stmt
+            .query_row(params![id], |row| row.get::<_, Option<String>>(0))
+            .map_err(|e| e.to_string())?;
+        Ok(worktree)
     }
 
     pub fn delete_task(&self, id: &str) -> Result<(), String> {

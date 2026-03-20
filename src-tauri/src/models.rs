@@ -77,6 +77,7 @@ pub struct Task {
     pub created_at: String,
     pub claude_path: Option<String>,
     pub claude_command: Option<String>,
+    pub worktree: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
