@@ -1,1 +1,1 @@
-{"default":{"identifier":"default","description":"Default capabilities for LebahTempa","local":true,"windows":["main"],"permissions":["core:default","core:event:default","dialog:default"]}}
+{"default":{"identifier":"default","description":"Default capabilities for Lebah","local":true,"windows":["main"],"permissions":["core:default","core:event:default","dialog:default"]}}

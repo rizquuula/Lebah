@@ -45,7 +45,7 @@
           </defs>
         </svg>
       </div>
-      <h1>LebahTempa</h1>
+      <h1>Lebah</h1>
       <span class="subtitle">Claude Code Orchestrator</span>
     </div>
 

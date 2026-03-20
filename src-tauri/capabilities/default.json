@@ -1,6 +1,6 @@
 {
   "identifier": "default",
-  "description": "Default capabilities for LebahTempa",
+  "description": "Default capabilities for Lebah",
   "windows": ["main"],
   "permissions": [
     "core:default",

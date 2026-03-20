@@ -1,4 +1,4 @@
-# LebahTempa
+# Lebah
 
 Claude Code orchestration desktop app — a kanban board for managing Claude Code CLI sessions.
 

@@ -2,7 +2,7 @@
 .DEFAULT_GOAL := help
 
 help:
-	@echo "LebahTempa - Claude Code Orchestrator"
+	@echo "Lebah - Claude Code Orchestrator"
 	@echo ""
 	@echo "Usage: make <target>"
 	@echo ""

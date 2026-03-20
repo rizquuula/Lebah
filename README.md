@@ -1,4 +1,4 @@
-# LebahTempa
+# Lebah
 
 > A kanban board desktop app for orchestrating multiple Claude Code CLI sessions.
 

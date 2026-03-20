@@ -1,8 +1,8 @@
 {
   "$schema": "https://raw.githubusercontent.com/nicedoc/schemas/refs/heads/master/tauri/tauri.conf-schema.json",
-  "productName": "LebahTempa",
+  "productName": "Lebah",
   "version": "0.1.0",
-  "identifier": "com.lebahtempa.app",
+  "identifier": "com.lebah.app",
   "build": {
     "frontendDist": "../dist",
     "devUrl": "http://localhost:1420",
@@ -12,7 +12,7 @@
   "app": {
     "windows": [
       {
-        "title": "LebahTempa - Claude Code Orchestrator",
+        "title": "Lebah - Claude Code Orchestrator",
         "width": 1400,
         "height": 800,
         "resizable": true
