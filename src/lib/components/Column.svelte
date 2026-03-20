@@ -3,13 +3,11 @@
   import { moveTask } from "../stores/tasks";
   import type { Task, TaskColumn } from "../types";
   import TaskCard from "./TaskCard.svelte";
-  import TaskModal from "./TaskModal.svelte";
 
   export let column: TaskColumn;
   export let label: string;
   export let items: Task[];
-
-  let showNewModal = false;
+  export let onAddTask: () => void;
 
   function handleDndConsider(e: CustomEvent) {
     items = e.detail.items;
@@ -31,7 +29,7 @@
   <div class="header">
     <h2>{label}</h2>
     <span class="count">{items.length}</span>
-    <button class="btn-add" on:click={() => (showNewModal = true)}>
+    <button class="btn-add" on:click={onAddTask}>
       <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
         <path d="M7 1v12M1 7h12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
       </svg>
@@ -49,10 +47,6 @@
     {/each}
   </div>
 </div>
-
-{#if showNewModal}
-  <TaskModal task={null} onClose={() => (showNewModal = false)} />
-{/if}
 
 <style>
   .column {

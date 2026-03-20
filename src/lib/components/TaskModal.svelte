@@ -4,6 +4,7 @@
 
   export let task: Task | null = null;
   export let onClose: () => void;
+  export let columnLabel: string = "";
 
   let description = task?.description ?? "";
   let claudePath = task?.claude_path ?? "";
@@ -35,6 +36,9 @@
   <div class="modal" on:click|stopPropagation>
     <div class="modal-glow"></div>
     <h3>{task ? "Edit Task" : "New Task"}</h3>
+    {#if columnLabel && !task}
+      <div class="stage-badge">Adding to <span>{columnLabel}</span></div>
+    {/if}
     <form on:submit|preventDefault={handleSubmit}>
       <label class="field-label">Description</label>
       <textarea
@@ -120,6 +124,26 @@
     margin: 0 0 18px;
     color: rgba(205, 214, 244, 0.9);
     font-size: 16px;
+    font-weight: 600;
+  }
+  .stage-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    font-weight: 500;
+    color: rgba(205, 214, 244, 0.45);
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    margin-bottom: 18px;
+    margin-top: -10px;
+  }
+  .stage-badge span {
+    color: #89b4fa;
+    background: rgba(137, 180, 250, 0.1);
+    border: 1px solid rgba(137, 180, 250, 0.2);
+    border-radius: 6px;
+    padding: 2px 8px;
     font-weight: 600;
   }
   .field-label {

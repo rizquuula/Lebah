@@ -3,10 +3,13 @@
   import { tasks, loadTasks } from "../stores/tasks";
   import { COLUMNS, type Task, type TaskColumn } from "../types";
   import Column from "./Column.svelte";
+  import TaskModal from "./TaskModal.svelte";
 
   onMount(() => {
     loadTasks();
   });
+
+  let activeColumn: { key: TaskColumn; label: string } | null = null;
 
   function tasksByColumn(allTasks: Task[], column: TaskColumn): Task[] {
     return allTasks
@@ -22,10 +25,19 @@
         column={col.key}
         label={col.label}
         items={tasksByColumn($tasks, col.key)}
+        onAddTask={() => (activeColumn = col)}
       />
     </div>
   {/each}
 </div>
+
+{#if activeColumn}
+  <TaskModal
+    task={null}
+    columnLabel={activeColumn.label}
+    onClose={() => (activeColumn = null)}
+  />
+{/if}
 
 <style>
   .board {
