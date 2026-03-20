@@ -39,7 +39,7 @@
 
   <div
     class="task-list"
-    use:dndzone={{ items, flipDurationMs: 250, dropTargetStyle: { outline: "2px dashed rgba(137, 180, 250, 0.4)", borderRadius: "8px" } }}
+    use:dndzone={{ items, flipDurationMs: 250, dragHandle: ".drag-handle", dropTargetStyle: { outline: "2px dashed rgba(137, 180, 250, 0.4)", borderRadius: "8px" } }}
     on:consider={handleDndConsider}
     on:finalize={handleDndFinalize}
   >

@@ -35,6 +35,13 @@
   style="--border-color: {borderColor}; --glow-color: {glowColor}"
 >
   <div class="card-border-top"></div>
+  <div class="drag-handle" title="Drag to move">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+      <circle cx="9" cy="5" r="1.5"/><circle cx="15" cy="5" r="1.5"/>
+      <circle cx="9" cy="12" r="1.5"/><circle cx="15" cy="12" r="1.5"/>
+      <circle cx="9" cy="19" r="1.5"/><circle cx="15" cy="19" r="1.5"/>
+    </svg>
+  </div>
   <p class="description">{task.description}</p>
 
   <div class="controls">
@@ -135,6 +142,23 @@
     0%, 100% { box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15), 0 0 15px rgba(234, 179, 8, 0.08); }
     50% { box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15), 0 0 25px rgba(234, 179, 8, 0.15); }
   }
+  .drag-handle {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    color: rgba(205, 214, 244, 0.2);
+    cursor: grab;
+    padding: 2px;
+    border-radius: 4px;
+    transition: color 0.2s ease;
+    line-height: 0;
+  }
+  .card:hover .drag-handle {
+    color: rgba(205, 214, 244, 0.5);
+  }
+  .drag-handle:active {
+    cursor: grabbing;
+  }
   .card-border-top {
     position: absolute;
     top: 0;
@@ -153,6 +177,7 @@
     color: rgba(205, 214, 244, 0.9);
     font-size: 13px;
     margin: 4px 0 10px;
+    user-select: none;
     display: -webkit-box;
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
