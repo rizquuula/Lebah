@@ -1,5 +1,5 @@
 @import "tailwindcss";
-@source not "../src/**/*.svelte";
+@source not "./**/*.svelte";
 
 @theme {
   --color-surface-950: #09090b;  /* zinc-950 */
