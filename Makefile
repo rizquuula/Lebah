@@ -1,4 +1,16 @@
-.PHONY: setup dev build clean setup-rust setup-node setup-tauri
+.PHONY: help setup dev build clean setup-rust setup-node setup-tauri
+.DEFAULT_GOAL := help
+
+help:
+	@echo "LebahTempa - Claude Code Orchestrator"
+	@echo ""
+	@echo "Usage: make <target>"
+	@echo ""
+	@echo "  setup   Install dependencies (Tauri CLI, npm packages, cargo deps)"
+	@echo "  dev     Run in development mode"
+	@echo "  build   Build for production"
+	@echo "  clean   Clean build artifacts"
+	@echo ""
 
 setup: setup-rust setup-node setup-tauri
 
