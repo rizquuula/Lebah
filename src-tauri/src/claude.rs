@@ -1,19 +1,21 @@
 use std::collections::HashMap;
 use std::io::{BufRead, BufReader, Write};
 use std::process::{Child, ChildStdin, Command, Stdio};
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex};
 use tauri::{AppHandle, Emitter};
 
 pub struct SessionManager {
-    pub sessions: Mutex<HashMap<String, Child>>,
+    pub sessions: Arc<Mutex<HashMap<String, Child>>>,
     pub stdins: Mutex<HashMap<String, ChildStdin>>,
+    pub output_buffers: Arc<Mutex<HashMap<String, Vec<String>>>>,
 }
 
 impl SessionManager {
     pub fn new() -> Self {
         SessionManager {
-            sessions: Mutex::new(HashMap::new()),
+            sessions: Arc::new(Mutex::new(HashMap::new())),
             stdins: Mutex::new(HashMap::new()),
+            output_buffers: Arc::new(Mutex::new(HashMap::new())),
         }
     }
 
@@ -34,6 +36,12 @@ impl SessionManager {
             return Err("Session already running for this task".to_string());
         }
 
+        // Clear old buffer for this task
+        {
+            let mut buffers = self.output_buffers.lock().map_err(|e| e.to_string())?;
+            buffers.insert(task_id.to_string(), Vec::new());
+        }
+
         let binary = claude_path.unwrap_or("claude");
         let mut cmd = Command::new(binary);
         cmd.arg("--session-id").arg(task_id);
@@ -43,49 +51,78 @@ impl SessionManager {
         }
 
         if use_plan {
-            cmd.arg("--plan");
+            cmd.arg("--permission-mode").arg("plan");
         }
 
         if yolo {
+            cmd.env("IS_SANDBOX", "1");
             cmd.arg("--dangerously-skip-permissions");
         }
 
-        // Add custom command/args if provided
         if let Some(extra) = claude_command {
             for arg in extra.split_whitespace() {
                 cmd.arg(arg);
             }
         }
 
-        cmd.arg("--message").arg(description);
-        cmd.stdin(Stdio::piped()).stdout(Stdio::piped()).stderr(Stdio::piped());
+        cmd.arg("--print").arg(description);
+        cmd.stdin(Stdio::null()).stdout(Stdio::piped()).stderr(Stdio::piped());
 
         let mut child = cmd.spawn().map_err(|e| format!("Failed to spawn claude: {}", e))?;
 
         let stdout = child.stdout.take();
+        let stderr = child.stderr.take();
         let stdin = child.stdin.take();
-        let task_id_clone = task_id.to_string();
-        let app_clone = app.clone();
 
+        // Spawn stdout reader thread
         if let Some(stdout) = stdout {
+            let task_id_clone = task_id.to_string();
+            let app_clone = app.clone();
+            let buffers = Arc::clone(&self.output_buffers);
             std::thread::spawn(move || {
                 let reader = BufReader::new(stdout);
                 for line in reader.lines() {
                     if let Ok(line) = line {
-                        let event_name = format!("claude-output-{}", task_id_clone);
-                        let _ = app_clone.emit(&event_name, &line);
+                        if let Ok(mut b) = buffers.lock() {
+                            b.entry(task_id_clone.clone()).or_default().push(line.clone());
+                        }
+                        let _ = app_clone.emit(&format!("claude-output-{}", task_id_clone), &line);
                     }
                 }
             });
         }
 
-        if let Some(stdin) = stdin {
-            let mut stdins = self.stdins.lock().map_err(|e| e.to_string())?;
-            stdins.insert(task_id.to_string(), stdin);
+        // Spawn stderr reader thread
+        if let Some(stderr) = stderr {
+            let task_id_clone = task_id.to_string();
+            let app_clone = app.clone();
+            let buffers = Arc::clone(&self.output_buffers);
+            std::thread::spawn(move || {
+                let reader = BufReader::new(stderr);
+                for line in reader.lines() {
+                    if let Ok(line) = line {
+                        if let Ok(mut b) = buffers.lock() {
+                            b.entry(task_id_clone.clone()).or_default().push(line.clone());
+                        }
+                        let _ = app_clone.emit(&format!("claude-output-{}", task_id_clone), &line);
+                    }
+                }
+            });
         }
+
+        let _ = stdin; // stdin is null; send_input not available in --print mode
 
         sessions.insert(task_id.to_string(), child);
         Ok(())
+    }
+
+    pub fn get_output_buffer(&self, task_id: &str) -> Result<Vec<String>, String> {
+        let buffers = self.output_buffers.lock().map_err(|e| e.to_string())?;
+        Ok(buffers.get(task_id).cloned().unwrap_or_default())
+    }
+
+    pub fn sessions_arc(&self) -> Arc<Mutex<HashMap<String, Child>>> {
+        Arc::clone(&self.sessions)
     }
 
     pub fn send_input(&self, task_id: &str, input: &str) -> Result<(), String> {
@@ -113,5 +150,4 @@ impl SessionManager {
             Err("No session running for this task".to_string())
         }
     }
-
 }

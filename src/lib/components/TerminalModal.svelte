@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount, onDestroy } from "svelte";
   import { listen, type UnlistenFn } from "@tauri-apps/api/event";
-  import { sendInput } from "../stores/tasks";
+  import { sendInput, getOutputBuffer } from "../stores/tasks";
   import type { Task } from "../types";
   import { STATUS_COLORS } from "../types";
 
@@ -17,12 +17,22 @@
   $: borderColor = STATUS_COLORS[task.status];
 
   onMount(async () => {
+    // Register live listener first to avoid missing events during buffer load
     unlisten = await listen<string>(`claude-output-${task.id}`, (event) => {
       lines = [...lines, event.payload];
       if (terminalEl) {
         setTimeout(() => { terminalEl.scrollTop = terminalEl.scrollHeight; }, 0);
       }
     });
+    // Load past output so late-opening modals see prior lines.
+    // Use buffer as source of truth; new live events will append after this.
+    try {
+      const buffered = await getOutputBuffer(task.id);
+      if (buffered.length > 0) {
+        lines = buffered;
+        setTimeout(() => { if (terminalEl) terminalEl.scrollTop = terminalEl.scrollHeight; }, 0);
+      }
+    } catch (_) {}
     inputEl?.focus();
   });
 

@@ -67,21 +67,61 @@ pub fn run_claude_session(
 ) -> Result<(), String> {
     let project_path = project_state.path.lock().map_err(|e| e.to_string())?.clone();
     db.update_task_status(&id, "Running")?;
-    session_manager.run_session(&app, &id, &description, use_plan, yolo, claude_path.as_deref(), claude_command.as_deref(), project_path.as_deref())?;
 
+    if let Err(e) = session_manager.run_session(&app, &id, &description, use_plan, yolo, claude_path.as_deref(), claude_command.as_deref(), project_path.as_deref()) {
+        // Revert status if spawn failed
+        let _ = db.update_task_status(&id, "Failed");
+        return Err(e);
+    }
+
+    // Watch for process exit and update status accordingly
     let app_dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
     let db_for_thread = Database::new(&app_dir)?;
     let id_clone = id.clone();
+    let sessions_arc = session_manager.sessions_arc();
 
     std::thread::spawn(move || {
+        // Poll until the child process exits
         loop {
-            std::thread::sleep(std::time::Duration::from_secs(2));
-            break;
+            std::thread::sleep(std::time::Duration::from_millis(500));
+            let mut sessions = match sessions_arc.lock() {
+                Ok(s) => s,
+                Err(_) => break,
+            };
+            if let Some(child) = sessions.get_mut(&id_clone) {
+                match child.try_wait() {
+                    Ok(Some(status)) => {
+                        sessions.remove(&id_clone);
+                        drop(sessions);
+                        let final_status = if status.success() { "Success" } else { "Failed" };
+                        let _ = db_for_thread.update_task_status(&id_clone, final_status);
+                        break;
+                    }
+                    Ok(None) => {
+                        // Still running
+                    }
+                    Err(_) => {
+                        drop(sessions);
+                        let _ = db_for_thread.update_task_status(&id_clone, "Failed");
+                        break;
+                    }
+                }
+            } else {
+                // Process was removed (stopped manually)
+                break;
+            }
         }
-        let _ = db_for_thread.update_task_status(&id_clone, "Success");
     });
 
     Ok(())
+}
+
+#[tauri::command]
+pub fn get_output_buffer(
+    id: String,
+    session_manager: State<'_, SessionManager>,
+) -> Result<Vec<String>, String> {
+    session_manager.get_output_buffer(&id)
 }
 
 #[tauri::command]

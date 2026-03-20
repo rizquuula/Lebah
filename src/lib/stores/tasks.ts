@@ -50,8 +50,15 @@ export async function runClaudeSession(
   claudePath: string | null = null,
   claudeCommand: string | null = null,
 ): Promise<void> {
-  await invoke("run_claude_session", { id, description, usePlan, yolo, claudePath, claudeCommand });
-  await loadTasks();
+  try {
+    await invoke("run_claude_session", { id, description, usePlan, yolo, claudePath, claudeCommand });
+  } finally {
+    await loadTasks();
+  }
+}
+
+export async function getOutputBuffer(id: string): Promise<string[]> {
+  return invoke<string[]>("get_output_buffer", { id });
 }
 
 export async function stopClaudeSession(id: string): Promise<void> {

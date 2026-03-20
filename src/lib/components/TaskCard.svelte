@@ -30,7 +30,11 @@
     if (task.status === "Running") {
       await stopClaudeSession(task.id);
     } else {
-      await runClaudeSession(task.id, task.description, task.use_plan, task.yolo, task.claude_path, task.claude_command);
+      try {
+        await runClaudeSession(task.id, task.description, task.use_plan, task.yolo, task.claude_path, task.claude_command);
+      } catch (e) {
+        showTerminal = true;
+      }
     }
   }
 </script>
