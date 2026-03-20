@@ -96,9 +96,9 @@ pub fn run_claude_session(
     let sessions_arc = session_manager.sessions_arc();
 
     std::thread::spawn(move || {
-        // Poll until the child process exits
+        // Poll for process exit (check every 2 seconds to minimize CPU usage)
         loop {
-            std::thread::sleep(std::time::Duration::from_millis(500));
+            std::thread::sleep(std::time::Duration::from_secs(2));
             let mut sessions = match sessions_arc.lock() {
                 Ok(s) => s,
                 Err(_) => break,
@@ -112,10 +112,9 @@ pub fn run_claude_session(
                         let _ = db_for_thread.update_task_status(&id_clone, final_status);
                         break;
                     }
-                    Ok(None) => {
-                        // Still running
-                    }
+                    Ok(None) => {} // Still running
                     Err(_) => {
+                        sessions.remove(&id_clone);
                         drop(sessions);
                         let _ = db_for_thread.update_task_status(&id_clone, "Failed");
                         break;

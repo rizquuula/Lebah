@@ -140,9 +140,7 @@
 
 <style>
   .card {
-    background: rgba(63, 63, 70, 0.4);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
+    background: rgba(63, 63, 70, 0.85);
     border: 1px solid rgba(255, 255, 255, 0.06);
     border-radius: 10px;
     padding: 12px;

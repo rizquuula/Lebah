@@ -10,7 +10,7 @@
     await loadProjectPath();
     gitPollInterval = setInterval(() => {
       if ($projectPath) refreshGitStatus();
-    }, 10000);
+    }, 30000);
   });
 
   onDestroy(() => {
@@ -106,12 +106,6 @@
       radial-gradient(ellipse 600px 400px at 80% 80%, rgba(113, 113, 122, 0.04) 0%, transparent 70%);
     pointer-events: none;
     z-index: 0;
-    animation: bgShift 20s ease-in-out infinite alternate;
-  }
-  @keyframes bgShift {
-    0% { opacity: 1; }
-    50% { opacity: 0.7; }
-    100% { opacity: 1; }
   }
   :global(::-webkit-scrollbar) {
     width: 6px;
@@ -139,9 +133,7 @@
     align-items: center;
     padding: 14px 20px;
     gap: 16px;
-    background: rgba(24, 24, 27, 0.6);
-    backdrop-filter: blur(20px) saturate(1.5);
-    -webkit-backdrop-filter: blur(20px) saturate(1.5);
+    background: rgba(24, 24, 27, 0.95);
     border-bottom: 1px solid rgba(137, 180, 250, 0.1);
     position: relative;
     overflow: hidden;
@@ -158,11 +150,6 @@
     right: 0;
     height: 1px;
     background: linear-gradient(90deg, transparent, rgba(137, 180, 250, 0.4), rgba(203, 166, 247, 0.3), transparent);
-    animation: glowPulse 3s ease-in-out infinite;
-  }
-  @keyframes glowPulse {
-    0%, 100% { opacity: 0.5; }
-    50% { opacity: 1; }
   }
   .logo-group {
     display: flex;
@@ -173,11 +160,6 @@
   .logo-icon {
     display: flex;
     align-items: center;
-    animation: logoFloat 4s ease-in-out infinite;
-  }
-  @keyframes logoFloat {
-    0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(-2px); }
   }
   h1 {
     margin: 0;

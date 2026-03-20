@@ -53,9 +53,7 @@
 
 <style>
   .column {
-    background: rgba(39, 39, 42, 0.45);
-    backdrop-filter: blur(16px) saturate(1.3);
-    -webkit-backdrop-filter: blur(16px) saturate(1.3);
+    background: rgba(39, 39, 42, 0.85);
     border: 1px solid color-mix(in srgb, var(--col-color) 12%, transparent);
     border-radius: 14px;
     padding: 14px;
