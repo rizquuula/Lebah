@@ -8,7 +8,7 @@
   export let task: Task;
   export let onClose: () => void;
 
-  let lines: string[] = [];
+  let blocks: string[] = [];
   let unlisten: UnlistenFn | null = null;
   let terminalEl: HTMLDivElement;
   let inputValue = "";
@@ -16,20 +16,62 @@
 
   $: borderColor = STATUS_COLORS[task.status];
 
+  type BlockAction = { kind: "append"; text: string } | { kind: "push"; text: string } | null;
+
+  function parseStreamLine(raw: string): BlockAction {
+    try {
+      const obj = JSON.parse(raw);
+      if (obj.type === "assistant") {
+        const delta = obj.content_block?.delta;
+        if (delta?.type === "text_delta") {
+          return { kind: "append", text: delta.text };
+        }
+        if (delta?.type === "input_json_delta") {
+          return { kind: "append", text: delta.partial_json };
+        }
+        const cb = obj.content_block;
+        if (cb?.type === "tool_use") {
+          return { kind: "push", text: `\n[Tool: ${cb.name || "unknown"}]` };
+        }
+        if (cb?.type === "text" && cb.text) {
+          return { kind: "push", text: cb.text };
+        }
+        return null;
+      }
+      if (obj.type === "result") {
+        if (obj.is_error) return { kind: "push", text: `[Error] ${obj.result}` };
+        return { kind: "push", text: `\n[Completed]` };
+      }
+      return null;
+    } catch {
+      return raw.trim() ? { kind: "push", text: raw } : null;
+    }
+  }
+
+  function applyAction(action: BlockAction) {
+    if (!action) return;
+    if (action.kind === "append" && blocks.length > 0) {
+      blocks[blocks.length - 1] += action.text;
+      blocks = blocks; // trigger reactivity
+    } else {
+      blocks = [...blocks, action.text];
+    }
+  }
+
   onMount(async () => {
-    // Register live listener first to avoid missing events during buffer load
     unlisten = await listen<string>(`claude-output-${task.id}`, (event) => {
-      lines = [...lines, event.payload];
+      applyAction(parseStreamLine(event.payload));
       if (terminalEl) {
         setTimeout(() => { terminalEl.scrollTop = terminalEl.scrollHeight; }, 0);
       }
     });
-    // Load past output so late-opening modals see prior lines.
-    // Use buffer as source of truth; new live events will append after this.
     try {
       const buffered = await getOutputBuffer(task.id);
       if (buffered.length > 0) {
-        lines = buffered;
+        blocks = [];
+        for (const raw of buffered) {
+          applyAction(parseStreamLine(raw));
+        }
         setTimeout(() => { if (terminalEl) terminalEl.scrollTop = terminalEl.scrollHeight; }, 0);
       }
     } catch (_) {}
@@ -84,13 +126,13 @@
     </div>
 
     <div class="terminal" bind:this={terminalEl}>
-      {#if lines.length === 0}
+      {#if blocks.length === 0}
         <div class="placeholder">
           <span class="cursor-blink">_</span> Waiting for output...
         </div>
       {:else}
-        {#each lines as line}
-          <div class="line">{line}</div>
+        {#each blocks as block}
+          <div class="line">{block}</div>
         {/each}
       {/if}
     </div>

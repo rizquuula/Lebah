@@ -71,6 +71,7 @@ impl SessionManager {
             }
         }
 
+        cmd.arg("--output-format").arg("stream-json");
         cmd.arg("--print").arg(description);
         cmd.stdin(Stdio::null()).stdout(Stdio::piped()).stderr(Stdio::piped());
 
@@ -146,10 +147,8 @@ impl SessionManager {
 
         let mut sessions = self.sessions.lock().map_err(|e| e.to_string())?;
         if let Some(mut child) = sessions.remove(task_id) {
-            child.kill().map_err(|e| e.to_string())?;
-            Ok(())
-        } else {
-            Err("No session running for this task".to_string())
+            let _ = child.kill();
         }
+        Ok(())
     }
 }
