@@ -129,11 +129,6 @@
     align-items: center;
     justify-content: center;
     z-index: 100;
-    animation: overlayFade 0.2s ease-out;
-  }
-  @keyframes overlayFade {
-    from { opacity: 0; }
-    to { opacity: 1; }
   }
   .modal {
     background: rgba(39, 39, 42, 0.75);
@@ -147,11 +142,6 @@
     position: relative;
     overflow: hidden;
     box-shadow: 0 24px 48px rgba(0, 0, 0, 0.4), 0 0 40px rgba(137, 180, 250, 0.05);
-    animation: modalPop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-  }
-  @keyframes modalPop {
-    from { opacity: 0; transform: scale(0.92) translateY(10px); }
-    to { opacity: 1; transform: scale(1) translateY(0); }
   }
   .modal-glow {
     position: absolute;
@@ -211,7 +201,6 @@
     font-family: inherit;
     font-size: 14px;
     box-sizing: border-box;
-    transition: border-color 0.25s ease, box-shadow 0.25s ease;
     line-height: 1.5;
   }
   textarea {
@@ -260,7 +249,6 @@
     display: flex;
     align-items: center;
     gap: 6px;
-    transition: all 0.2s ease;
   }
   .btn-cancel {
     background: rgba(82, 82, 91, 0.5);

@@ -147,7 +147,6 @@
     margin-bottom: 8px;
     position: relative;
     overflow: hidden;
-    transition: border-color 0.25s ease;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
   }
   .card:hover {
@@ -159,12 +158,7 @@
     inset: -2px;
     border-radius: inherit;
     box-shadow: 0 0 18px rgba(234, 179, 8, 0.2);
-    animation: runningPulse 2.5s ease-in-out infinite;
     pointer-events: none;
-  }
-  @keyframes runningPulse {
-    0%, 100% { opacity: 0.4; }
-    50% { opacity: 1; }
   }
   .drag-handle {
     position: absolute;
@@ -174,7 +168,6 @@
     cursor: grab;
     padding: 2px;
     border-radius: 4px;
-    transition: color 0.2s ease;
     line-height: 0;
   }
   .card:hover .drag-handle {
@@ -191,7 +184,6 @@
     height: 2px;
     background: var(--border-color);
     opacity: 0.8;
-    transition: opacity 0.3s ease;
   }
   .card:hover .card-border-top {
     opacity: 1;
@@ -229,7 +221,6 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
   }
   .btn-icon:hover {
     background: rgba(137, 180, 250, 0.15);
@@ -256,12 +247,7 @@
     inset: -2px;
     border-radius: inherit;
     box-shadow: 0 0 8px rgba(234, 179, 8, 0.3);
-    animation: stopPulse 1.5s ease-in-out infinite;
     pointer-events: none;
-  }
-  @keyframes stopPulse {
-    0%, 100% { opacity: 0.2; }
-    50% { opacity: 1; }
   }
   .btn-icon.terminal-btn.active {
     background: rgba(137, 180, 250, 0.2);
@@ -301,7 +287,6 @@
     background: rgba(82, 82, 91, 0.6);
     border: 1px solid rgba(255, 255, 255, 0.08);
     position: relative;
-    transition: background 0.25s ease, border-color 0.25s ease;
   }
   .toggle-track.active {
     background: rgba(137, 180, 250, 0.25);
@@ -315,7 +300,6 @@
     position: absolute;
     top: 1px;
     left: 1px;
-    transition: left 0.25s cubic-bezier(0.4, 0, 0.2, 1), background 0.25s ease;
   }
   .toggle-track.active .toggle-thumb {
     left: 13px;

@@ -63,8 +63,6 @@
     height: 100%;
     position: relative;
     overflow: hidden;
-    transition: border-color 0.3s ease;
-    will-change: border-color;
   }
   .column:hover {
     border-color: color-mix(in srgb, var(--col-color) 22%, transparent);
@@ -102,7 +100,6 @@
     font-weight: 600;
     padding: 2px 8px;
     border-radius: 10px;
-    transition: background 0.2s ease;
   }
   .btn-add {
     margin-left: auto;
@@ -116,7 +113,6 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: background 0.25s ease, border-color 0.25s ease;
   }
   .btn-add:hover {
     background: color-mix(in srgb, var(--col-color) 28%, transparent);

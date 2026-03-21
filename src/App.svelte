@@ -137,11 +137,6 @@
     border-bottom: 1px solid rgba(137, 180, 250, 0.1);
     position: relative;
     overflow: hidden;
-    animation: headerSlide 0.6s ease-out;
-  }
-  @keyframes headerSlide {
-    from { transform: translateY(-100%); opacity: 0; }
-    to { transform: translateY(0); opacity: 1; }
   }
   .header-glow {
     position: absolute;
@@ -199,7 +194,6 @@
     font-size: 13px;
     font-weight: 500;
     white-space: nowrap;
-    transition: background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
     font-family: inherit;
   }
   .btn-open:hover {

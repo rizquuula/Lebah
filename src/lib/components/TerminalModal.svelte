@@ -169,11 +169,6 @@
     align-items: center;
     justify-content: center;
     z-index: 100;
-    animation: overlayFade 0.2s ease-out;
-  }
-  @keyframes overlayFade {
-    from { opacity: 0; }
-    to { opacity: 1; }
   }
   .modal {
     background: rgba(18, 18, 20, 0.92);
@@ -190,11 +185,6 @@
     position: relative;
     overflow: hidden;
     box-shadow: 0 32px 64px rgba(0, 0, 0, 0.5), 0 0 60px rgba(137, 180, 250, 0.04);
-    animation: modalPop 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
-  }
-  @keyframes modalPop {
-    from { opacity: 0; transform: scale(0.94) translateY(12px); }
-    to { opacity: 1; transform: scale(1) translateY(0); }
   }
   .modal-glow {
     position: absolute;
@@ -258,7 +248,6 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: all 0.2s ease;
   }
   .btn-close:hover {
     background: rgba(243, 139, 168, 0.2);
@@ -294,21 +283,11 @@
     gap: 6px;
   }
   .cursor-blink {
-    animation: blink 1s step-end infinite;
     color: #89b4fa;
-  }
-  @keyframes blink {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0; }
   }
   .line {
     padding: 1px 2px;
     border-radius: 2px;
-    animation: lineAppear 0.12s ease-out;
-  }
-  @keyframes lineAppear {
-    from { opacity: 0; transform: translateX(-3px); }
-    to { opacity: 1; transform: translateX(0); }
   }
   .line:hover {
     background: rgba(137, 180, 250, 0.04);
@@ -355,7 +334,6 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: all 0.2s ease;
     flex-shrink: 0;
   }
   .btn-send:hover {
