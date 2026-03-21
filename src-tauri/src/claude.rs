@@ -11,6 +11,7 @@ pub struct SessionConfig {
     pub claude_command: Option<String>,
     pub worktree: Option<String>,
     pub project_path: Option<String>,
+    pub model: Option<String>,
 }
 
 pub struct SessionManager {
@@ -40,6 +41,7 @@ impl SessionManager {
         claude_command: Option<&str>,
         worktree: Option<&str>,
         project_path: Option<&str>,
+        model: Option<&str>,
     ) -> Result<(), String> {
         let mut sessions = self.sessions.lock().map_err(|e| e.to_string())?;
 
@@ -78,6 +80,10 @@ impl SessionManager {
 
         if let Some(wt) = worktree {
             cmd.arg("--worktree").arg(wt);
+        }
+
+        if let Some(m) = model {
+            cmd.arg("--model").arg(m);
         }
 
         if let Some(extra) = claude_command {
@@ -163,6 +169,7 @@ impl SessionManager {
                 claude_command: claude_command.map(|s| s.to_string()),
                 worktree: worktree.map(|s| s.to_string()),
                 project_path: project_path.map(|s| s.to_string()),
+                model: model.map(|s| s.to_string()),
             });
         }
 
@@ -172,6 +179,14 @@ impl SessionManager {
     pub fn get_output_buffer(&self, task_id: &str) -> Result<Vec<String>, String> {
         let buffers = self.output_buffers.lock().map_err(|e| e.to_string())?;
         Ok(buffers.get(task_id).cloned().unwrap_or_default())
+    }
+
+    pub fn update_model(&self, task_id: &str, model: &str) -> Result<(), String> {
+        let mut configs = self.session_configs.lock().map_err(|e| e.to_string())?;
+        if let Some(config) = configs.get_mut(task_id) {
+            config.model = if model.is_empty() { None } else { Some(model.to_string()) };
+        }
+        Ok(())
     }
 
     pub fn sessions_arc(&self) -> Arc<Mutex<HashMap<String, Child>>> {
@@ -204,6 +219,10 @@ impl SessionManager {
 
         if let Some(ref wt) = config.worktree {
             cmd.arg("--worktree").arg(wt);
+        }
+
+        if let Some(ref m) = config.model {
+            cmd.arg("--model").arg(m);
         }
 
         if let Some(ref extra) = config.claude_command {

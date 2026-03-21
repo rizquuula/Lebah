@@ -19,12 +19,14 @@ export async function createTask(
   claudePath: string | null = null,
   claudeCommand: string | null = null,
   worktree: string | null = null,
+  model: string | null = null,
 ): Promise<Task> {
   const task = await invoke<Task>("create_task", {
     description,
     claudePath,
     claudeCommand,
     worktree,
+    model,
   });
   await loadTasks();
   return task;
@@ -57,6 +59,7 @@ export async function runClaudeSession(
   claudePath: string | null = null,
   claudeCommand: string | null = null,
   worktree: string | null = null,
+  model: string | null = null,
 ): Promise<void> {
   const unlisten = await listen<string>(`claude-output-${id}`, async (event) => {
     try {
@@ -72,7 +75,7 @@ export async function runClaudeSession(
   });
 
   try {
-    await invoke("run_claude_session", { id, description, usePlan, yolo, claudePath, claudeCommand, worktree });
+    await invoke("run_claude_session", { id, description, usePlan, yolo, claudePath, claudeCommand, worktree, model });
     await loadTasks();
   } catch {
     unlisten();
@@ -90,8 +93,8 @@ export async function stopClaudeSession(id: string): Promise<void> {
   await loadTasks();
 }
 
-export async function sendInput(id: string, input: string): Promise<void> {
-  await invoke("send_input", { id, input });
+export async function sendInput(id: string, input: string, model: string | null = null): Promise<void> {
+  await invoke("send_input", { id, input, model });
 }
 
 export async function resetTaskSession(id: string): Promise<Task> {

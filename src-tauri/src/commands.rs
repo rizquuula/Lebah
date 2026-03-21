@@ -17,6 +17,7 @@ pub fn create_task(
     claude_path: Option<String>,
     claude_command: Option<String>,
     worktree: Option<String>,
+    model: Option<String>,
     storage: State<'_, Storage>,
 ) -> Result<Task, String> {
     let id = Uuid::new_v4().to_string();
@@ -28,6 +29,7 @@ pub fn create_task(
         claude_path.as_deref(),
         claude_command.as_deref(),
         worktree.as_deref(),
+        model.as_deref(),
     )?;
 
     Ok(Task {
@@ -43,6 +45,7 @@ pub fn create_task(
         claude_command,
         worktree,
         has_run: false,
+        model,
     })
 }
 
@@ -107,12 +110,13 @@ pub fn run_claude_session(
     claude_path: Option<String>,
     claude_command: Option<String>,
     worktree: Option<String>,
+    model: Option<String>,
     storage: State<'_, Storage>,
     session_manager: State<'_, SessionManager>,
 ) -> Result<(), String> {
     let project_path = storage.get_project()?;
-    eprintln!("[session] run_claude_session: task={} use_plan={} yolo={} project={:?} claude_path={:?} claude_command={:?} worktree={:?}",
-        id, use_plan, yolo, project_path, claude_path, claude_command, worktree);
+    eprintln!("[session] run_claude_session: task={} use_plan={} yolo={} model={:?} project={:?} claude_path={:?} claude_command={:?} worktree={:?}",
+        id, use_plan, yolo, model, project_path, claude_path, claude_command, worktree);
     storage.update_task_status(&id, "Running")?;
     let _ = storage.clear_output_lines(&id);
 
@@ -126,6 +130,7 @@ pub fn run_claude_session(
         claude_command.as_deref(),
         worktree.as_deref(),
         project_path.as_deref(),
+        model.as_deref(),
     ) {
         eprintln!("[session] Failed to start session for task={}: {}", id, e);
         let _ = storage.update_task_status(&id, "Failed");
@@ -199,8 +204,12 @@ pub fn send_input(
     app: AppHandle,
     id: String,
     input: String,
+    model: Option<String>,
     session_manager: State<'_, SessionManager>,
 ) -> Result<(), String> {
+    if let Some(ref m) = model {
+        session_manager.update_model(&id, m)?;
+    }
     session_manager.send_input(&id, &input, &app)
 }
 
@@ -243,6 +252,7 @@ pub fn reset_task_session(
         old_task.claude_path.as_deref(),
         old_task.claude_command.as_deref(),
         old_task.worktree.as_deref(),
+        old_task.model.as_deref(),
     )?;
     storage.move_task(&new_id, old_task.column.to_str(), old_task.sort_order)?;
     storage.set_task_settings(&new_id, old_task.use_plan, old_task.yolo)?;

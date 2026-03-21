@@ -69,6 +69,8 @@ pub struct Task {
     pub worktree: Option<String>,
     #[serde(default)]
     pub has_run: bool,
+    #[serde(default)]
+    pub model: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

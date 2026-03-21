@@ -35,7 +35,7 @@
       showConfirmReset = true;
     } else {
       try {
-        await runClaudeSession(task.id, task.description, task.use_plan, task.yolo, task.claude_path, task.claude_command, task.worktree);
+        await runClaudeSession(task.id, task.description, task.use_plan, task.yolo, task.claude_path, task.claude_command, task.worktree, task.model);
       } catch (e) {
         showTerminal = true;
       }
@@ -46,7 +46,7 @@
     showConfirmReset = false;
     try {
       const newTask = await resetTaskSession(task.id);
-      await runClaudeSession(newTask.id, newTask.description, newTask.use_plan, newTask.yolo, newTask.claude_path, newTask.claude_command, newTask.worktree);
+      await runClaudeSession(newTask.id, newTask.description, newTask.use_plan, newTask.yolo, newTask.claude_path, newTask.claude_command, newTask.worktree, newTask.model);
     } catch (e) {
       showTerminal = true;
     }
@@ -134,7 +134,7 @@
   </div>
 
   <div class="meta">
-    <span class="uuid" title={task.id}>{task.id.slice(0, 8)}</span>
+    <span class="uuid" title={task.id}>{task.model || "sonnet"}</span>
     <span class="status" style="color: {borderColor}">{task.status}</span>
   </div>
 

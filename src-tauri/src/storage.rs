@@ -127,6 +127,7 @@ impl Storage {
         claude_path: Option<&str>,
         claude_command: Option<&str>,
         worktree: Option<&str>,
+        model: Option<&str>,
     ) -> Result<(), String> {
         let project = self.require_project()?;
         let mut tasks = self.load_tasks_for(&project);
@@ -143,6 +144,7 @@ impl Storage {
             claude_command: claude_command.map(|s| s.to_string()),
             worktree: worktree.map(|s| s.to_string()),
             has_run: false,
+            model: model.map(|s| s.to_string()),
         });
         self.save_tasks_for(&project, &tasks)
     }
@@ -159,6 +161,7 @@ impl Storage {
             t.sort_order = task.sort_order;
             t.claude_path = task.claude_path.clone();
             t.claude_command = task.claude_command.clone();
+            t.model = task.model.clone();
         }
         self.save_tasks_for(&project, &tasks)
     }

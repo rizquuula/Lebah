@@ -14,6 +14,7 @@ export interface Task {
   claude_command: string | null;
   worktree: string | null;
   has_run: boolean;
+  model: string | null;
 }
 
 export interface GitStatus {

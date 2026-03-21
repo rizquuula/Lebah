@@ -13,6 +13,7 @@
   let claudeCommand = task?.claude_command ?? "";
   let worktree = task?.worktree ?? "";
   let worktreeError = "";
+  let model = task?.model ?? "sonnet";
 
   async function handleSubmit() {
     if (!description.trim()) return;
@@ -20,6 +21,7 @@
     const pathVal = claudePath.trim() || null;
     const cmdVal = claudeCommand.trim() || null;
     const worktreeVal = worktree.trim().replace(/\//g, '-') || null;
+    const modelVal = model.trim() || null;
 
     if (!task) {
       if (!worktreeVal) {
@@ -36,9 +38,10 @@
           description: description.trim(),
           claude_path: pathVal,
           claude_command: cmdVal,
+          model: modelVal,
         });
       } else {
-        await createTask(description.trim(), pathVal, cmdVal, worktreeVal);
+        await createTask(description.trim(), pathVal, cmdVal, worktreeVal, modelVal);
       }
       onClose();
     } catch (e) {
@@ -64,6 +67,13 @@
         placeholder="Describe the task for Claude..."
         rows="4"
       ></textarea>
+
+      <label class="field-label" for="task-model">Model</label>
+      <select id="task-model" bind:value={model} class="text-input">
+        <option value="sonnet">sonnet</option>
+        <option value="opus">opus</option>
+        <option value="haiku">haiku</option>
+      </select>
 
       <label class="field-label" for="task-claude-path">Claude Code Path</label>
       <input
@@ -208,6 +218,11 @@
     outline: none;
     border-color: rgba(137, 180, 250, 0.35);
     box-shadow: 0 0 16px rgba(137, 180, 250, 0.08);
+  }
+  select.text-input {
+    color-scheme: dark;
+    padding: 0 12px;
+    appearance: auto;
   }
   textarea::placeholder, .text-input::placeholder {
     color: rgba(108, 112, 134, 0.6);

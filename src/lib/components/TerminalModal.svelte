@@ -8,6 +8,8 @@
   export let task: Task;
   export let onClose: () => void;
 
+  let selectedModel = task.model ?? "sonnet";
+
   interface UsageInfo {
     input_tokens: number;
     output_tokens: number;
@@ -170,7 +172,7 @@
     entries = [...entries, { kind: "user", text }];
     scrollToBottom();
     try {
-      await sendInput(task.id, text);
+      await sendInput(task.id, text, selectedModel);
     } catch (err) {
       entries = [...entries, { kind: "system", text: `Send failed: ${err}` }];
       scrollToBottom();
@@ -279,6 +281,11 @@
         autocomplete="off"
         spellcheck="false"
       />
+      <select class="model-select" bind:value={selectedModel} title="Model">
+        <option value="sonnet">sonnet</option>
+        <option value="opus">opus</option>
+        <option value="haiku">haiku</option>
+      </select>
       <button class="btn-send" on:click={handleSend} title="Send (Enter)">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
           <line x1="22" y1="2" x2="11" y2="13"/>
@@ -576,6 +583,24 @@
   .stdin-input::placeholder {
     color: rgba(108, 112, 134, 0.4);
     font-family: inherit;
+  }
+  .model-select {
+    background: rgba(30, 30, 46, 0.9);
+    color: #cdd6f4;
+    border: 1px solid rgba(137, 180, 250, 0.2);
+    border-radius: 7px;
+    height: 30px;
+    padding: 0 6px;
+    font-size: 0.75rem;
+    font-family: inherit;
+    cursor: pointer;
+    outline: none;
+  }
+  .model-select {
+    color-scheme: dark;
+  }
+  .model-select:focus {
+    border-color: rgba(137, 180, 250, 0.5);
   }
   .btn-send {
     background: rgba(137, 180, 250, 0.15);
