@@ -147,20 +147,24 @@
     margin-bottom: 8px;
     position: relative;
     overflow: hidden;
-    transition: all 0.25s ease;
+    transition: border-color 0.25s ease;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
   }
   .card:hover {
     border-color: rgba(255, 255, 255, 0.1);
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2), 0 0 20px var(--glow-color);
-    transform: translateY(-1px);
   }
-  .card.running {
+  .card.running::before {
+    content: '';
+    position: absolute;
+    inset: -2px;
+    border-radius: inherit;
+    box-shadow: 0 0 18px rgba(234, 179, 8, 0.2);
     animation: runningPulse 2.5s ease-in-out infinite;
+    pointer-events: none;
   }
   @keyframes runningPulse {
-    0%, 100% { box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15), 0 0 15px rgba(234, 179, 8, 0.08); }
-    50% { box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15), 0 0 25px rgba(234, 179, 8, 0.15); }
+    0%, 100% { opacity: 0.4; }
+    50% { opacity: 1; }
   }
   .drag-handle {
     position: absolute;
@@ -191,7 +195,6 @@
   }
   .card:hover .card-border-top {
     opacity: 1;
-    box-shadow: 0 0 8px var(--border-color);
   }
   .description {
     color: rgba(205, 214, 244, 0.9);
@@ -226,16 +229,12 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: all 0.2s ease;
+    transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
   }
   .btn-icon:hover {
     background: rgba(137, 180, 250, 0.15);
     border-color: rgba(137, 180, 250, 0.2);
     color: #cdd6f4;
-    transform: scale(1.08);
-  }
-  .btn-icon:active {
-    transform: scale(0.95);
   }
   .btn-icon.play {
     background: rgba(166, 227, 161, 0.15);
@@ -244,17 +243,25 @@
   }
   .btn-icon.play:hover {
     background: rgba(166, 227, 161, 0.3);
-    box-shadow: 0 0 10px rgba(166, 227, 161, 0.15);
   }
   .btn-icon.play.active {
     background: rgba(234, 179, 8, 0.15);
     color: #eab308;
     border-color: rgba(234, 179, 8, 0.2);
+    position: relative;
+  }
+  .btn-icon.play.active::before {
+    content: '';
+    position: absolute;
+    inset: -2px;
+    border-radius: inherit;
+    box-shadow: 0 0 8px rgba(234, 179, 8, 0.3);
     animation: stopPulse 1.5s ease-in-out infinite;
+    pointer-events: none;
   }
   @keyframes stopPulse {
-    0%, 100% { box-shadow: none; }
-    50% { box-shadow: 0 0 8px rgba(234, 179, 8, 0.2); }
+    0%, 100% { opacity: 0.2; }
+    50% { opacity: 1; }
   }
   .btn-icon.terminal-btn.active {
     background: rgba(137, 180, 250, 0.2);
@@ -270,7 +277,6 @@
     background: rgba(243, 139, 168, 0.2);
     border-color: rgba(243, 139, 168, 0.3);
     color: #f38ba8;
-    box-shadow: 0 0 10px rgba(243, 139, 168, 0.1);
   }
   .toggle {
     display: flex;
@@ -295,7 +301,7 @@
     background: rgba(82, 82, 91, 0.6);
     border: 1px solid rgba(255, 255, 255, 0.08);
     position: relative;
-    transition: all 0.25s ease;
+    transition: background 0.25s ease, border-color 0.25s ease;
   }
   .toggle-track.active {
     background: rgba(137, 180, 250, 0.25);
@@ -309,7 +315,7 @@
     position: absolute;
     top: 1px;
     left: 1px;
-    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: left 0.25s cubic-bezier(0.4, 0, 0.2, 1), background 0.25s ease;
   }
   .toggle-track.active .toggle-thumb {
     left: 13px;

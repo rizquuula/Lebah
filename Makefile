@@ -1,4 +1,4 @@
-.PHONY: help setup dev build clean clean-soft setup-rust setup-node setup-tauri tree
+.PHONY: help setup dev build run clean clean-soft setup-rust setup-node setup-tauri tree
 .DEFAULT_GOAL := help
 
 help:
@@ -10,6 +10,7 @@ help:
 	@echo "  setup   Install dependencies (Tauri CLI, npm packages, cargo deps)"
 	@echo "  dev     Run in development mode"
 	@echo "  build   Build for production"
+	@echo "  run     Run the release build"
 	@echo "  clean       Clean all build artifacts and dependencies"
 	@echo "  clean-soft  Clear caches only (Vite, Cargo incremental)"
 	@echo ""
@@ -41,6 +42,9 @@ dev:
 
 build:
 	cargo tauri build
+
+run: build
+	./src-tauri/target/release/lebah
 
 clean-soft:
 	@echo "Clearing caches..."

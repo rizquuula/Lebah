@@ -63,11 +63,11 @@
     height: 100%;
     position: relative;
     overflow: hidden;
-    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+    transition: border-color 0.3s ease;
+    will-change: border-color;
   }
   .column:hover {
     border-color: color-mix(in srgb, var(--col-color) 22%, transparent);
-    box-shadow: 0 0 30px color-mix(in srgb, var(--col-color) 8%, transparent);
   }
   .column-header-glow {
     position: absolute;
@@ -116,16 +116,11 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: all 0.25s ease;
+    transition: background 0.25s ease, border-color 0.25s ease;
   }
   .btn-add:hover {
     background: color-mix(in srgb, var(--col-color) 28%, transparent);
     border-color: color-mix(in srgb, var(--col-color) 45%, transparent);
-    box-shadow: 0 0 12px color-mix(in srgb, var(--col-color) 25%, transparent);
-    transform: scale(1.1);
-  }
-  .btn-add:active {
-    transform: scale(0.95);
   }
   .task-list {
     flex: 1;
