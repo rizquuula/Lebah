@@ -19,16 +19,11 @@
 
     const pathVal = claudePath.trim() || null;
     const cmdVal = claudeCommand.trim() || null;
-    const worktreeVal = worktree.trim() || null;
+    const worktreeVal = worktree.trim().replace(/\//g, '-') || null;
 
     if (!task) {
       if (!worktreeVal) {
-        worktreeError = "Worktree path is required";
-        return;
-      }
-      const exists = await invoke<boolean>("check_path_exists", { path: worktreeVal });
-      if (exists) {
-        worktreeError = "Path already exists";
+        worktreeError = "Worktree name is required";
         return;
       }
     }
@@ -88,7 +83,7 @@
         class="text-input"
       />
 
-      <label class="field-label" for="task-worktree">Worktree Path</label>
+      <label class="field-label" for="task-worktree">Worktree Name</label>
       {#if task}
         <div class="text-input readonly-field">{task.worktree ?? "—"}</div>
       {:else}
@@ -96,7 +91,7 @@
           id="task-worktree"
           type="text"
           bind:value={worktree}
-          placeholder="/path/to/worktree"
+          placeholder="feat-my-feature"
           class="text-input"
           class:input-error={!!worktreeError}
         />

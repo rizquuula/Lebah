@@ -45,6 +45,12 @@ impl SessionManager {
         }
 
         let binary = claude_path.unwrap_or("claude");
+        eprintln!("[claude] Starting session for task_id={}", task_id);
+        eprintln!("[claude] Binary: {}", binary);
+        eprintln!("[claude] Project path: {:?}", project_path);
+        eprintln!("[claude] use_plan={} yolo={} worktree={:?}", use_plan, yolo, worktree);
+        eprintln!("[claude] Description: {}", description);
+
         let mut cmd = Command::new(binary);
         cmd.arg("--session-id").arg(task_id);
 
@@ -72,10 +78,18 @@ impl SessionManager {
         }
 
         cmd.arg("--output-format").arg("stream-json");
+        cmd.arg("--verbose");
         cmd.arg("--print").arg(description);
         cmd.stdin(Stdio::null()).stdout(Stdio::piped()).stderr(Stdio::piped());
 
-        let mut child = cmd.spawn().map_err(|e| format!("Failed to spawn claude: {}", e))?;
+        eprintln!("[claude] Spawning: {} {:?}", cmd.get_program().to_string_lossy(),
+            cmd.get_args().map(|a| a.to_string_lossy().into_owned()).collect::<Vec<_>>());
+
+        let mut child = cmd.spawn().map_err(|e| {
+            eprintln!("[claude] Failed to spawn process: {}", e);
+            format!("Failed to spawn claude: {}", e)
+        })?;
+        eprintln!("[claude] Spawned PID: {}", child.id());
 
         let stdout = child.stdout.take();
         let stderr = child.stderr.take();
@@ -87,13 +101,16 @@ impl SessionManager {
             let app_clone = app.clone();
             let buffers = Arc::clone(&self.output_buffers);
             std::thread::spawn(move || {
+                eprintln!("[claude:stdout] Reader thread started for task={}", task_id_clone);
                 let reader = BufReader::new(stdout);
                 for line in reader.lines().map_while(Result::ok) {
+                    eprintln!("[claude:stdout] {}", line);
                     if let Ok(mut b) = buffers.lock() {
                         b.entry(task_id_clone.clone()).or_default().push(line.clone());
                     }
                     let _ = app_clone.emit(&format!("claude-output-{}", task_id_clone), &line);
                 }
+                eprintln!("[claude:stdout] Reader thread ended for task={}", task_id_clone);
             });
         }
 
@@ -103,13 +120,16 @@ impl SessionManager {
             let app_clone = app.clone();
             let buffers = Arc::clone(&self.output_buffers);
             std::thread::spawn(move || {
+                eprintln!("[claude:stderr] Reader thread started for task={}", task_id_clone);
                 let reader = BufReader::new(stderr);
                 for line in reader.lines().map_while(Result::ok) {
+                    eprintln!("[claude:stderr] {}", line);
                     if let Ok(mut b) = buffers.lock() {
                         b.entry(task_id_clone.clone()).or_default().push(line.clone());
                     }
                     let _ = app_clone.emit(&format!("claude-output-{}", task_id_clone), &line);
                 }
+                eprintln!("[claude:stderr] Reader thread ended for task={}", task_id_clone);
             });
         }
 

@@ -93,6 +93,8 @@ pub fn run_claude_session(
     session_manager: State<'_, SessionManager>,
 ) -> Result<(), String> {
     let project_path = storage.get_project()?;
+    eprintln!("[session] run_claude_session: task={} use_plan={} yolo={} project={:?} claude_path={:?} claude_command={:?} worktree={:?}",
+        id, use_plan, yolo, project_path, claude_path, claude_command, worktree);
     storage.update_task_status(&id, "Running")?;
 
     if let Err(e) = session_manager.run_session(
@@ -106,9 +108,11 @@ pub fn run_claude_session(
         worktree.as_deref(),
         project_path.as_deref(),
     ) {
+        eprintln!("[session] Failed to start session for task={}: {}", id, e);
         let _ = storage.update_task_status(&id, "Failed");
         return Err(e);
     }
+    eprintln!("[session] Session started successfully for task={}", id);
 
     // Watch for process exit and update status
     let pp = project_path.unwrap_or_default();
@@ -121,19 +125,26 @@ pub fn run_claude_session(
             std::thread::sleep(std::time::Duration::from_secs(2));
             let mut sessions = match sessions_arc.lock() {
                 Ok(s) => s,
-                Err(_) => break,
+                Err(e) => {
+                    eprintln!("[monitor] task={} mutex poisoned: {}", id_clone, e);
+                    break;
+                }
             };
             if let Some(child) = sessions.get_mut(&id_clone) {
                 match child.try_wait() {
                     Ok(Some(status)) => {
+                        let final_status = if status.success() { "Success" } else { "Failed" };
+                        eprintln!("[monitor] task={} exited: code={:?} -> {}", id_clone, status.code(), final_status);
                         sessions.remove(&id_clone);
                         drop(sessions);
-                        let final_status = if status.success() { "Success" } else { "Failed" };
                         let _ = thread_storage.update_task_status_for(&pp, &id_clone, final_status);
                         break;
                     }
-                    Ok(None) => {}
-                    Err(_) => {
+                    Ok(None) => {
+                        eprintln!("[monitor] task={} still running", id_clone);
+                    }
+                    Err(e) => {
+                        eprintln!("[monitor] task={} try_wait error: {}", id_clone, e);
                         sessions.remove(&id_clone);
                         drop(sessions);
                         let _ = thread_storage.update_task_status_for(&pp, &id_clone, "Failed");
@@ -141,6 +152,7 @@ pub fn run_claude_session(
                     }
                 }
             } else {
+                eprintln!("[monitor] task={} not found in sessions, exiting monitor", id_clone);
                 break;
             }
         }
@@ -172,8 +184,10 @@ pub fn stop_claude_session(
     storage: State<'_, Storage>,
     session_manager: State<'_, SessionManager>,
 ) -> Result<(), String> {
+    eprintln!("[session] stop_claude_session: task={}", id);
     session_manager.stop_session(&id)?;
     storage.update_task_status(&id, "Idle")?;
+    eprintln!("[session] Session stopped for task={}", id);
     Ok(())
 }
 
