@@ -19,6 +19,8 @@
     | { kind: "user"; text: string }
     | { kind: "assistant"; text: string }
     | { kind: "tool_use"; name: string; input: string }
+    | { kind: "usage"; input: number; output: number; cacheRead: number; cacheCreate: number }
+    | { kind: "file_output"; path: string; content: string }
     | { kind: "result"; success: boolean; cost: number; duration_ms: number; usage: UsageInfo }
     | { kind: "system"; text: string };
 
@@ -56,6 +58,16 @@
               entries = [...entries, { kind: "tool_use", name: part.name ?? "unknown", input: "" }];
             }
           }
+          const u = obj.message.usage;
+          if (u && u.output_tokens > 0) {
+            entries = [...entries, {
+              kind: "usage",
+              input: u.input_tokens ?? 0,
+              output: u.output_tokens ?? 0,
+              cacheRead: u.cache_read_input_tokens ?? 0,
+              cacheCreate: u.cache_creation_input_tokens ?? 0,
+            }];
+          }
           return;
         }
         // Streaming deltas
@@ -86,6 +98,19 @@
         if (cb?.type === "text" && cb.text) {
           entries = [...entries, { kind: "assistant", text: cb.text }];
           return;
+        }
+        return;
+      }
+
+      if (obj.type === "user") {
+        const contents = obj.message?.content;
+        if (Array.isArray(contents)) {
+          for (const part of contents) {
+            const tr = part.tool_use_result ?? obj.tool_use_result;
+            if (tr?.type === "create" && tr.filePath?.endsWith(".md") && tr.content) {
+              entries = [...entries, { kind: "file_output", path: tr.filePath, content: tr.content }];
+            }
+          }
         }
         return;
       }
@@ -212,6 +237,15 @@
               {#if entry.input}
                 <span class="tool-input">{entry.input}</span>
               {/if}
+            </div>
+          {:else if entry.kind === "usage"}
+            <div class="usage-line">
+              {fmt(entry.output)} out · {fmt(entry.input + entry.cacheRead + entry.cacheCreate)} in{#if entry.cacheRead > 0} · {fmt(entry.cacheRead)} cached{/if}
+            </div>
+          {:else if entry.kind === "file_output"}
+            <div class="file-block">
+              <div class="file-header">{entry.path.split("/").pop()}</div>
+              <pre class="file-content">{entry.content}</pre>
             </div>
           {:else if entry.kind === "result"}
             <div class="result-bar" class:result-error={!entry.success}>
@@ -453,6 +487,48 @@
     padding: 1px 6px;
     background: rgba(137, 180, 250, 0.08);
     border-radius: 10px;
+  }
+
+  .usage-line {
+    align-self: flex-start;
+    font-size: 10px;
+    font-family: "JetBrains Mono", "Fira Code", monospace;
+    color: rgba(108, 112, 134, 0.5);
+    padding: 1px 8px;
+    margin-top: -6px;
+  }
+  .file-block {
+    align-self: stretch;
+    flex-shrink: 0;
+    border: 1px solid rgba(137, 180, 250, 0.12);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  .file-header {
+    padding: 5px 10px;
+    font-size: 10.5px;
+    font-family: "JetBrains Mono", "Fira Code", monospace;
+    color: rgba(137, 180, 250, 0.6);
+    background: rgba(137, 180, 250, 0.06);
+    border-bottom: 1px solid rgba(137, 180, 250, 0.08);
+  }
+  .file-content {
+    padding: 10px 12px;
+    font-size: 11.5px;
+    font-family: "JetBrains Mono", "Fira Code", monospace;
+    color: rgba(205, 214, 244, 0.75);
+    background: rgba(0, 0, 0, 0.2);
+    margin: 0;
+    max-height: 200px;
+    overflow-y: auto;
+    white-space: pre-wrap;
+    word-break: break-word;
+    line-height: 1.5;
+  }
+  .file-content::-webkit-scrollbar { width: 4px; }
+  .file-content::-webkit-scrollbar-thumb {
+    background: rgba(137, 180, 250, 0.15);
+    border-radius: 2px;
   }
 
   .system-line {
