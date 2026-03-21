@@ -1,12 +1,14 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import { tasks, loadTasks } from "../stores/tasks";
+  import { loadProjectConfig } from "../stores/config";
   import { COLUMNS, COLUMN_COLORS, type Task, type TaskColumn } from "../types";
   import Column from "./Column.svelte";
   import TaskModal from "./TaskModal.svelte";
 
   onMount(() => {
     loadTasks();
+    loadProjectConfig();
   });
 
   let activeColumn: { key: TaskColumn; label: string } | null = null;

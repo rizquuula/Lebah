@@ -67,9 +67,16 @@ export async function runClaudeSession(
       if (msg.type === "result") {
         unlisten();
         const status: TaskStatus = msg.is_error ? "Failed" : "Success";
-        tasks.update((all) =>
-          all.map((t) => (t.id === id ? { ...t, status } : t)),
-        );
+        let taskColumn: string | undefined;
+        tasks.update((all) => {
+          const found = all.find((t) => t.id === id);
+          if (found) taskColumn = found.column;
+          return all.map((t) => (t.id === id ? { ...t, status } : t));
+        });
+        if (status === "Success" && taskColumn) {
+          if (taskColumn === "Review") await moveTask(id, "Merge", 0);
+          else if (taskColumn === "Merge") await moveTask(id, "Completed", 0);
+        }
       }
     } catch {}
   });
@@ -95,6 +102,38 @@ export async function stopClaudeSession(id: string): Promise<void> {
 
 export async function sendInput(id: string, input: string, model: string | null = null): Promise<void> {
   await invoke("send_input", { id, input, model });
+}
+
+export async function sendInputWithListener(
+  id: string,
+  input: string,
+  model: string | null = null,
+): Promise<void> {
+  tasks.update((all) =>
+    all.map((t) => (t.id === id ? { ...t, status: "Running" as TaskStatus } : t)),
+  );
+
+  const unlisten = await listen<string>(`claude-output-${id}`, async (event) => {
+    try {
+      const msg = JSON.parse(event.payload);
+      if (msg.type === "result") {
+        unlisten();
+        const status: TaskStatus = msg.is_error ? "Failed" : "Success";
+        let taskColumn: string | undefined;
+        tasks.update((all) => {
+          const t = all.find((t) => t.id === id);
+          if (t) taskColumn = t.column;
+          return all.map((t) => (t.id === id ? { ...t, status } : t));
+        });
+        if (status === "Success" && taskColumn) {
+          if (taskColumn === "Review") await moveTask(id, "Merge", 0);
+          else if (taskColumn === "Merge") await moveTask(id, "Completed", 0);
+        }
+      }
+    } catch {}
+  });
+
+  await sendInput(id, input, model);
 }
 
 export async function resetTaskSession(id: string): Promise<Task> {

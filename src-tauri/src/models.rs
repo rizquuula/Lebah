@@ -86,3 +86,18 @@ pub struct GlobalConfig {
     pub last_project: Option<String>,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ProjectConfig {
+    pub review_template: Option<String>,
+    pub merge_template: Option<String>,
+}
+
+impl Default for ProjectConfig {
+    fn default() -> Self {
+        Self {
+            review_template: Some("Help me to check for test, lint and build error if you not yet do it. Then do commit in the worktree.".to_string()),
+            merge_template: Some("Pull from main branch and check for conflict. Fix the conflict. Then merge this worktree to main.".to_string()),
+        }
+    }
+}
+

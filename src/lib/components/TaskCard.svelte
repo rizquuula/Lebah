@@ -1,6 +1,7 @@
 <script lang="ts">
-  import { updateTask, runClaudeSession, stopClaudeSession, deleteTask, resetTaskSession } from "../stores/tasks";
-  import { STATUS_COLORS, type Task } from "../types";
+  import { updateTask, runClaudeSession, stopClaudeSession, deleteTask, resetTaskSession, sendInputWithListener } from "../stores/tasks";
+  import { projectConfig } from "../stores/config";
+  import { STATUS_COLORS, DEFAULT_REVIEW_TEMPLATE, DEFAULT_MERGE_TEMPLATE, type Task } from "../types";
   import TerminalModal from "./TerminalModal.svelte";
   import TaskModal from "./TaskModal.svelte";
   import { portal } from "../actions/portal";
@@ -28,9 +29,24 @@
     await updateTask({ ...task, yolo: !task.yolo });
   }
 
+  function getTemplate(): string | null {
+    if (task.column === "Review") return $projectConfig.review_template ?? DEFAULT_REVIEW_TEMPLATE;
+    if (task.column === "Merge") return $projectConfig.merge_template ?? DEFAULT_MERGE_TEMPLATE;
+    return null;
+  }
+
   async function handlePlay() {
     if (task.status === "Running") {
       await stopClaudeSession(task.id);
+    } else if ((task.column === "Review" || task.column === "Merge") && task.has_run) {
+      const template = getTemplate();
+      if (template) {
+        try {
+          await sendInputWithListener(task.id, template, task.model);
+        } catch (e) {
+          showTerminal = true;
+        }
+      }
     } else if (task.has_run) {
       showConfirmReset = true;
     } else {

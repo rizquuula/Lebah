@@ -1,7 +1,8 @@
 <script lang="ts">
   import { dragHandleZone } from "svelte-dnd-action";
   import { moveTask } from "../stores/tasks";
-  import type { Task, TaskColumn } from "../types";
+  import { projectConfig, saveProjectConfig } from "../stores/config";
+  import { DEFAULT_REVIEW_TEMPLATE, DEFAULT_MERGE_TEMPLATE, type Task, type TaskColumn } from "../types";
   import TaskCard from "./TaskCard.svelte";
 
   export let column: TaskColumn;
@@ -9,6 +10,28 @@
   export let items: Task[];
   export let onAddTask: () => void;
   export let color: string = "#89b4fa";
+
+  let showTemplatePopover = false;
+  let editingTemplate = "";
+
+  $: hasTemplate = column === "Review" || column === "Merge";
+
+  function openTemplatePopover() {
+    if (column === "Review") {
+      editingTemplate = $projectConfig.review_template ?? DEFAULT_REVIEW_TEMPLATE;
+    } else {
+      editingTemplate = $projectConfig.merge_template ?? DEFAULT_MERGE_TEMPLATE;
+    }
+    showTemplatePopover = !showTemplatePopover;
+  }
+
+  async function saveTemplate() {
+    const updated = { ...$projectConfig };
+    if (column === "Review") updated.review_template = editingTemplate;
+    else updated.merge_template = editingTemplate;
+    await saveProjectConfig(updated);
+    showTemplatePopover = false;
+  }
 
   function handleDndConsider(e: CustomEvent) {
     items = e.detail.items;
@@ -36,6 +59,24 @@
           <path d="M7 1v12M1 7h12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
         </svg>
       </button>
+    {/if}
+    {#if hasTemplate}
+      <div class="template-wrapper">
+        <button class="btn-add" on:click={openTemplatePopover} title="Template message" aria-label="Template message">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+          </svg>
+        </button>
+        {#if showTemplatePopover}
+          <div class="template-popover">
+            <textarea bind:value={editingTemplate} rows="4"></textarea>
+            <div class="template-actions">
+              <button class="btn-tpl-cancel" on:click={() => (showTemplatePopover = false)}>Cancel</button>
+              <button class="btn-tpl-save" on:click={saveTemplate}>Save</button>
+            </div>
+          </div>
+        {/if}
+      </div>
     {/if}
   </div>
 
@@ -117,6 +158,70 @@
   .btn-add:hover {
     background: color-mix(in srgb, var(--col-color) 28%, transparent);
     border-color: color-mix(in srgb, var(--col-color) 45%, transparent);
+  }
+  .template-wrapper {
+    margin-left: auto;
+    position: relative;
+  }
+  .template-popover {
+    position: absolute;
+    top: 36px;
+    right: 0;
+    width: 280px;
+    background: #1e1e2e;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+    padding: 12px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+    z-index: 100;
+  }
+  .template-popover textarea {
+    width: 100%;
+    background: rgba(63, 63, 70, 0.6);
+    color: rgba(205, 214, 244, 0.9);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 6px;
+    padding: 8px;
+    font-size: 12px;
+    font-family: inherit;
+    resize: vertical;
+    line-height: 1.5;
+    box-sizing: border-box;
+  }
+  .template-popover textarea:focus {
+    outline: none;
+    border-color: color-mix(in srgb, var(--col-color) 50%, transparent);
+  }
+  .template-actions {
+    display: flex;
+    gap: 6px;
+    justify-content: flex-end;
+    margin-top: 8px;
+  }
+  .btn-tpl-cancel {
+    background: rgba(82, 82, 91, 0.5);
+    color: rgba(205, 214, 244, 0.7);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 6px;
+    padding: 4px 10px;
+    font-size: 11px;
+    cursor: pointer;
+  }
+  .btn-tpl-cancel:hover {
+    background: rgba(82, 82, 91, 0.8);
+  }
+  .btn-tpl-save {
+    background: color-mix(in srgb, var(--col-color) 20%, transparent);
+    color: var(--col-color);
+    border: 1px solid color-mix(in srgb, var(--col-color) 30%, transparent);
+    border-radius: 6px;
+    padding: 4px 10px;
+    font-size: 11px;
+    cursor: pointer;
+    font-weight: 600;
+  }
+  .btn-tpl-save:hover {
+    background: color-mix(in srgb, var(--col-color) 35%, transparent);
   }
   .task-list {
     flex: 1;

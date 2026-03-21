@@ -40,6 +40,14 @@ export const COLUMN_COLORS: Record<TaskColumn, string> = {
   Completed: "#94e2d5",
 };
 
+export interface ProjectConfig {
+  review_template: string | null;
+  merge_template: string | null;
+}
+
+export const DEFAULT_REVIEW_TEMPLATE = "Help me to check for test, lint and build error if you not yet do it. Then do commit in the worktree.";
+export const DEFAULT_MERGE_TEMPLATE = "Pull from main branch and check for conflict. Fix the conflict. Then merge this worktree to main.";
+
 export const STATUS_COLORS: Record<TaskStatus, string> = {
   Idle: "#6b7280",
   Running: "#eab308",

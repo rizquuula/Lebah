@@ -2,7 +2,7 @@ use sha2::{Digest, Sha256};
 use std::path::PathBuf;
 use std::sync::Mutex;
 
-use crate::models::{GlobalConfig, Task};
+use crate::models::{GlobalConfig, ProjectConfig, Task};
 
 pub struct Storage {
     base_dir: PathBuf,
@@ -64,6 +64,25 @@ impl Storage {
         let path = self.base_dir.join("config.json");
         let json = serde_json::to_string_pretty(config).map_err(|e| e.to_string())?;
         std::fs::write(path, json).map_err(|e| e.to_string())
+    }
+
+    // --- Project Config ---
+
+    pub fn load_project_config(&self) -> Result<ProjectConfig, String> {
+        let project = self.require_project()?;
+        let path = self.project_dir(&project).join("project_config.json");
+        Ok(std::fs::read_to_string(&path)
+            .ok()
+            .and_then(|s| serde_json::from_str(&s).ok())
+            .unwrap_or_default())
+    }
+
+    pub fn save_project_config(&self, config: &ProjectConfig) -> Result<(), String> {
+        let project = self.require_project()?;
+        let dir = self.project_dir(&project);
+        std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
+        let json = serde_json::to_string_pretty(config).map_err(|e| e.to_string())?;
+        std::fs::write(dir.join("project_config.json"), json).map_err(|e| e.to_string())
     }
 
     // --- Project ---

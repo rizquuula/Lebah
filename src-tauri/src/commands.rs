@@ -3,7 +3,7 @@ use tauri::{AppHandle, State};
 use uuid::Uuid;
 
 use crate::claude::SessionManager;
-use crate::models::{GitStatus, Task, TaskColumn, TaskStatus};
+use crate::models::{GitStatus, ProjectConfig, Task, TaskColumn, TaskStatus};
 use crate::storage::Storage;
 
 #[tauri::command]
@@ -258,6 +258,19 @@ pub fn reset_task_session(
     storage.set_task_settings(&new_id, old_task.use_plan, old_task.yolo)?;
 
     storage.get_task(&new_id)
+}
+
+#[tauri::command]
+pub fn get_project_config(storage: State<'_, Storage>) -> Result<ProjectConfig, String> {
+    storage.load_project_config()
+}
+
+#[tauri::command]
+pub fn set_project_config(
+    config: ProjectConfig,
+    storage: State<'_, Storage>,
+) -> Result<(), String> {
+    storage.save_project_config(&config)
 }
 
 #[tauri::command]
