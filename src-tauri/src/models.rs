@@ -20,6 +20,16 @@ impl TaskColumn {
             _ => Err(format!("Unknown column: {}", s)),
         }
     }
+
+    pub fn to_str(&self) -> &str {
+        match self {
+            TaskColumn::Todo => "Todo",
+            TaskColumn::InProgress => "InProgress",
+            TaskColumn::Review => "Review",
+            TaskColumn::Merge => "Merge",
+            TaskColumn::Completed => "Completed",
+        }
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -57,6 +67,8 @@ pub struct Task {
     pub claude_path: Option<String>,
     pub claude_command: Option<String>,
     pub worktree: Option<String>,
+    #[serde(default)]
+    pub has_run: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

@@ -142,6 +142,7 @@ impl Storage {
             claude_path: claude_path.map(|s| s.to_string()),
             claude_command: claude_command.map(|s| s.to_string()),
             worktree: worktree.map(|s| s.to_string()),
+            has_run: false,
         });
         self.save_tasks_for(&project, &tasks)
     }
@@ -192,6 +193,31 @@ impl Storage {
         let project = self.require_project()?;
         let tasks = self.load_tasks_for(&project);
         Ok(tasks.iter().find(|t| t.id == id).and_then(|t| t.worktree.clone()))
+    }
+
+    pub fn get_task(&self, id: &str) -> Result<crate::models::Task, String> {
+        let project = self.require_project()?;
+        let tasks = self.load_tasks_for(&project);
+        tasks.into_iter().find(|t| t.id == id).ok_or_else(|| format!("Task not found: {}", id))
+    }
+
+    pub fn set_task_has_run(&self, id: &str, has_run: bool) -> Result<(), String> {
+        let project = self.require_project()?;
+        let mut tasks = self.load_tasks_for(&project);
+        if let Some(t) = tasks.iter_mut().find(|t| t.id == id) {
+            t.has_run = has_run;
+        }
+        self.save_tasks_for(&project, &tasks)
+    }
+
+    pub fn set_task_settings(&self, id: &str, use_plan: bool, yolo: bool) -> Result<(), String> {
+        let project = self.require_project()?;
+        let mut tasks = self.load_tasks_for(&project);
+        if let Some(t) = tasks.iter_mut().find(|t| t.id == id) {
+            t.use_plan = use_plan;
+            t.yolo = yolo;
+        }
+        self.save_tasks_for(&project, &tasks)
     }
 
     /// For use from monitoring thread — takes explicit project path

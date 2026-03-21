@@ -76,3 +76,9 @@ export async function stopClaudeSession(id: string): Promise<void> {
 export async function sendInput(id: string, input: string): Promise<void> {
   await invoke("send_input", { id, input });
 }
+
+export async function resetTaskSession(id: string): Promise<Task> {
+  const newTask = await invoke<Task>("reset_task_session", { id });
+  await loadTasks();
+  return newTask;
+}

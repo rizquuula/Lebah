@@ -30,6 +30,7 @@ pub fn run() {
             commands::get_git_status,
             commands::get_output_buffer,
             commands::check_path_exists,
+            commands::reset_task_session,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

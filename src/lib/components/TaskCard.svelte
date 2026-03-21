@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { updateTask, runClaudeSession, stopClaudeSession, deleteTask } from "../stores/tasks";
+  import { updateTask, runClaudeSession, stopClaudeSession, deleteTask, resetTaskSession } from "../stores/tasks";
   import { STATUS_COLORS, type Task } from "../types";
   import TerminalModal from "./TerminalModal.svelte";
   import TaskModal from "./TaskModal.svelte";
@@ -10,6 +10,7 @@
 
   let showTerminal = false;
   let showEditModal = false;
+  let showConfirmReset = false;
 
   $: borderColor = STATUS_COLORS[task.status];
   $: isRunning = task.status === "Running";
@@ -29,12 +30,24 @@
   async function handlePlay() {
     if (task.status === "Running") {
       await stopClaudeSession(task.id);
+    } else if (task.has_run) {
+      showConfirmReset = true;
     } else {
       try {
         await runClaudeSession(task.id, task.description, task.use_plan, task.yolo, task.claude_path, task.claude_command, task.worktree);
       } catch (e) {
         showTerminal = true;
       }
+    }
+  }
+
+  async function handleConfirmReset() {
+    showConfirmReset = false;
+    try {
+      const newTask = await resetTaskSession(task.id);
+      await runClaudeSession(newTask.id, newTask.description, newTask.use_plan, newTask.yolo, newTask.claude_path, newTask.claude_command, newTask.worktree);
+    } catch (e) {
+      showTerminal = true;
     }
   }
 </script>
@@ -135,6 +148,21 @@
 {#if showEditModal}
   <div use:portal>
     <TaskModal {task} onClose={() => (showEditModal = false)} />
+  </div>
+{/if}
+
+{#if showConfirmReset}
+  <div use:portal>
+    <div class="confirm-overlay" role="presentation" on:click={() => (showConfirmReset = false)} on:keydown={(e) => e.key === 'Escape' && (showConfirmReset = false)}>
+      <div class="confirm-dialog" role="dialog" aria-modal="true" tabindex="-1" on:click|stopPropagation on:keydown|stopPropagation>
+        <p class="confirm-title">Start over?</p>
+        <p class="confirm-detail">The worktree will be removed and a fresh Claude session will start.</p>
+        <div class="confirm-actions">
+          <button class="btn-cancel" on:click={() => (showConfirmReset = false)}>Cancel</button>
+          <button class="btn-confirm" on:click={handleConfirmReset}>Start Over</button>
+        </div>
+      </div>
+    </div>
   </div>
 {/if}
 
@@ -335,5 +363,66 @@
     text-transform: uppercase;
     font-size: 10px;
     letter-spacing: 0.5px;
+  }
+  .confirm-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+  }
+  .confirm-dialog {
+    background: #1e1e2e;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    padding: 24px;
+    max-width: 320px;
+    width: 90%;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  }
+  .confirm-title {
+    color: #cdd6f4;
+    font-size: 16px;
+    font-weight: 600;
+    margin: 0 0 8px;
+  }
+  .confirm-detail {
+    color: rgba(205, 214, 244, 0.6);
+    font-size: 13px;
+    margin: 0 0 20px;
+    line-height: 1.5;
+  }
+  .confirm-actions {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+  }
+  .btn-cancel {
+    background: rgba(82, 82, 91, 0.5);
+    color: rgba(205, 214, 244, 0.7);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 7px;
+    padding: 6px 14px;
+    font-size: 13px;
+    cursor: pointer;
+  }
+  .btn-cancel:hover {
+    background: rgba(82, 82, 91, 0.8);
+    color: #cdd6f4;
+  }
+  .btn-confirm {
+    background: rgba(239, 68, 68, 0.2);
+    color: #f38ba8;
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    border-radius: 7px;
+    padding: 6px 14px;
+    font-size: 13px;
+    cursor: pointer;
+    font-weight: 600;
+  }
+  .btn-confirm:hover {
+    background: rgba(239, 68, 68, 0.35);
   }
 </style>

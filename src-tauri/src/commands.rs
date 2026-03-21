@@ -42,6 +42,7 @@ pub fn create_task(
         claude_path,
         claude_command,
         worktree,
+        has_run: false,
     })
 }
 
@@ -112,6 +113,7 @@ pub fn run_claude_session(
         let _ = storage.update_task_status(&id, "Failed");
         return Err(e);
     }
+    let _ = storage.set_task_has_run(&id, true);
     eprintln!("[session] Session started successfully for task={}", id);
 
     // Watch for process exit and update status
@@ -189,6 +191,42 @@ pub fn stop_claude_session(
     storage.update_task_status(&id, "Idle")?;
     eprintln!("[session] Session stopped for task={}", id);
     Ok(())
+}
+
+#[tauri::command]
+pub fn reset_task_session(
+    id: String,
+    storage: State<'_, Storage>,
+) -> Result<Task, String> {
+    let old_task = storage.get_task(&id)?;
+
+    // Remove worktree directory if it exists
+    if let Some(ref wt) = old_task.worktree {
+        let path = std::path::Path::new(wt);
+        if path.is_dir() {
+            std::fs::remove_dir_all(path)
+                .map_err(|e| format!("Failed to remove worktree: {}", e))?;
+        }
+    }
+
+    // Delete old task from storage
+    storage.delete_task(&id)?;
+
+    // Create replacement with new UUID and same settings
+    let new_id = Uuid::new_v4().to_string();
+    let created_at = chrono::Utc::now().to_rfc3339();
+    storage.create_task(
+        &new_id,
+        &old_task.description,
+        &created_at,
+        old_task.claude_path.as_deref(),
+        old_task.claude_command.as_deref(),
+        old_task.worktree.as_deref(),
+    )?;
+    storage.move_task(&new_id, old_task.column.to_str(), old_task.sort_order)?;
+    storage.set_task_settings(&new_id, old_task.use_plan, old_task.yolo)?;
+
+    storage.get_task(&new_id)
 }
 
 #[tauri::command]

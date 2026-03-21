@@ -13,6 +13,7 @@ export interface Task {
   claude_path: string | null;
   claude_command: string | null;
   worktree: string | null;
+  has_run: boolean;
 }
 
 export interface GitStatus {
