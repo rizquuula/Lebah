@@ -8,7 +8,8 @@ tauri = { version = "2", features = [] }
 tauri-build = { version = "2", features = [] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-rusqlite = { version = "0.31", features = ["bundled"] }
+sha2 = "0.10"
+dirs = "5"
 uuid = { version = "1", features = ["v4", "serde"] }
 chrono = { version = "0.4", features = ["serde"] }
 tauri-plugin-dialog = "2"

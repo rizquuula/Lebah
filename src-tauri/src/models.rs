@@ -1,5 +1,4 @@
 use serde::{Deserialize, Serialize};
-use std::sync::Mutex;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub enum TaskColumn {
@@ -11,16 +10,6 @@ pub enum TaskColumn {
 }
 
 impl TaskColumn {
-    pub fn as_str(&self) -> &str {
-        match self {
-            TaskColumn::Todo => "Todo",
-            TaskColumn::InProgress => "InProgress",
-            TaskColumn::Review => "Review",
-            TaskColumn::Merge => "Merge",
-            TaskColumn::Completed => "Completed",
-        }
-    }
-
     pub fn from_str(s: &str) -> Result<Self, String> {
         match s {
             "Todo" => Ok(TaskColumn::Todo),
@@ -43,16 +32,6 @@ pub enum TaskStatus {
 }
 
 impl TaskStatus {
-    pub fn as_str(&self) -> &str {
-        match self {
-            TaskStatus::Idle => "Idle",
-            TaskStatus::Running => "Running",
-            TaskStatus::Success => "Success",
-            TaskStatus::Failed => "Failed",
-            TaskStatus::Warning => "Warning",
-        }
-    }
-
     pub fn from_str(s: &str) -> Result<Self, String> {
         match s {
             "Idle" => Ok(TaskStatus::Idle),
@@ -88,7 +67,8 @@ pub struct GitStatus {
     pub changed_files: u32,
 }
 
-pub struct ProjectState {
-    pub path: Mutex<Option<String>>,
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct GlobalConfig {
+    pub last_project: Option<String>,
 }
 

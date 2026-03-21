@@ -1,14 +1,14 @@
-use tauri::{AppHandle, Manager, State};
-use uuid::Uuid;
 use std::process::Command;
+use tauri::{AppHandle, State};
+use uuid::Uuid;
 
 use crate::claude::SessionManager;
-use crate::db::Database;
-use crate::models::{GitStatus, ProjectState, Task, TaskColumn, TaskStatus};
+use crate::models::{GitStatus, Task, TaskColumn, TaskStatus};
+use crate::storage::Storage;
 
 #[tauri::command]
-pub fn get_tasks(db: State<'_, Database>) -> Result<Vec<Task>, String> {
-    db.get_tasks()
+pub fn get_tasks(storage: State<'_, Storage>) -> Result<Vec<Task>, String> {
+    storage.get_tasks()
 }
 
 #[tauri::command]
@@ -17,11 +17,18 @@ pub fn create_task(
     claude_path: Option<String>,
     claude_command: Option<String>,
     worktree: Option<String>,
-    db: State<'_, Database>,
+    storage: State<'_, Storage>,
 ) -> Result<Task, String> {
     let id = Uuid::new_v4().to_string();
     let created_at = chrono::Utc::now().to_rfc3339();
-    db.create_task(&id, &description, &created_at, claude_path.as_deref(), claude_command.as_deref(), worktree.as_deref())?;
+    storage.create_task(
+        &id,
+        &description,
+        &created_at,
+        claude_path.as_deref(),
+        claude_command.as_deref(),
+        worktree.as_deref(),
+    )?;
 
     Ok(Task {
         id,
@@ -39,8 +46,8 @@ pub fn create_task(
 }
 
 #[tauri::command]
-pub fn update_task(task: Task, db: State<'_, Database>) -> Result<(), String> {
-    db.update_task(&task)
+pub fn update_task(task: Task, storage: State<'_, Storage>) -> Result<(), String> {
+    storage.update_task(&task)
 }
 
 #[tauri::command]
@@ -49,20 +56,26 @@ pub fn check_path_exists(path: String) -> bool {
 }
 
 #[tauri::command]
-pub fn delete_task(id: String, db: State<'_, Database>) -> Result<(), String> {
-    if let Ok(Some(worktree)) = db.get_task_worktree(&id) {
+pub fn delete_task(id: String, storage: State<'_, Storage>) -> Result<(), String> {
+    if let Ok(Some(worktree)) = storage.get_task_worktree(&id) {
         let path = std::path::Path::new(&worktree);
         if path.is_dir() {
-            std::fs::remove_dir_all(path).map_err(|e| format!("Failed to delete worktree: {}", e))?;
+            std::fs::remove_dir_all(path)
+                .map_err(|e| format!("Failed to delete worktree: {}", e))?;
         }
     }
-    db.delete_task(&id)
+    storage.delete_task(&id)
 }
 
 #[tauri::command]
-pub fn move_task(id: String, column: String, sort_order: i32, db: State<'_, Database>) -> Result<(), String> {
+pub fn move_task(
+    id: String,
+    column: String,
+    sort_order: i32,
+    storage: State<'_, Storage>,
+) -> Result<(), String> {
     TaskColumn::from_str(&column)?;
-    db.move_task(&id, &column, sort_order)
+    storage.move_task(&id, &column, sort_order)
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -76,27 +89,34 @@ pub fn run_claude_session(
     claude_path: Option<String>,
     claude_command: Option<String>,
     worktree: Option<String>,
-    db: State<'_, Database>,
+    storage: State<'_, Storage>,
     session_manager: State<'_, SessionManager>,
-    project_state: State<'_, ProjectState>,
 ) -> Result<(), String> {
-    let project_path = project_state.path.lock().map_err(|e| e.to_string())?.clone();
-    db.update_task_status(&id, "Running")?;
+    let project_path = storage.get_project()?;
+    storage.update_task_status(&id, "Running")?;
 
-    if let Err(e) = session_manager.run_session(&app, &id, &description, use_plan, yolo, claude_path.as_deref(), claude_command.as_deref(), worktree.as_deref(), project_path.as_deref()) {
-        // Revert status if spawn failed
-        let _ = db.update_task_status(&id, "Failed");
+    if let Err(e) = session_manager.run_session(
+        &app,
+        &id,
+        &description,
+        use_plan,
+        yolo,
+        claude_path.as_deref(),
+        claude_command.as_deref(),
+        worktree.as_deref(),
+        project_path.as_deref(),
+    ) {
+        let _ = storage.update_task_status(&id, "Failed");
         return Err(e);
     }
 
-    // Watch for process exit and update status accordingly
-    let app_dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
-    let db_for_thread = Database::new(&app_dir)?;
+    // Watch for process exit and update status
+    let pp = project_path.unwrap_or_default();
     let id_clone = id.clone();
     let sessions_arc = session_manager.sessions_arc();
+    let thread_storage = Storage::new().expect("Failed to init storage for thread");
 
     std::thread::spawn(move || {
-        // Poll for process exit (check every 2 seconds to minimize CPU usage)
         loop {
             std::thread::sleep(std::time::Duration::from_secs(2));
             let mut sessions = match sessions_arc.lock() {
@@ -109,19 +129,18 @@ pub fn run_claude_session(
                         sessions.remove(&id_clone);
                         drop(sessions);
                         let final_status = if status.success() { "Success" } else { "Failed" };
-                        let _ = db_for_thread.update_task_status(&id_clone, final_status);
+                        let _ = thread_storage.update_task_status_for(&pp, &id_clone, final_status);
                         break;
                     }
-                    Ok(None) => {} // Still running
+                    Ok(None) => {}
                     Err(_) => {
                         sessions.remove(&id_clone);
                         drop(sessions);
-                        let _ = db_for_thread.update_task_status(&id_clone, "Failed");
+                        let _ = thread_storage.update_task_status_for(&pp, &id_clone, "Failed");
                         break;
                     }
                 }
             } else {
-                // Process was removed (stopped manually)
                 break;
             }
         }
@@ -150,33 +169,29 @@ pub fn send_input(
 #[tauri::command]
 pub fn stop_claude_session(
     id: String,
-    db: State<'_, Database>,
+    storage: State<'_, Storage>,
     session_manager: State<'_, SessionManager>,
 ) -> Result<(), String> {
     session_manager.stop_session(&id)?;
-    db.update_task_status(&id, "Idle")?;
+    storage.update_task_status(&id, "Idle")?;
     Ok(())
 }
 
 #[tauri::command]
-pub fn set_project_path(path: String, project_state: State<'_, ProjectState>) -> Result<(), String> {
-    let mut p = project_state.path.lock().map_err(|e| e.to_string())?;
-    *p = Some(path);
-    Ok(())
+pub fn set_project_path(path: String, storage: State<'_, Storage>) -> Result<(), String> {
+    storage.set_project(&path)
 }
 
 #[tauri::command]
-pub fn get_project_path(project_state: State<'_, ProjectState>) -> Result<Option<String>, String> {
-    let p = project_state.path.lock().map_err(|e| e.to_string())?;
-    Ok(p.clone())
+pub fn get_project_path(storage: State<'_, Storage>) -> Result<Option<String>, String> {
+    storage.get_project()
 }
 
 #[tauri::command]
-pub fn get_git_status(project_state: State<'_, ProjectState>) -> Result<GitStatus, String> {
-    let p = project_state.path.lock().map_err(|e| e.to_string())?;
-    let path = p.as_ref().ok_or("No project path set")?;
+pub fn get_git_status(storage: State<'_, Storage>) -> Result<GitStatus, String> {
+    let project = storage.get_project()?;
+    let path = project.as_ref().ok_or("No project path set")?;
 
-    // Get branch and tracking info
     let branch_output = Command::new("git")
         .args(["rev-parse", "--abbrev-ref", "HEAD"])
         .current_dir(path)
@@ -184,12 +199,13 @@ pub fn get_git_status(project_state: State<'_, ProjectState>) -> Result<GitStatu
         .map_err(|e| format!("Failed to run git: {}", e))?;
 
     let branch = if branch_output.status.success() {
-        String::from_utf8_lossy(&branch_output.stdout).trim().to_string()
+        String::from_utf8_lossy(&branch_output.stdout)
+            .trim()
+            .to_string()
     } else {
         return Err("Not a git repository".to_string());
     };
 
-    // Get ahead/behind
     let revlist_output = Command::new("git")
         .args(["rev-list", "--left-right", "--count", "HEAD...@{upstream}"])
         .current_dir(path)
@@ -200,7 +216,10 @@ pub fn get_git_status(project_state: State<'_, ProjectState>) -> Result<GitStatu
             let text = String::from_utf8_lossy(&output.stdout).trim().to_string();
             let parts: Vec<&str> = text.split_whitespace().collect();
             if parts.len() == 2 {
-                (parts[0].parse().unwrap_or(0), parts[1].parse().unwrap_or(0))
+                (
+                    parts[0].parse().unwrap_or(0),
+                    parts[1].parse().unwrap_or(0),
+                )
             } else {
                 (0, 0)
             }
@@ -211,7 +230,6 @@ pub fn get_git_status(project_state: State<'_, ProjectState>) -> Result<GitStatu
         (0, 0)
     };
 
-    // Get changed files count
     let status_output = Command::new("git")
         .args(["status", "--porcelain"])
         .current_dir(path)

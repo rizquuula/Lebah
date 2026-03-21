@@ -34,17 +34,21 @@
     }
     worktreeError = "";
 
-    if (task) {
-      await updateTask({
-        ...task,
-        description: description.trim(),
-        claude_path: pathVal,
-        claude_command: cmdVal,
-      });
-    } else {
-      await createTask(description.trim(), pathVal, cmdVal, worktreeVal);
+    try {
+      if (task) {
+        await updateTask({
+          ...task,
+          description: description.trim(),
+          claude_path: pathVal,
+          claude_command: cmdVal,
+        });
+      } else {
+        await createTask(description.trim(), pathVal, cmdVal, worktreeVal);
+      }
+      onClose();
+    } catch (e) {
+      worktreeError = String(e);
     }
-    onClose();
   }
 </script>
 

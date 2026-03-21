@@ -1,28 +1,19 @@
 mod claude;
 mod commands;
-mod db;
 mod models;
+mod storage;
 
 use claude::SessionManager;
-use db::Database;
-use models::ProjectState;
-use std::sync::Mutex;
+use storage::Storage;
 use tauri::Manager;
 
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .setup(|app| {
-            let app_dir = app
-                .path()
-                .app_data_dir()
-                .expect("Failed to get app data dir");
-            let database = Database::new(&app_dir).expect("Failed to initialize database");
-            app.manage(database);
+            let storage = Storage::new().expect("Failed to initialize storage");
+            app.manage(storage);
             app.manage(SessionManager::new());
-            app.manage(ProjectState {
-                path: Mutex::new(None),
-            });
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![

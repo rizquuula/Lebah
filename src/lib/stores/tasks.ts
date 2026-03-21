@@ -5,8 +5,12 @@ import type { Task, TaskColumn } from "../types";
 export const tasks = writable<Task[]>([]);
 
 export async function loadTasks() {
-  const result = await invoke<Task[]>("get_tasks");
-  tasks.set(result);
+  try {
+    const result = await invoke<Task[]>("get_tasks");
+    tasks.set(result);
+  } catch {
+    tasks.set([]);
+  }
 }
 
 export async function createTask(
