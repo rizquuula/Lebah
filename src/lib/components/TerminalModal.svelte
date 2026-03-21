@@ -8,71 +8,127 @@
   export let task: Task;
   export let onClose: () => void;
 
-  let blocks: string[] = [];
+  interface UsageInfo {
+    input_tokens: number;
+    output_tokens: number;
+    cache_read_input_tokens: number;
+    cache_creation_input_tokens: number;
+  }
+
+  type ChatEntry =
+    | { kind: "user"; text: string }
+    | { kind: "assistant"; text: string }
+    | { kind: "tool_use"; name: string; input: string }
+    | { kind: "result"; success: boolean; cost: number; duration_ms: number; usage: UsageInfo }
+    | { kind: "system"; text: string };
+
+  let entries: ChatEntry[] = [{ kind: "user", text: task.description }];
   let unlisten: UnlistenFn | null = null;
-  let terminalEl: HTMLDivElement;
+  let chatEl: HTMLDivElement;
   let inputValue = "";
   let inputEl: HTMLInputElement;
 
   $: borderColor = STATUS_COLORS[task.status];
 
-  type BlockAction = { kind: "append"; text: string } | { kind: "push"; text: string } | null;
-
-  function parseStreamLine(raw: string): BlockAction {
+  function parseJsonLine(raw: string): void {
+    if (!raw.trim()) return;
     try {
       const obj = JSON.parse(raw);
+
+      if (obj.type === "system" && obj.subtype === "init") {
+        entries = [...entries, { kind: "system", text: `Session started · ${obj.model ?? ""}` }];
+        return;
+      }
+
       if (obj.type === "assistant") {
-        const delta = obj.content_block?.delta;
-        if (delta?.type === "text_delta") {
-          return { kind: "append", text: delta.text };
+        // Full message (--print mode): message.content array
+        if (obj.message?.content) {
+          for (const part of obj.message.content) {
+            if (part.type === "text" && part.text) {
+              const last = entries[entries.length - 1];
+              if (last?.kind === "assistant") {
+                entries[entries.length - 1] = { kind: "assistant", text: last.text + part.text };
+                entries = entries;
+              } else {
+                entries = [...entries, { kind: "assistant", text: part.text }];
+              }
+            } else if (part.type === "tool_use") {
+              entries = [...entries, { kind: "tool_use", name: part.name ?? "unknown", input: "" }];
+            }
+          }
+          return;
         }
-        if (delta?.type === "input_json_delta") {
-          return { kind: "append", text: delta.partial_json };
+        // Streaming deltas
+        const delta = obj.content_block?.delta;
+        if (delta?.type === "text_delta" && delta.text) {
+          const last = entries[entries.length - 1];
+          if (last?.kind === "assistant") {
+            entries[entries.length - 1] = { kind: "assistant", text: last.text + delta.text };
+            entries = entries;
+          } else {
+            entries = [...entries, { kind: "assistant", text: delta.text }];
+          }
+          return;
+        }
+        if (delta?.type === "input_json_delta" && delta.partial_json) {
+          const last = entries[entries.length - 1];
+          if (last?.kind === "tool_use") {
+            entries[entries.length - 1] = { ...last, input: last.input + delta.partial_json };
+            entries = entries;
+          }
+          return;
         }
         const cb = obj.content_block;
         if (cb?.type === "tool_use") {
-          return { kind: "push", text: `\n[Tool: ${cb.name || "unknown"}]` };
+          entries = [...entries, { kind: "tool_use", name: cb.name ?? "unknown", input: "" }];
+          return;
         }
         if (cb?.type === "text" && cb.text) {
-          return { kind: "push", text: cb.text };
+          entries = [...entries, { kind: "assistant", text: cb.text }];
+          return;
         }
-        return null;
+        return;
       }
+
       if (obj.type === "result") {
-        if (obj.is_error) return { kind: "push", text: `[Error] ${obj.result}` };
-        return { kind: "push", text: `\n[Completed]` };
+        const usage: UsageInfo = {
+          input_tokens: obj.usage?.input_tokens ?? 0,
+          output_tokens: obj.usage?.output_tokens ?? 0,
+          cache_read_input_tokens: obj.usage?.cache_read_input_tokens ?? 0,
+          cache_creation_input_tokens: obj.usage?.cache_creation_input_tokens ?? 0,
+        };
+        entries = [...entries, {
+          kind: "result",
+          success: !obj.is_error,
+          cost: obj.total_cost_usd ?? 0,
+          duration_ms: obj.duration_ms ?? 0,
+          usage,
+        }];
+        return;
       }
-      return null;
     } catch {
-      return raw.trim() ? { kind: "push", text: raw } : null;
+      // Non-JSON line (stderr etc.) — show as system note
+      if (raw.trim()) {
+        entries = [...entries, { kind: "system", text: raw }];
+      }
     }
   }
 
-  function applyAction(action: BlockAction) {
-    if (!action) return;
-    if (action.kind === "append" && blocks.length > 0) {
-      blocks[blocks.length - 1] += action.text;
-      blocks = blocks; // trigger reactivity
-    } else {
-      blocks = [...blocks, action.text];
-    }
+  function scrollToBottom() {
+    setTimeout(() => { if (chatEl) chatEl.scrollTop = chatEl.scrollHeight; }, 0);
   }
 
   onMount(async () => {
     unlisten = await listen<string>(`claude-output-${task.id}`, (event) => {
-      applyAction(parseStreamLine(event.payload));
-      if (terminalEl) {
-        setTimeout(() => { terminalEl.scrollTop = terminalEl.scrollHeight; }, 0);
-      }
+      parseJsonLine(event.payload);
+      scrollToBottom();
     });
     try {
       const buffered = await getOutputBuffer(task.id);
       if (buffered.length > 0) {
-        blocks = [];
-        for (const raw of buffered) {
-          applyAction(parseStreamLine(raw));
-        }
-        setTimeout(() => { if (terminalEl) terminalEl.scrollTop = terminalEl.scrollHeight; }, 0);
+        entries = [{ kind: "user", text: task.description }];
+        for (const raw of buffered) parseJsonLine(raw);
+        scrollToBottom();
       }
     } catch (_) {}
     inputEl?.focus();
@@ -101,6 +157,10 @@
   function handleOverlayKey(e: KeyboardEvent) {
     if (e.key === "Escape") onClose();
   }
+
+  function fmt(n: number, decimals = 0): string {
+    return n.toLocaleString(undefined, { maximumFractionDigits: decimals });
+  }
 </script>
 
 <!-- svelte-ignore a11y_click_events_have_key_events -->
@@ -125,14 +185,44 @@
       </div>
     </div>
 
-    <div class="terminal" bind:this={terminalEl}>
-      {#if blocks.length === 0}
+    <div class="chat" bind:this={chatEl}>
+      {#if entries.length <= 1}
         <div class="placeholder">
           <span class="cursor-blink">_</span> Waiting for output...
         </div>
       {:else}
-        {#each blocks as block}
-          <div class="line">{block}</div>
+        {#each entries as entry}
+          {#if entry.kind === "user"}
+            <div class="bubble user-bubble">{entry.text}</div>
+          {:else if entry.kind === "assistant"}
+            <div class="bubble assistant-bubble">{entry.text}</div>
+          {:else if entry.kind === "tool_use"}
+            <div class="tool-badge">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>
+              </svg>
+              {entry.name}
+              {#if entry.input}
+                <span class="tool-input">{entry.input}</span>
+              {/if}
+            </div>
+          {:else if entry.kind === "result"}
+            <div class="result-bar" class:result-error={!entry.success}>
+              <span class="result-icon">{entry.success ? "✓" : "✗"}</span>
+              <span class="result-status">{entry.success ? "Completed" : "Error"}</span>
+              <span class="result-sep">·</span>
+              <span class="result-stat">${entry.cost.toFixed(4)}</span>
+              <span class="result-sep">·</span>
+              <span class="result-stat">{fmt(entry.usage.output_tokens)} out / {fmt(entry.usage.input_tokens + entry.usage.cache_read_input_tokens + entry.usage.cache_creation_input_tokens)} in</span>
+              {#if entry.usage.cache_read_input_tokens > 0}
+                <span class="result-cache">{fmt(entry.usage.cache_read_input_tokens)} cached</span>
+              {/if}
+              <span class="result-sep">·</span>
+              <span class="result-stat">{(entry.duration_ms / 1000).toFixed(1)}s</span>
+            </div>
+          {:else if entry.kind === "system"}
+            <div class="system-line">{entry.text}</div>
+          {/if}
         {/each}
       {/if}
     </div>
@@ -254,44 +344,125 @@
     border-color: rgba(243, 139, 168, 0.3);
     color: #f38ba8;
   }
-  .terminal {
+
+  /* Chat area */
+  .chat {
     flex: 1;
     overflow-y: auto;
-    padding: 14px 16px;
-    font-family: "JetBrains Mono", "Fira Code", monospace;
-    font-size: 12.5px;
-    color: rgba(224, 224, 224, 0.9);
-    white-space: pre-wrap;
-    word-break: break-all;
-    line-height: 1.6;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
   }
-  .terminal::-webkit-scrollbar {
-    width: 6px;
-  }
-  .terminal::-webkit-scrollbar-track {
-    background: transparent;
-  }
-  .terminal::-webkit-scrollbar-thumb {
+  .chat::-webkit-scrollbar { width: 6px; }
+  .chat::-webkit-scrollbar-track { background: transparent; }
+  .chat::-webkit-scrollbar-thumb {
     background: rgba(137, 180, 250, 0.15);
     border-radius: 3px;
   }
   .placeholder {
     color: rgba(108, 112, 134, 0.5);
     font-style: italic;
+    font-family: "JetBrains Mono", "Fira Code", monospace;
+    font-size: 12.5px;
     display: flex;
     align-items: center;
     gap: 6px;
   }
-  .cursor-blink {
-    color: #89b4fa;
+  .cursor-blink { color: #89b4fa; }
+
+  .bubble {
+    max-width: 80%;
+    padding: 9px 13px;
+    border-radius: 10px;
+    font-size: 13px;
+    line-height: 1.6;
+    white-space: pre-wrap;
+    word-break: break-word;
   }
-  .line {
-    padding: 1px 2px;
-    border-radius: 2px;
+  .user-bubble {
+    align-self: flex-end;
+    background: rgba(137, 180, 250, 0.12);
+    border: 1px solid rgba(137, 180, 250, 0.2);
+    color: rgba(205, 214, 244, 0.9);
   }
-  .line:hover {
-    background: rgba(137, 180, 250, 0.04);
+  .assistant-bubble {
+    align-self: flex-start;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    color: rgba(205, 214, 244, 0.88);
   }
+
+  .tool-badge {
+    align-self: flex-start;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 9px;
+    background: rgba(166, 227, 161, 0.08);
+    border: 1px solid rgba(166, 227, 161, 0.18);
+    border-radius: 20px;
+    color: rgba(166, 227, 161, 0.7);
+    font-size: 11px;
+    font-family: "JetBrains Mono", "Fira Code", monospace;
+  }
+  .tool-input {
+    color: rgba(166, 227, 161, 0.45);
+    max-width: 300px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .result-bar {
+    align-self: stretch;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 12px;
+    background: rgba(166, 227, 161, 0.06);
+    border: 1px solid rgba(166, 227, 161, 0.15);
+    border-radius: 8px;
+    font-size: 11.5px;
+    font-family: "JetBrains Mono", "Fira Code", monospace;
+    flex-wrap: wrap;
+  }
+  .result-bar.result-error {
+    background: rgba(243, 139, 168, 0.06);
+    border-color: rgba(243, 139, 168, 0.2);
+  }
+  .result-icon { font-size: 12px; }
+  .result-bar:not(.result-error) .result-icon { color: #a6e3a1; }
+  .result-bar.result-error .result-icon { color: #f38ba8; }
+  .result-status {
+    font-weight: 600;
+    color: rgba(205, 214, 244, 0.8);
+  }
+  .result-sep { color: rgba(108, 112, 134, 0.5); }
+  .result-stat { color: rgba(205, 214, 244, 0.6); }
+  .result-cache {
+    color: rgba(137, 180, 250, 0.55);
+    font-size: 10.5px;
+    padding: 1px 6px;
+    background: rgba(137, 180, 250, 0.08);
+    border-radius: 10px;
+  }
+
+  .system-line {
+    align-self: center;
+    font-size: 10.5px;
+    font-family: "JetBrains Mono", "Fira Code", monospace;
+    color: rgba(108, 112, 134, 0.55);
+    padding: 2px 8px;
+    background: rgba(108, 112, 134, 0.06);
+    border-radius: 4px;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* Input bar */
   .input-bar {
     display: flex;
     align-items: center;

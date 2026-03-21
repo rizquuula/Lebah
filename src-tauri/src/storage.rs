@@ -210,6 +210,52 @@ impl Storage {
         self.save_tasks_for(&project, &tasks)
     }
 
+    // --- Output Lines ---
+
+    fn outputs_dir(&self, project_path: &str) -> std::path::PathBuf {
+        self.project_dir(project_path).join("outputs")
+    }
+
+    fn output_file(&self, project_path: &str, task_id: &str) -> std::path::PathBuf {
+        self.outputs_dir(project_path).join(format!("{}.jsonl", task_id))
+    }
+
+    pub fn append_output_line(&self, task_id: &str, line: &str) -> Result<(), String> {
+        let project = self.require_project()?;
+        let dir = self.outputs_dir(&project);
+        std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
+        let mut file = std::fs::OpenOptions::new()
+            .create(true)
+            .append(true)
+            .open(self.output_file(&project, task_id))
+            .map_err(|e| e.to_string())?;
+        use std::io::Write;
+        writeln!(file, "{}", line).map_err(|e| e.to_string())
+    }
+
+    pub fn load_output_lines(&self, task_id: &str) -> Vec<String> {
+        let project = match self.require_project() {
+            Ok(p) => p,
+            Err(_) => return Vec::new(),
+        };
+        let path = self.output_file(&project, task_id);
+        std::fs::read_to_string(&path)
+            .unwrap_or_default()
+            .lines()
+            .filter(|l| !l.is_empty())
+            .map(|l| l.to_string())
+            .collect()
+    }
+
+    pub fn clear_output_lines(&self, task_id: &str) -> Result<(), String> {
+        let project = self.require_project()?;
+        let path = self.output_file(&project, task_id);
+        if path.exists() {
+            std::fs::remove_file(&path).map_err(|e| e.to_string())?;
+        }
+        Ok(())
+    }
+
     pub fn set_task_settings(&self, id: &str, use_plan: bool, yolo: bool) -> Result<(), String> {
         let project = self.require_project()?;
         let mut tasks = self.load_tasks_for(&project);

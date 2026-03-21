@@ -102,11 +102,15 @@ impl SessionManager {
             let buffers = Arc::clone(&self.output_buffers);
             std::thread::spawn(move || {
                 eprintln!("[claude:stdout] Reader thread started for task={}", task_id_clone);
+                let thread_storage = crate::storage::Storage::new().ok();
                 let reader = BufReader::new(stdout);
                 for line in reader.lines().map_while(Result::ok) {
                     eprintln!("[claude:stdout] {}", line);
                     if let Ok(mut b) = buffers.lock() {
                         b.entry(task_id_clone.clone()).or_default().push(line.clone());
+                    }
+                    if let Some(ref s) = thread_storage {
+                        let _ = s.append_output_line(&task_id_clone, &line);
                     }
                     let _ = app_clone.emit(&format!("claude-output-{}", task_id_clone), &line);
                 }
@@ -121,11 +125,15 @@ impl SessionManager {
             let buffers = Arc::clone(&self.output_buffers);
             std::thread::spawn(move || {
                 eprintln!("[claude:stderr] Reader thread started for task={}", task_id_clone);
+                let thread_storage = crate::storage::Storage::new().ok();
                 let reader = BufReader::new(stderr);
                 for line in reader.lines().map_while(Result::ok) {
                     eprintln!("[claude:stderr] {}", line);
                     if let Ok(mut b) = buffers.lock() {
                         b.entry(task_id_clone.clone()).or_default().push(line.clone());
+                    }
+                    if let Some(ref s) = thread_storage {
+                        let _ = s.append_output_line(&task_id_clone, &line);
                     }
                     let _ = app_clone.emit(&format!("claude-output-{}", task_id_clone), &line);
                 }

@@ -65,6 +65,7 @@ pub fn delete_task(id: String, storage: State<'_, Storage>) -> Result<(), String
                 .map_err(|e| format!("Failed to delete worktree: {}", e))?;
         }
     }
+    let _ = storage.clear_output_lines(&id);
     storage.delete_task(&id)
 }
 
@@ -97,6 +98,7 @@ pub fn run_claude_session(
     eprintln!("[session] run_claude_session: task={} use_plan={} yolo={} project={:?} claude_path={:?} claude_command={:?} worktree={:?}",
         id, use_plan, yolo, project_path, claude_path, claude_command, worktree);
     storage.update_task_status(&id, "Running")?;
+    let _ = storage.clear_output_lines(&id);
 
     if let Err(e) = session_manager.run_session(
         &app,
@@ -167,8 +169,13 @@ pub fn run_claude_session(
 pub fn get_output_buffer(
     id: String,
     session_manager: State<'_, SessionManager>,
+    storage: State<'_, Storage>,
 ) -> Result<Vec<String>, String> {
-    session_manager.get_output_buffer(&id)
+    let buf = session_manager.get_output_buffer(&id)?;
+    if !buf.is_empty() {
+        return Ok(buf);
+    }
+    Ok(storage.load_output_lines(&id))
 }
 
 #[tauri::command]
@@ -210,6 +217,7 @@ pub fn reset_task_session(
     }
 
     // Delete old task from storage
+    let _ = storage.clear_output_lines(&id);
     storage.delete_task(&id)?;
 
     // Create replacement with new UUID and same settings
