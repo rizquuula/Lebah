@@ -56,14 +56,30 @@ pub fn check_path_exists(path: String) -> bool {
     std::path::Path::new(&path).exists()
 }
 
+fn remove_worktree(worktree: &str, project_path: Option<&str>) {
+    let Some(proj) = project_path else { return };
+    let wt_path = std::path::Path::new(proj)
+        .join(".claude")
+        .join("worktrees")
+        .join(worktree);
+    if !wt_path.exists() {
+        return;
+    }
+    let ok = Command::new("git")
+        .args(["worktree", "remove", wt_path.to_str().unwrap_or(worktree)])
+        .current_dir(proj)
+        .status()
+        .map(|s| s.success())
+        .unwrap_or(false);
+    if !ok && wt_path.is_dir() {
+        let _ = std::fs::remove_dir_all(&wt_path);
+    }
+}
+
 #[tauri::command]
 pub fn delete_task(id: String, storage: State<'_, Storage>) -> Result<(), String> {
     if let Ok(Some(worktree)) = storage.get_task_worktree(&id) {
-        let path = std::path::Path::new(&worktree);
-        if path.is_dir() {
-            std::fs::remove_dir_all(path)
-                .map_err(|e| format!("Failed to delete worktree: {}", e))?;
-        }
+        remove_worktree(&worktree, storage.get_project().ok().flatten().as_deref());
     }
     let _ = storage.clear_output_lines(&id);
     storage.delete_task(&id)
@@ -209,11 +225,7 @@ pub fn reset_task_session(
 
     // Remove worktree directory if it exists
     if let Some(ref wt) = old_task.worktree {
-        let path = std::path::Path::new(wt);
-        if path.is_dir() {
-            std::fs::remove_dir_all(path)
-                .map_err(|e| format!("Failed to remove worktree: {}", e))?;
-        }
+        remove_worktree(wt, storage.get_project().ok().flatten().as_deref());
     }
 
     // Delete old task from storage
