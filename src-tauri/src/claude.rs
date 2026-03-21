@@ -1,21 +1,30 @@
 use std::collections::HashMap;
-use std::io::{BufRead, BufReader, Write};
-use std::process::{Child, ChildStdin, Command, Stdio};
+use std::io::{BufRead, BufReader};
+use std::process::{Child, Command, Stdio};
 use std::sync::{Arc, Mutex};
 use tauri::{AppHandle, Emitter};
 
+pub struct SessionConfig {
+    pub use_plan: bool,
+    pub yolo: bool,
+    pub claude_path: Option<String>,
+    pub claude_command: Option<String>,
+    pub worktree: Option<String>,
+    pub project_path: Option<String>,
+}
+
 pub struct SessionManager {
     pub sessions: Arc<Mutex<HashMap<String, Child>>>,
-    pub stdins: Mutex<HashMap<String, ChildStdin>>,
     pub output_buffers: Arc<Mutex<HashMap<String, Vec<String>>>>,
+    pub session_configs: Mutex<HashMap<String, SessionConfig>>,
 }
 
 impl SessionManager {
     pub fn new() -> Self {
         SessionManager {
             sessions: Arc::new(Mutex::new(HashMap::new())),
-            stdins: Mutex::new(HashMap::new()),
             output_buffers: Arc::new(Mutex::new(HashMap::new())),
+            session_configs: Mutex::new(HashMap::new()),
         }
     }
 
@@ -141,9 +150,22 @@ impl SessionManager {
             });
         }
 
-        let _ = stdin; // stdin is null; send_input not available in --print mode
+        let _ = stdin; // stdin is null in --print mode; follow-ups use --resume
 
         sessions.insert(task_id.to_string(), child);
+
+        // Save config for follow-up messages via --resume
+        if let Ok(mut configs) = self.session_configs.lock() {
+            configs.insert(task_id.to_string(), SessionConfig {
+                use_plan,
+                yolo,
+                claude_path: claude_path.map(|s| s.to_string()),
+                claude_command: claude_command.map(|s| s.to_string()),
+                worktree: worktree.map(|s| s.to_string()),
+                project_path: project_path.map(|s| s.to_string()),
+            });
+        }
+
         Ok(())
     }
 
@@ -156,23 +178,107 @@ impl SessionManager {
         Arc::clone(&self.sessions)
     }
 
-    pub fn send_input(&self, task_id: &str, input: &str) -> Result<(), String> {
-        let mut stdins = self.stdins.lock().map_err(|e| e.to_string())?;
-        if let Some(stdin) = stdins.get_mut(task_id) {
-            stdin.write_all(input.as_bytes()).map_err(|e| e.to_string())?;
-            stdin.write_all(b"\n").map_err(|e| e.to_string())?;
-            stdin.flush().map_err(|e| e.to_string())?;
-            Ok(())
-        } else {
-            Err("No running session for this task".to_string())
+    pub fn send_input(&self, task_id: &str, input: &str, app: &AppHandle) -> Result<(), String> {
+        // In --print mode, follow-up messages are sent by spawning a new
+        // claude process with --resume and --session-id to continue the conversation.
+        let configs = self.session_configs.lock().map_err(|e| e.to_string())?;
+        let config = configs.get(task_id)
+            .ok_or_else(|| "No session config found for this task".to_string())?;
+
+        let binary = config.claude_path.as_deref().unwrap_or("claude");
+        let mut cmd = Command::new(binary);
+        cmd.arg("--continue").arg("--session-id").arg(task_id).arg("--fork-session");
+
+        if let Some(ref project) = config.project_path {
+            cmd.current_dir(project);
         }
+
+        if config.use_plan {
+            cmd.arg("--permission-mode").arg("plan");
+        }
+
+        if config.yolo {
+            cmd.env("IS_SANDBOX", "1");
+            cmd.arg("--dangerously-skip-permissions");
+        }
+
+        if let Some(ref wt) = config.worktree {
+            cmd.arg("--worktree").arg(wt);
+        }
+
+        if let Some(ref extra) = config.claude_command {
+            for arg in extra.split_whitespace() {
+                cmd.arg(arg);
+            }
+        }
+
+        cmd.arg("--output-format").arg("stream-json");
+        cmd.arg("--verbose");
+        cmd.arg("--print").arg(input);
+        cmd.stdin(Stdio::null()).stdout(Stdio::piped()).stderr(Stdio::piped());
+
+        drop(configs);
+
+        eprintln!("[claude:resume] Spawning follow-up for task={}: {}", task_id, input);
+
+        let mut child = cmd.spawn().map_err(|e| {
+            eprintln!("[claude:resume] Failed to spawn: {}", e);
+            format!("Failed to spawn follow-up claude: {}", e)
+        })?;
+
+        let stdout = child.stdout.take();
+        let stderr = child.stderr.take();
+
+        // Stream stdout
+        if let Some(stdout) = stdout {
+            let tid = task_id.to_string();
+            let app_c = app.clone();
+            let buffers = Arc::clone(&self.output_buffers);
+            std::thread::spawn(move || {
+                let thread_storage = crate::storage::Storage::new().ok();
+                let reader = BufReader::new(stdout);
+                for line in reader.lines().map_while(Result::ok) {
+                    eprintln!("[claude:resume:stdout] {}", line);
+                    if let Ok(mut b) = buffers.lock() {
+                        b.entry(tid.clone()).or_default().push(line.clone());
+                    }
+                    if let Some(ref s) = thread_storage {
+                        let _ = s.append_output_line(&tid, &line);
+                    }
+                    let _ = app_c.emit(&format!("claude-output-{}", tid), &line);
+                }
+            });
+        }
+
+        // Stream stderr
+        if let Some(stderr) = stderr {
+            let tid = task_id.to_string();
+            let app_c = app.clone();
+            let buffers = Arc::clone(&self.output_buffers);
+            std::thread::spawn(move || {
+                let thread_storage = crate::storage::Storage::new().ok();
+                let reader = BufReader::new(stderr);
+                for line in reader.lines().map_while(Result::ok) {
+                    eprintln!("[claude:resume:stderr] {}", line);
+                    if let Ok(mut b) = buffers.lock() {
+                        b.entry(tid.clone()).or_default().push(line.clone());
+                    }
+                    if let Some(ref s) = thread_storage {
+                        let _ = s.append_output_line(&tid, &line);
+                    }
+                    let _ = app_c.emit(&format!("claude-output-{}", tid), &line);
+                }
+            });
+        }
+
+        // Store the follow-up process so it can be monitored/stopped
+        let mut sessions = self.sessions.lock().map_err(|e| e.to_string())?;
+        sessions.insert(task_id.to_string(), child);
+
+        Ok(())
     }
 
     pub fn stop_session(&self, task_id: &str) -> Result<(), String> {
-        let mut stdins = self.stdins.lock().map_err(|e| e.to_string())?;
-        stdins.remove(task_id);
-        drop(stdins);
-
         let mut sessions = self.sessions.lock().map_err(|e| e.to_string())?;
         if let Some(mut child) = sessions.remove(task_id) {
             let _ = child.kill();

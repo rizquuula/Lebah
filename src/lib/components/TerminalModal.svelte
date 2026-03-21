@@ -142,7 +142,14 @@
     const text = inputValue.trim();
     if (!text) return;
     inputValue = "";
-    await sendInput(task.id, text);
+    entries = [...entries, { kind: "user", text }];
+    scrollToBottom();
+    try {
+      await sendInput(task.id, text);
+    } catch (err) {
+      entries = [...entries, { kind: "system", text: `Send failed: ${err}` }];
+      scrollToBottom();
+    }
   }
 
   function handleKeydown(e: KeyboardEvent) {

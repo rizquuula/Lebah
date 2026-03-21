@@ -196,11 +196,12 @@ pub fn get_output_buffer(
 
 #[tauri::command]
 pub fn send_input(
+    app: AppHandle,
     id: String,
     input: String,
     session_manager: State<'_, SessionManager>,
 ) -> Result<(), String> {
-    session_manager.send_input(&id, &input)
+    session_manager.send_input(&id, &input, &app)
 }
 
 #[tauri::command]
