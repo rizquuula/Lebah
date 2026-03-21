@@ -1,6 +1,7 @@
 import { writable } from "svelte/store";
 import { invoke } from "@tauri-apps/api/core";
-import type { Task, TaskColumn } from "../types";
+import { listen } from "@tauri-apps/api/event";
+import type { Task, TaskColumn, TaskStatus } from "../types";
 
 export const tasks = writable<Task[]>([]);
 
@@ -57,10 +58,26 @@ export async function runClaudeSession(
   claudeCommand: string | null = null,
   worktree: string | null = null,
 ): Promise<void> {
+  const unlisten = await listen<string>(`claude-output-${id}`, async (event) => {
+    try {
+      const msg = JSON.parse(event.payload);
+      if (msg.type === "result") {
+        unlisten();
+        const status: TaskStatus = msg.is_error ? "Failed" : "Success";
+        tasks.update((all) =>
+          all.map((t) => (t.id === id ? { ...t, status } : t)),
+        );
+      }
+    } catch {}
+  });
+
   try {
     await invoke("run_claude_session", { id, description, usePlan, yolo, claudePath, claudeCommand, worktree });
-  } finally {
     await loadTasks();
+  } catch {
+    unlisten();
+    await loadTasks();
+    throw new Error("Session failed to start");
   }
 }
 
