@@ -59,15 +59,31 @@ pub fn update_task(
         agent_command: task.claude_command,
         model: task.model,
     };
-    services.task_service.update_task(cmd).map_err(|e| e.to_string())
+    services.task_service.update_task(cmd).map_err(|e| {
+        log::error!("[cmd] update_task failed: {}", e);
+        e.to_string()
+    })
 }
 
 #[tauri::command]
 pub fn delete_task(id: String, services: State<'_, AppServices>) -> Result<(), String> {
+    log::info!("[cmd] delete_task id={}", id);
+
+    // Stop any running session first (ignore errors — session may not be active)
+    let stop_result = services.session_service.stop_session(
+        crate::application::session::commands::StopSessionCommand { task_id: id.clone() },
+    );
+    if let Err(ref e) = stop_result {
+        log::info!("[cmd] No active session to stop for {}: {}", id, e);
+    }
+
     services
         .task_service
-        .delete_task(DeleteTaskCommand { id })
-        .map_err(|e| e.to_string())
+        .delete_task(DeleteTaskCommand { id: id.clone() })
+        .map_err(|e| {
+            log::error!("[cmd] delete_task failed for {}: {}", id, e);
+            e.to_string()
+        })
 }
 
 #[tauri::command]
@@ -90,7 +106,10 @@ pub fn reset_task_session(
 ) -> Result<TaskDto, String> {
     services
         .task_service
-        .reset_task(ResetTaskCommand { id })
+        .reset_task(ResetTaskCommand { id: id.clone() })
         .map(TaskDto::from)
-        .map_err(|e| e.to_string())
+        .map_err(|e| {
+            log::error!("[cmd] reset_task_session failed for {}: {}", id, e);
+            e.to_string()
+        })
 }

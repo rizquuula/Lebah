@@ -33,7 +33,9 @@ impl InProcessEventBus {
 
 impl DomainEventBus for InProcessEventBus {
     fn publish(&self, event: DomainEvent) {
-        let handlers = self.handlers.lock().unwrap();
+        // Clone handler list and drop the lock before invoking handlers.
+        // This prevents deadlocks when a handler publishes another event.
+        let handlers = self.handlers.lock().unwrap().clone();
         for handler in handlers.iter() {
             handler.handle(&event);
         }

@@ -179,10 +179,21 @@ impl AgentRunner for ClaudeRunner {
     }
 
     fn terminate(&self, task_id: &TaskId) -> Result<(), AgentError> {
+        log::info!("[claude] Terminating session {}", task_id.0);
         let mut sessions = self.sessions.lock()
             .map_err(|e| AgentError::Internal(e.to_string()))?;
         if let Some(mut child) = sessions.remove(&task_id.0) {
-            let _ = child.kill();
+            if let Err(e) = child.kill() {
+                log::warn!("[claude] Failed to kill process for {}: {}", task_id.0, e);
+            } else {
+                log::info!("[claude] Process killed for {}", task_id.0);
+            }
+        } else {
+            log::info!("[claude] No active process found for {}", task_id.0);
+        }
+        // Clean up session config
+        if let Ok(mut configs) = self.session_configs.lock() {
+            configs.remove(&task_id.0);
         }
         Ok(())
     }

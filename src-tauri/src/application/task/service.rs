@@ -114,11 +114,17 @@ impl TaskApplicationService {
     pub fn delete_task(&self, cmd: DeleteTaskCommand) -> Result<(), ApplicationError> {
         let (project_id, path) = self.current_project_id()?;
         let task_id = TaskId::from_string(cmd.id);
-        let task = self.task_repo.find_by_id(&project_id, &task_id)?;
+        log::info!("[task] Deleting task {}", task_id.0);
 
+        let task = self.task_repo.find_by_id(&project_id, &task_id)?;
         let worktree = task.worktree().cloned();
-        let _ = self.output_repo.clear(&project_id, &task_id);
+
+        if let Err(e) = self.output_repo.clear(&project_id, &task_id) {
+            log::warn!("[task] Failed to clear output for {}: {}", task_id.0, e);
+        }
+
         self.task_repo.delete(&project_id, &task_id)?;
+        log::info!("[task] Task {} deleted from repository", task_id.0);
 
         self.event_bus.publish(DomainEvent::Task(TaskDomainEvent::TaskDeleted {
             task_id: task_id.clone(),
@@ -128,10 +134,14 @@ impl TaskApplicationService {
 
         // Clean up worktree
         if let Some(wt) = worktree {
+            log::info!("[task] Cleaning up worktree {} for task {}", wt.as_str(), task_id.0);
             let project_path = crate::domain::project::value_objects::ProjectPath::new(path);
-            let _ = self.worktree_port.remove(&project_path, &wt);
+            if let Err(e) = self.worktree_port.remove(&project_path, &wt) {
+                log::error!("[task] Failed to remove worktree for {}: {}", task_id.0, e);
+            }
         }
 
+        log::info!("[task] Task {} fully deleted", task_id.0);
         Ok(())
     }
 

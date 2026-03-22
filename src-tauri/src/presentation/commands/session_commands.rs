@@ -31,7 +31,7 @@ pub fn run_claude_session(
     };
 
     let cmd = StartSessionCommand {
-        task_id: id,
+        task_id: id.clone(),
         description,
         permission_mode,
         agent_path: claude_path,
@@ -42,7 +42,10 @@ pub fn run_claude_session(
         agent_name: None,
     };
 
-    services.session_service.start_session(cmd).map_err(|e| e.to_string())
+    services.session_service.start_session(cmd).map_err(|e| {
+        log::error!("[cmd] run_claude_session failed for {}: {}", id, e);
+        e.to_string()
+    })
 }
 
 #[tauri::command]
@@ -52,8 +55,11 @@ pub fn stop_claude_session(
 ) -> Result<(), String> {
     services
         .session_service
-        .stop_session(StopSessionCommand { task_id: id })
-        .map_err(|e| e.to_string())
+        .stop_session(StopSessionCommand { task_id: id.clone() })
+        .map_err(|e| {
+            log::error!("[cmd] stop_claude_session failed for {}: {}", id, e);
+            e.to_string()
+        })
 }
 
 #[tauri::command]

@@ -94,6 +94,7 @@ impl SessionApplicationService {
     }
 
     pub fn stop_session(&self, cmd: StopSessionCommand) -> Result<(), ApplicationError> {
+        log::info!("[session] Stopping session {}", cmd.task_id);
         let runner = self.resolve_runner(None)?;
         let task_id = TaskId::from_string(cmd.task_id.clone());
         runner.terminate(&task_id)?;

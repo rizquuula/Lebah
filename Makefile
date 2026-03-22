@@ -38,13 +38,13 @@ setup-tauri:
 	cargo install tauri-cli --version "^2"
 
 dev:
-	cargo tauri dev --no-watch
+	RUST_LOG=debug cargo tauri dev --no-watch
 
 build:
 	cargo tauri build
 
 run: build
-	./src-tauri/target/release/lebah
+	RUST_LOG=debug ./src-tauri/target/release/lebah
 
 clean-soft:
 	@echo "Clearing caches..."
