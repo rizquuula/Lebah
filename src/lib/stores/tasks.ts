@@ -101,18 +101,24 @@ export async function stopClaudeSession(id: string): Promise<void> {
   await loadTasks();
 }
 
-export async function sendInput(id: string, input: string, model: string | null = null): Promise<void> {
-  await invoke("send_input", { id, input, model });
+export async function sendInput(id: string, input: string, model: string | null = null, usePlan: boolean = false, yolo: boolean = false): Promise<void> {
+  await invoke("send_input", { id, input, model, usePlan, yolo });
 }
 
 export async function sendInputWithListener(
   id: string,
   input: string,
   model: string | null = null,
+  usePlan: boolean = false,
+  yolo: boolean = false,
 ): Promise<void> {
   tasks.update((all) =>
     all.map((t) => (t.id === id ? { ...t, status: "Running" as TaskStatus } : t)),
   );
+
+  // Emit synthetic user message so TerminalModal shows the sent text
+  const { emit } = await import("@tauri-apps/api/event");
+  await emit(`claude-output-${id}`, JSON.stringify({ type: "user_input", text: input }));
 
   const unlisten = await listen<string>(`claude-output-${id}`, async (event) => {
     try {
@@ -135,7 +141,7 @@ export async function sendInputWithListener(
   });
 
   try {
-    await sendInput(id, input, model);
+    await sendInput(id, input, model, usePlan, yolo);
   } catch (e) {
     unlisten();
     throw e;

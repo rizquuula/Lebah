@@ -22,6 +22,11 @@
     try {
       const obj = JSON.parse(raw);
 
+      if (obj.type === "user_input") {
+        entries = [...entries, { kind: "user", text: obj.text ?? "" }];
+        return;
+      }
+
       if (obj.type === "system" && obj.subtype === "init") {
         entries = [...entries, { kind: "system", text: `Session started · ${obj.model ?? ""}` }];
         return;
@@ -146,7 +151,7 @@
     inputValue = "";
     entries = [...entries, { kind: "user", text }];
     try {
-      await sendInput(task.id, text, selectedModel);
+      await sendInput(task.id, text, selectedModel, task.use_plan, task.yolo);
     } catch (err) {
       entries = [...entries, { kind: "system", text: `Send failed: ${err}` }];
     }

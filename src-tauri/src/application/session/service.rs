@@ -134,7 +134,13 @@ impl SessionApplicationService {
             project_path: project_path.clone().map(crate::domain::project::value_objects::ProjectPath::new),
             worktree: None,
             model: cmd.model,
-            permission_mode: PermissionMode::Full,
+            permission_mode: if cmd.use_plan {
+                PermissionMode::Plan
+            } else if cmd.yolo {
+                PermissionMode::Sandbox
+            } else {
+                PermissionMode::Full
+            },
             extra_args: Vec::new(),
             is_follow_up: true,
             agent_binary: None,

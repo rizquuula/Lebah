@@ -22,4 +22,6 @@ pub struct SendInputCommand {
     pub task_id: String,
     pub input: String,
     pub model: Option<String>,
+    pub use_plan: bool,
+    pub yolo: bool,
 }
