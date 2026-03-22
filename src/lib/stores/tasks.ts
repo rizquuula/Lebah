@@ -5,10 +5,18 @@ import type { Task, TaskColumn, TaskStatus } from "../types";
 
 export const tasks = writable<Task[]>([]);
 
+// Track which sessions are actively running in-process so that loadTasks()
+// doesn't overwrite their in-memory Running status with stale DB state.
+const runningSessions = new Set<string>();
+
 export async function loadTasks() {
   try {
     const result = await invoke<Task[]>("get_tasks");
-    tasks.set(result);
+    tasks.set(
+      result.map((t) =>
+        runningSessions.has(t.id) ? { ...t, status: "Running" as TaskStatus } : t,
+      ),
+    );
   } catch (e) {
     console.error("loadTasks failed:", e);
     tasks.set([]);
@@ -62,11 +70,14 @@ export async function runClaudeSession(
   worktree: string | null = null,
   model: string | null = null,
 ): Promise<void> {
+  runningSessions.add(id);
+
   const unlisten = await listen<string>(`claude-output-${id}`, async (event) => {
     try {
       const msg = JSON.parse(event.payload);
       if (msg.type === "result") {
         unlisten();
+        runningSessions.delete(id);
         const status: TaskStatus = msg.is_error ? "Failed" : "Success";
         let taskColumn: string | undefined;
         tasks.update((all) => {
@@ -87,6 +98,7 @@ export async function runClaudeSession(
     await loadTasks();
   } catch {
     unlisten();
+    runningSessions.delete(id);
     await loadTasks();
     throw new Error("Session failed to start");
   }
@@ -112,6 +124,7 @@ export async function sendInputWithListener(
   usePlan: boolean = false,
   yolo: boolean = false,
 ): Promise<void> {
+  runningSessions.add(id);
   tasks.update((all) =>
     all.map((t) => (t.id === id ? { ...t, status: "Running" as TaskStatus } : t)),
   );
@@ -125,6 +138,7 @@ export async function sendInputWithListener(
       const msg = JSON.parse(event.payload);
       if (msg.type === "result") {
         unlisten();
+        runningSessions.delete(id);
         const status: TaskStatus = msg.is_error ? "Failed" : "Success";
         let taskColumn: string | undefined;
         tasks.update((all) => {
@@ -144,6 +158,7 @@ export async function sendInputWithListener(
     await sendInput(id, input, model, usePlan, yolo);
   } catch (e) {
     unlisten();
+    runningSessions.delete(id);
     throw e;
   }
 }
