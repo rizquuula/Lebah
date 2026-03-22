@@ -1,6 +1,6 @@
 <script lang="ts">
   import { dragHandleZone } from "svelte-dnd-action";
-  import { moveTask } from "../stores/tasks";
+  import { moveTaskBatch } from "../stores/tasks";
   import { projectConfig, saveProjectConfig } from "../stores/config";
   import { DEFAULT_REVIEW_TEMPLATE, DEFAULT_MERGE_TEMPLATE, type Task, type TaskColumn } from "../types";
   import TaskCard from "./TaskCard.svelte";
@@ -39,11 +39,12 @@
 
   async function handleDndFinalize(e: CustomEvent) {
     items = e.detail.items;
-    for (let i = 0; i < items.length; i++) {
-      const item = items[i];
-      if (item.column !== column || item.sort_order !== i) {
-        await moveTask(item.id, column, i);
-      }
+    const moves = items
+      .map((item, i) => ({ id: item.id, column, sortOrder: i, item }))
+      .filter(({ item, sortOrder }) => item.column !== column || item.sort_order !== sortOrder)
+      .map(({ id, column: col, sortOrder }) => ({ id, column: col, sortOrder }));
+    if (moves.length > 0) {
+      await moveTaskBatch(moves);
     }
   }
 </script>

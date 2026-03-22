@@ -9,7 +9,8 @@ export async function loadTasks() {
   try {
     const result = await invoke<Task[]>("get_tasks");
     tasks.set(result);
-  } catch {
+  } catch (e) {
+    console.error("loadTasks failed:", e);
     tasks.set([]);
   }
 }
@@ -133,7 +134,21 @@ export async function sendInputWithListener(
     } catch {}
   });
 
-  await sendInput(id, input, model);
+  try {
+    await sendInput(id, input, model);
+  } catch (e) {
+    unlisten();
+    throw e;
+  }
+}
+
+export async function moveTaskBatch(
+  moves: { id: string; column: TaskColumn; sortOrder: number }[],
+): Promise<void> {
+  await Promise.all(
+    moves.map((m) => invoke("move_task", { id: m.id, column: m.column, sortOrder: m.sortOrder })),
+  );
+  await loadTasks();
 }
 
 export async function resetTaskSession(id: string): Promise<Task> {

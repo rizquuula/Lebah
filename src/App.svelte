@@ -3,6 +3,7 @@
   import { open } from "@tauri-apps/plugin-dialog";
   import Board from "./lib/components/Board.svelte";
   import { projectPath, gitStatus, openProject, loadProjectPath, refreshGitStatus } from "./lib/stores/project";
+  import { lastError, clearError } from "./lib/stores/errors";
 
   let gitPollInterval: ReturnType<typeof setInterval>;
 
@@ -83,6 +84,12 @@
 
     <div class="header-glow"></div>
   </header>
+  {#if $lastError}
+    <div class="error-banner" role="alert" on:click={clearError}>
+      <span>{$lastError}</span>
+      <button class="error-close" aria-label="Dismiss">✕</button>
+    </div>
+  {/if}
   <Board />
 </main>
 
@@ -247,5 +254,37 @@
   .git-badge.changes {
     background: rgba(249, 226, 175, 0.15);
     color: #f9e2af;
+  }
+  .error-banner {
+    position: fixed;
+    bottom: 16px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(239, 68, 68, 0.15);
+    border: 1px solid rgba(239, 68, 68, 0.35);
+    color: #f38ba8;
+    border-radius: 8px;
+    padding: 8px 14px;
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    z-index: 2000;
+    cursor: pointer;
+    max-width: 500px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+  }
+  .error-banner:hover {
+    background: rgba(239, 68, 68, 0.25);
+  }
+  .error-close {
+    background: none;
+    border: none;
+    color: inherit;
+    cursor: pointer;
+    font-size: 12px;
+    padding: 0;
+    opacity: 0.7;
+    flex-shrink: 0;
   }
 </style>

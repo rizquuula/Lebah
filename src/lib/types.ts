@@ -48,6 +48,22 @@ export interface ProjectConfig {
 export const DEFAULT_REVIEW_TEMPLATE = "Help me to check for test, lint and build error if you not yet do it. Then do commit in the worktree.";
 export const DEFAULT_MERGE_TEMPLATE = "Pull from main branch and check for conflict. Fix the conflict. Then merge this worktree to main.";
 
+export interface UsageInfo {
+  input_tokens: number;
+  output_tokens: number;
+  cache_read_input_tokens: number;
+  cache_creation_input_tokens: number;
+}
+
+export type ChatEntry =
+  | { kind: "user"; text: string }
+  | { kind: "assistant"; text: string }
+  | { kind: "tool_use"; name: string; input: string }
+  | { kind: "usage"; input: number; output: number; cacheRead: number; cacheCreate: number }
+  | { kind: "file_output"; path: string; content: string }
+  | { kind: "result"; success: boolean; cost: number; duration_ms: number; usage: UsageInfo }
+  | { kind: "system"; text: string };
+
 export const STATUS_COLORS: Record<TaskStatus, string> = {
   Idle: "#6b7280",
   Running: "#eab308",
