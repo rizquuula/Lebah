@@ -23,17 +23,19 @@ impl EventHandler for SessionStatusHandler {
             project_path,
         }) = event
         {
-            eprintln!(
-                "[session_status_handler] task={} success={} project={}",
+            log::info!(
+                "[session_status] Session ended: task={} success={} project={}",
                 task_id, success, project_path
             );
-            let _ = self.task_service.mark_task_completed(
+            if let Err(e) = self.task_service.mark_task_completed(
                 MarkTaskCompletedCommand {
                     id: task_id.0.clone(),
                     success: *success,
                 },
                 project_path,
-            );
+            ) {
+                log::error!("[session_status] Failed to mark task {} completed: {}", task_id.0, e);
+            }
         }
     }
 }

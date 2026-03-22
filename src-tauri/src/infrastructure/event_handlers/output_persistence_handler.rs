@@ -30,11 +30,15 @@ impl EventHandler for OutputPersistenceHandler {
             // Update in-memory buffer
             if let Ok(mut buffers) = self.output_buffers.lock() {
                 buffers.entry(task_id.0.clone()).or_default().push(line.clone());
+            } else {
+                log::error!("[output_handler] Failed to lock output buffer for task {}", task_id.0);
             }
             // Persist to file
             if !project_path.is_empty() {
                 let project_id = ProjectId::from_path(project_path);
-                let _ = self.output_repo.append(&project_id, task_id, line);
+                if let Err(e) = self.output_repo.append(&project_id, task_id, line) {
+                    log::error!("[output_handler] Failed to persist output for task {}: {}", task_id.0, e);
+                }
             }
         }
     }

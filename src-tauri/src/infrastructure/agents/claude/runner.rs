@@ -33,17 +33,27 @@ impl ClaudeRunner {
     ) -> Result<AgentHandle, AgentError> {
         let mut cmd = ClaudeCommandBuilder::build(&config);
 
-        eprintln!(
+        log::info!(
             "[claude] Spawning: {} {:?}",
             cmd.get_program().to_string_lossy(),
             cmd.get_args()
                 .map(|a| a.to_string_lossy().into_owned())
                 .collect::<Vec<_>>()
         );
+        log::debug!(
+            "[claude] task_id={} project={:?} permission={:?} follow_up={} worktree={:?}",
+            config.task_id.0,
+            config.project_path.as_ref().map(|p| p.as_str()),
+            config.permission_mode,
+            config.is_follow_up,
+            config.worktree.as_ref().map(|w| w.as_str()),
+        );
 
         let mut child = cmd.spawn().map_err(|e| {
+            log::error!("[claude] Failed to spawn process for task {}: {}", config.task_id.0, e);
             AgentError::SpawnFailed(format!("Failed to spawn claude: {}", e))
         })?;
+        log::info!("[claude] Process spawned for task {}, pid={:?}", config.task_id.0, child.id());
 
         let stdout = child.stdout.take();
         let stderr = child.stderr.take();
@@ -86,13 +96,15 @@ impl ClaudeRunner {
                 if let Some(child) = sessions.get_mut(&task_id_str) {
                     match child.try_wait() {
                         Ok(Some(status)) => {
+                            log::info!("[claude] Process exited for task {}: status={}", task_id_str, status);
                             sessions.remove(&task_id_str);
                             drop(sessions);
                             let _ = exit_tx.send(status.success());
                             break;
                         }
                         Ok(None) => {}
-                        Err(_) => {
+                        Err(e) => {
+                            log::error!("[claude] Error polling process for task {}: {}", task_id_str, e);
                             sessions.remove(&task_id_str);
                             drop(sessions);
                             let _ = exit_tx.send(false);
@@ -140,10 +152,12 @@ impl AgentRunner for ClaudeRunner {
     }
 
     fn start(&self, config: AgentRunConfig) -> Result<AgentHandle, AgentError> {
+        log::info!("[claude] Starting session for task {}", config.task_id.0);
         {
             let sessions = self.sessions.lock()
                 .map_err(|e| AgentError::Internal(e.to_string()))?;
             if sessions.contains_key(&config.task_id.0) {
+                log::warn!("[claude] Session already active for task {}", config.task_id.0);
                 return Err(AgentError::SessionAlreadyActive(config.task_id.0.clone()));
             }
         }
@@ -151,6 +165,7 @@ impl AgentRunner for ClaudeRunner {
     }
 
     fn send_follow_up(&self, mut config: AgentRunConfig) -> Result<AgentHandle, AgentError> {
+        log::info!("[claude] Sending follow-up for task {}, prompt_len={}", config.task_id.0, config.prompt.len());
         // Merge model override if set
         {
             let configs = self.session_configs.lock()
@@ -199,6 +214,7 @@ impl AgentRunner for ClaudeRunner {
     }
 
     fn update_model(&self, task_id: &TaskId, model: &str) -> Result<(), AgentError> {
+        log::info!("[claude] Updating model for task {} to '{}'", task_id.0, model);
         let mut configs = self.session_configs.lock()
             .map_err(|e| AgentError::Internal(e.to_string()))?;
         if let Some(sc) = configs.get_mut(&task_id.0) {

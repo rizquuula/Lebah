@@ -21,9 +21,12 @@ impl EventHandler for TauriEventEmitter {
             ..
         }) = event
         {
-            let _ = self
+            if let Err(e) = self
                 .app
-                .emit(&format!("claude-output-{}", task_id), line);
+                .emit(&format!("claude-output-{}", task_id), line)
+            {
+                log::error!("[tauri_emitter] Failed to emit output for task {}: {}", task_id.0, e);
+            }
         }
     }
 }

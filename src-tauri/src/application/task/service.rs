@@ -60,6 +60,7 @@ impl TaskApplicationService {
     }
 
     pub fn create_task(&self, cmd: CreateTaskCommand) -> Result<Task, ApplicationError> {
+        log::info!("[task] Creating task: desc_len={}", cmd.description.len());
         let (project_id, _) = self.current_project_id()?;
         let task = Task::create(
             cmd.description,
@@ -157,6 +158,7 @@ impl TaskApplicationService {
     }
 
     pub fn reset_task(&self, cmd: ResetTaskCommand) -> Result<Task, ApplicationError> {
+        log::info!("[task] Resetting task: {}", cmd.id);
         let (project_id, path) = self.current_project_id()?;
         let old_task_id = TaskId::from_string(cmd.id);
         let old_task = self.task_repo.find_by_id(&project_id, &old_task_id)?;
@@ -205,6 +207,7 @@ impl TaskApplicationService {
     }
 
     pub fn mark_task_started(&self, cmd: MarkTaskStartedCommand) -> Result<(), ApplicationError> {
+        log::info!("[task] Marking task started: {}", cmd.id);
         let (project_id, _) = self.current_project_id()?;
         let task_id = TaskId::from_string(cmd.id);
         let mut task = self.task_repo.find_by_id(&project_id, &task_id)?;
@@ -221,6 +224,7 @@ impl TaskApplicationService {
     ) -> Result<(), ApplicationError> {
         let project_id = ProjectId::from_path(project_path);
         let task_id = TaskId::from_string(cmd.id);
+        log::info!("[task] Marking task completed: {} success={}", task_id.0, cmd.success);
         let mut task = self.task_repo.find_by_id(&project_id, &task_id)?;
         let event = task.mark_completed(cmd.success);
         self.task_repo.save(&project_id, &task)?;
@@ -229,6 +233,7 @@ impl TaskApplicationService {
     }
 
     pub fn mark_task_stopped(&self, cmd: MarkTaskStoppedCommand) -> Result<(), ApplicationError> {
+        log::info!("[task] Marking task stopped: {}", cmd.id);
         let (project_id, _) = self.current_project_id()?;
         let task_id = TaskId::from_string(cmd.id);
         let mut task = self.task_repo.find_by_id(&project_id, &task_id)?;

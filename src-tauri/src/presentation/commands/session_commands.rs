@@ -30,6 +30,8 @@ pub fn run_claude_session(
         PermissionMode::Full
     };
 
+    log::info!("[cmd] run_claude_session: id={} plan={} yolo={} model={:?}", id, use_plan, yolo, model);
+
     let cmd = StartSessionCommand {
         task_id: id.clone(),
         description,
@@ -53,6 +55,7 @@ pub fn stop_claude_session(
     id: String,
     services: State<'_, AppServices>,
 ) -> Result<(), String> {
+    log::info!("[cmd] stop_claude_session: id={}", id);
     services
         .session_service
         .stop_session(StopSessionCommand { task_id: id.clone() })
@@ -70,6 +73,7 @@ pub fn send_input(
     model: Option<String>,
     services: State<'_, AppServices>,
 ) -> Result<(), String> {
+    log::info!("[cmd] send_input: id={} input_len={} model={:?}", id, input.len(), model);
     services
         .session_service
         .send_input(SendInputCommand {
@@ -77,7 +81,10 @@ pub fn send_input(
             input,
             model,
         })
-        .map_err(|e| e.to_string())
+        .map_err(|e| {
+            log::error!("[cmd] send_input failed: {}", e);
+            e.to_string()
+        })
 }
 
 #[tauri::command]

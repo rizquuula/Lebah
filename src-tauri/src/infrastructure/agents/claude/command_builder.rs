@@ -60,6 +60,15 @@ impl ClaudeCommandBuilder {
             .stdout(Stdio::piped())
             .stderr(Stdio::piped());
 
+        log::debug!(
+            "[claude_cmd] Built command for task {}: binary={} follow_up={} permission={:?} model={:?}",
+            config.task_id.0,
+            binary,
+            config.is_follow_up,
+            config.permission_mode,
+            config.model,
+        );
+
         cmd
     }
 }

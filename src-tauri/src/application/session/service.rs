@@ -49,6 +49,13 @@ impl SessionApplicationService {
     }
 
     pub fn start_session(&self, cmd: StartSessionCommand) -> Result<(), ApplicationError> {
+        log::info!(
+            "[session] Starting session: task={} agent={:?} permission={:?} project={:?}",
+            cmd.task_id,
+            cmd.agent_name,
+            cmd.permission_mode,
+            cmd.project_path.as_ref().map(|p| p.as_str()),
+        );
         let runner = self.resolve_runner(cmd.agent_name.as_deref())?;
 
         let task_id = TaskId::from_string(cmd.task_id.clone());
@@ -78,7 +85,11 @@ impl SessionApplicationService {
             agent_binary: cmd.agent_path,
         };
 
-        let handle = runner.start(run_config)?;
+        let handle = runner.start(run_config).map_err(|e| {
+            log::error!("[session] Failed to start session for task {}: {}", task_id.0, e);
+            e
+        })?;
+        log::info!("[session] Session started successfully for task {}", task_id.0);
         let agent_name = runner.name().to_string();
 
         self.event_bus.publish(DomainEvent::Session(SessionDomainEvent::SessionStarted {
@@ -105,6 +116,10 @@ impl SessionApplicationService {
     }
 
     pub fn send_input(&self, cmd: SendInputCommand) -> Result<(), ApplicationError> {
+        log::info!(
+            "[session] Sending input to task {}: input_len={} model={:?}",
+            cmd.task_id, cmd.input.len(), cmd.model,
+        );
         let runner = self.resolve_runner(None)?;
         let task_id = TaskId::from_string(cmd.task_id.clone());
 
@@ -125,7 +140,11 @@ impl SessionApplicationService {
             agent_binary: None,
         };
 
-        let handle = runner.send_follow_up(run_config)?;
+        let handle = runner.send_follow_up(run_config).map_err(|e| {
+            log::error!("[session] Failed to send follow-up for task {}: {}", task_id.0, e);
+            e
+        })?;
+        log::info!("[session] Follow-up started for task {}", task_id.0);
         let project_path_str = project_path.unwrap_or_default();
         self.wire_handle(handle, task_id, project_path_str);
 
@@ -149,9 +168,15 @@ impl SessionApplicationService {
 
     fn resolve_runner(&self, agent_name: Option<&str>) -> Result<Arc<dyn AgentRunner>, ApplicationError> {
         let runner = match agent_name {
-            Some(name) => self.agent_registry.get(name),
+            Some(name) => {
+                log::debug!("[session] Resolving agent runner: {}", name);
+                self.agent_registry.get(name)
+            }
             None => self.agent_registry.default_runner(),
         };
+        if runner.is_none() {
+            log::error!("[session] No agent runner found for {:?}", agent_name);
+        }
         runner.ok_or_else(|| ApplicationError::NotFound("No agent runner available".to_string()))
     }
 
@@ -161,12 +186,14 @@ impl SessionApplicationService {
         task_id: TaskId,
         project_path: String,
     ) {
+        log::debug!("[session] Wiring handle for task {}", task_id.0);
         let event_bus = Arc::clone(&self.event_bus);
         let task_id_c = task_id.clone();
         let pp = project_path.clone();
 
         // Wire stdout
         std::thread::spawn(move || {
+            log::debug!("[session] Stdout reader thread started for task {}", task_id_c.0);
             for line in handle.stdout_rx {
                 event_bus.publish(DomainEvent::Session(SessionDomainEvent::SessionOutputReceived {
                     task_id: task_id_c.clone(),
@@ -182,6 +209,7 @@ impl SessionApplicationService {
 
         // Wire stderr
         std::thread::spawn(move || {
+            log::debug!("[session] Stderr reader thread started for task {}", task_id_c2.0);
             for line in handle.stderr_rx {
                 event_bus2.publish(DomainEvent::Session(SessionDomainEvent::SessionOutputReceived {
                     task_id: task_id_c2.clone(),
@@ -197,7 +225,9 @@ impl SessionApplicationService {
 
         // Wire exit
         std::thread::spawn(move || {
+            log::debug!("[session] Exit watcher thread started for task {}", task_id_c3.0);
             for success in handle.exit_rx {
+                log::info!("[session] Task {} exited with success={}", task_id_c3.0, success);
                 event_bus3.publish(DomainEvent::Session(SessionDomainEvent::SessionEnded {
                     task_id: task_id_c3.clone(),
                     success,

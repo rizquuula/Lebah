@@ -17,6 +17,7 @@ impl AgentRegistry {
     }
 
     pub fn register(&mut self, runner: Arc<dyn AgentRunner>) {
+        log::info!("[registry] Registered agent runner: {}", runner.name());
         self.runners.insert(runner.name().to_string(), runner);
     }
 
