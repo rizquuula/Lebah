@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { updateTask, runClaudeSession, stopClaudeSession, deleteTask, resetTaskSession, sendInputWithListener } from "../stores/tasks";
+  import { updateTask, moveTask, runClaudeSession, stopClaudeSession, deleteTask, resetTaskSession, sendInputWithListener } from "../stores/tasks";
   import { projectConfig } from "../stores/config";
   import { setError } from "../stores/errors";
   import { STATUS_COLORS, DEFAULT_REVIEW_TEMPLATE, DEFAULT_MERGE_TEMPLATE, type Task } from "../types";
@@ -19,6 +19,7 @@
   let isPlaying = false;
   let isDeleting = false;
   let isResetting = false;
+  let isMoving = false;
 
   $: borderColor = STATUS_COLORS[task.status];
   $: isRunning = task.status === "Running";
@@ -56,6 +57,14 @@
     }
   }
 
+  async function handleMoveToInProgress() {
+    if (isMoving) return;
+    isMoving = true;
+    try { await moveTask(task.id, "InProgress", 0); }
+    catch (e) { setError(`Failed to move task: ${e}`); }
+    finally { isMoving = false; }
+  }
+
   async function handleConfirmReset() {
     if (isResetting) return;
     showConfirmReset = false;
@@ -89,7 +98,11 @@
   <p class="description">{task.description}</p>
 
   <div class="controls">
-    {#if task.column !== "Todo"}
+    {#if task.column === "Todo"}
+      <button class="btn-icon play" title="Move to In Progress" disabled={isMoving} on:click={handleMoveToInProgress}>
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor"><path d="M2 1.5l9 4.5-9 4.5V1.5z"/></svg>
+      </button>
+    {:else}
       <TaskToggles
         usePlan={task.use_plan}
         yolo={task.yolo}
