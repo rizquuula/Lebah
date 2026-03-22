@@ -85,10 +85,10 @@
     <div class="header-glow"></div>
   </header>
   {#if $lastError}
-    <div class="error-banner" role="alert" on:click={clearError}>
+    <button class="error-banner" on:click={clearError}>
       <span>{$lastError}</span>
-      <button class="error-close" aria-label="Dismiss">✕</button>
-    </div>
+      <span class="error-close" aria-hidden="true">✕</span>
+    </button>
   {/if}
   <Board />
 </main>
@@ -266,6 +266,7 @@
     border-radius: 8px;
     padding: 8px 14px;
     font-size: 13px;
+    font-family: inherit;
     display: flex;
     align-items: center;
     gap: 10px;
@@ -273,18 +274,8 @@
     cursor: pointer;
     max-width: 500px;
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+    text-align: left;
   }
-  .error-banner:hover {
-    background: rgba(239, 68, 68, 0.25);
-  }
-  .error-close {
-    background: none;
-    border: none;
-    color: inherit;
-    cursor: pointer;
-    font-size: 12px;
-    padding: 0;
-    opacity: 0.7;
-    flex-shrink: 0;
-  }
+  .error-banner:hover { background: rgba(239, 68, 68, 0.25); }
+  .error-close { font-size: 12px; opacity: 0.7; flex-shrink: 0; }
 </style>
