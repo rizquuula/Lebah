@@ -104,7 +104,7 @@
     max-height: calc(100vh - 80px);
     height: 100%;
     position: relative;
-    overflow: hidden;
+    overflow: visible;
   }
   .column:hover {
     border-color: color-mix(in srgb, var(--col-color) 22%, transparent);
