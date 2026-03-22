@@ -1,0 +1,209 @@
+use std::sync::Arc;
+
+use crate::application::errors::ApplicationError;
+use crate::application::event_bus::{DomainEvent, DomainEventBus};
+use crate::application::ports::SessionManagerPort;
+use crate::application::session::commands::*;
+use crate::application::task::commands::{MarkTaskStartedCommand, MarkTaskStoppedCommand};
+use crate::application::task::service::TaskApplicationService;
+use crate::domain::agent::runner::{AgentHandle, AgentRunConfig, AgentRunner, PermissionMode};
+use crate::domain::repositories::OutputRepository;
+use crate::domain::project::value_objects::ProjectId;
+use crate::domain::session::events::SessionDomainEvent;
+use crate::domain::task::value_objects::TaskId;
+use crate::infrastructure::agents::registry::AgentRegistry;
+
+pub struct SessionApplicationService {
+    agent_registry: Arc<AgentRegistry>,
+    task_service: Arc<TaskApplicationService>,
+    output_repo: Arc<dyn OutputRepository>,
+    session_manager: Arc<dyn SessionManagerPort>,
+    event_bus: Arc<dyn DomainEventBus>,
+    current_project: Arc<std::sync::Mutex<Option<String>>>,
+}
+
+impl SessionApplicationService {
+    pub fn new(
+        agent_registry: Arc<AgentRegistry>,
+        task_service: Arc<TaskApplicationService>,
+        output_repo: Arc<dyn OutputRepository>,
+        session_manager: Arc<dyn SessionManagerPort>,
+        event_bus: Arc<dyn DomainEventBus>,
+        current_project: Arc<std::sync::Mutex<Option<String>>>,
+    ) -> Self {
+        Self {
+            agent_registry,
+            task_service,
+            output_repo,
+            session_manager,
+            event_bus,
+            current_project,
+        }
+    }
+
+    fn current_project_path(&self) -> Result<Option<String>, ApplicationError> {
+        self.current_project
+            .lock()
+            .map(|g| g.clone())
+            .map_err(|e| ApplicationError::Persistence(e.to_string()))
+    }
+
+    pub fn start_session(&self, cmd: StartSessionCommand) -> Result<(), ApplicationError> {
+        let runner = self.resolve_runner(cmd.agent_name.as_deref())?;
+
+        let task_id = TaskId::from_string(cmd.task_id.clone());
+        let project_path = cmd.project_path.clone();
+
+        // Mark task as started
+        let _ = self.task_service.clear_output(&cmd.task_id);
+        self.task_service.mark_task_started(MarkTaskStartedCommand {
+            id: cmd.task_id.clone(),
+        })?;
+
+        let run_config = AgentRunConfig {
+            task_id: task_id.clone(),
+            prompt: cmd.description,
+            project_path: project_path.clone(),
+            worktree: cmd.worktree,
+            model: cmd.model,
+            permission_mode: cmd.permission_mode,
+            extra_args: cmd.agent_command
+                .as_deref()
+                .unwrap_or("")
+                .split_whitespace()
+                .map(|s| s.to_string())
+                .filter(|s| !s.is_empty())
+                .collect(),
+            is_follow_up: false,
+            agent_binary: cmd.agent_path,
+        };
+
+        let handle = runner.start(run_config)?;
+        let agent_name = runner.name().to_string();
+
+        self.event_bus.publish(DomainEvent::Session(SessionDomainEvent::SessionStarted {
+            task_id: task_id.clone(),
+            agent_name,
+        }));
+
+        // Wire the AgentHandle into the event bus
+        let project_path_str = project_path.map(|p| p.0).unwrap_or_default();
+        self.wire_handle(handle, task_id, project_path_str);
+
+        Ok(())
+    }
+
+    pub fn stop_session(&self, cmd: StopSessionCommand) -> Result<(), ApplicationError> {
+        let runner = self.resolve_runner(None)?;
+        let task_id = TaskId::from_string(cmd.task_id.clone());
+        runner.terminate(&task_id)?;
+        self.task_service.mark_task_stopped(MarkTaskStoppedCommand {
+            id: cmd.task_id,
+        })?;
+        Ok(())
+    }
+
+    pub fn send_input(&self, cmd: SendInputCommand) -> Result<(), ApplicationError> {
+        let runner = self.resolve_runner(None)?;
+        let task_id = TaskId::from_string(cmd.task_id.clone());
+
+        if let Some(ref m) = cmd.model {
+            runner.update_model(&task_id, m)?;
+        }
+
+        let project_path = self.current_project_path()?;
+        let run_config = AgentRunConfig {
+            task_id: task_id.clone(),
+            prompt: cmd.input,
+            project_path: project_path.clone().map(crate::domain::project::value_objects::ProjectPath::new),
+            worktree: None,
+            model: cmd.model,
+            permission_mode: PermissionMode::Full,
+            extra_args: Vec::new(),
+            is_follow_up: true,
+            agent_binary: None,
+        };
+
+        let handle = runner.send_follow_up(run_config)?;
+        let project_path_str = project_path.unwrap_or_default();
+        self.wire_handle(handle, task_id, project_path_str);
+
+        Ok(())
+    }
+
+    pub fn get_output_buffer(&self, task_id: &str) -> Vec<String> {
+        let tid = TaskId::from_string(task_id.to_string());
+        let live = self.session_manager.get_live_buffer(&tid);
+        if !live.is_empty() {
+            return live;
+        }
+        // Fall back to persisted output
+        let project_path = self.current_project_path().ok().flatten().unwrap_or_default();
+        if project_path.is_empty() {
+            return Vec::new();
+        }
+        let project_id = ProjectId::from_path(&project_path);
+        self.output_repo.load_all(&project_id, &tid)
+    }
+
+    fn resolve_runner(&self, agent_name: Option<&str>) -> Result<Arc<dyn AgentRunner>, ApplicationError> {
+        let runner = match agent_name {
+            Some(name) => self.agent_registry.get(name),
+            None => self.agent_registry.default_runner(),
+        };
+        runner.ok_or_else(|| ApplicationError::NotFound("No agent runner available".to_string()))
+    }
+
+    fn wire_handle(
+        &self,
+        handle: AgentHandle,
+        task_id: TaskId,
+        project_path: String,
+    ) {
+        let event_bus = Arc::clone(&self.event_bus);
+        let task_id_c = task_id.clone();
+        let pp = project_path.clone();
+
+        // Wire stdout
+        std::thread::spawn(move || {
+            for line in handle.stdout_rx {
+                event_bus.publish(DomainEvent::Session(SessionDomainEvent::SessionOutputReceived {
+                    task_id: task_id_c.clone(),
+                    line,
+                    project_path: pp.clone(),
+                }));
+            }
+        });
+
+        let event_bus2 = Arc::clone(&self.event_bus);
+        let task_id_c2 = task_id.clone();
+        let pp2 = project_path.clone();
+
+        // Wire stderr
+        std::thread::spawn(move || {
+            for line in handle.stderr_rx {
+                event_bus2.publish(DomainEvent::Session(SessionDomainEvent::SessionOutputReceived {
+                    task_id: task_id_c2.clone(),
+                    line,
+                    project_path: pp2.clone(),
+                }));
+            }
+        });
+
+        let event_bus3 = Arc::clone(&self.event_bus);
+        let task_id_c3 = task_id;
+        let pp3 = project_path;
+
+        // Wire exit
+        std::thread::spawn(move || {
+            for success in handle.exit_rx {
+                event_bus3.publish(DomainEvent::Session(SessionDomainEvent::SessionEnded {
+                    task_id: task_id_c3.clone(),
+                    success,
+                    project_path: pp3.clone(),
+                }));
+                break;
+            }
+        });
+    }
+}
