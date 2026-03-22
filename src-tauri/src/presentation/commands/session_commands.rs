@@ -1,4 +1,4 @@
-use tauri::{AppHandle, State};
+use tauri::State;
 
 use crate::application::session::commands::*;
 use crate::domain::agent::runner::PermissionMode;
@@ -9,7 +9,6 @@ use crate::infrastructure::AppServices;
 #[allow(clippy::too_many_arguments)]
 #[tauri::command]
 pub fn run_claude_session(
-    _app: AppHandle,
     id: String,
     description: String,
     use_plan: bool,
@@ -67,7 +66,6 @@ pub fn stop_claude_session(
 
 #[tauri::command]
 pub fn send_input(
-    _app: AppHandle,
     id: String,
     input: String,
     model: Option<String>,
