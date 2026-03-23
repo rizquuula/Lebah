@@ -2,7 +2,7 @@
   import { dragHandleZone } from "svelte-dnd-action";
   import { moveTaskBatch } from "../stores/tasks";
   import { projectConfig, saveProjectConfig } from "../stores/config";
-  import { DEFAULT_REVIEW_TEMPLATE, DEFAULT_MERGE_TEMPLATE, type Task, type TaskColumn } from "../types";
+  import { DEFAULT_REVIEW_TEMPLATE, DEFAULT_MERGE_TEMPLATE, DEFAULT_INPROGRESS_TEMPLATE, type Task, type TaskColumn } from "../types";
   import TaskCard from "./TaskCard.svelte";
 
   export let column: TaskColumn;
@@ -14,21 +14,24 @@
   let showTemplatePopover = false;
   let editingTemplate = "";
 
-  $: hasTemplate = column === "Review" || column === "Merge";
+  $: hasTemplate = column === "InProgress" || column === "Review" || column === "Merge";
+
+  function getColumnTemplate(): string {
+    if (column === "Review") return $projectConfig.review_template ?? DEFAULT_REVIEW_TEMPLATE;
+    if (column === "Merge") return $projectConfig.merge_template ?? DEFAULT_MERGE_TEMPLATE;
+    return $projectConfig.inprogress_template ?? DEFAULT_INPROGRESS_TEMPLATE;
+  }
 
   function openTemplatePopover() {
-    if (column === "Review") {
-      editingTemplate = $projectConfig.review_template ?? DEFAULT_REVIEW_TEMPLATE;
-    } else {
-      editingTemplate = $projectConfig.merge_template ?? DEFAULT_MERGE_TEMPLATE;
-    }
+    editingTemplate = getColumnTemplate();
     showTemplatePopover = !showTemplatePopover;
   }
 
   async function saveTemplate() {
     const updated = { ...$projectConfig };
     if (column === "Review") updated.review_template = editingTemplate;
-    else updated.merge_template = editingTemplate;
+    else if (column === "Merge") updated.merge_template = editingTemplate;
+    else updated.inprogress_template = editingTemplate;
     await saveProjectConfig(updated);
     showTemplatePopover = false;
   }

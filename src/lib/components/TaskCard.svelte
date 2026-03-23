@@ -2,7 +2,7 @@
   import { updateTask, moveTask, runClaudeSession, stopClaudeSession, deleteTask, resetTaskSession, sendInputWithListener } from "../stores/tasks";
   import { projectConfig } from "../stores/config";
   import { setError } from "../stores/errors";
-  import { STATUS_COLORS, DEFAULT_REVIEW_TEMPLATE, DEFAULT_MERGE_TEMPLATE, type Task } from "../types";
+  import { STATUS_COLORS, DEFAULT_REVIEW_TEMPLATE, DEFAULT_MERGE_TEMPLATE, DEFAULT_INPROGRESS_TEMPLATE, type Task } from "../types";
   import TerminalModal from "./TerminalModal.svelte";
   import TaskModal from "./TaskModal.svelte";
   import TaskDetailModal from "./TaskDetailModal.svelte";
@@ -36,6 +36,7 @@
     : "transparent";
 
   function getTemplate(): string | null {
+    if (task.column === "InProgress") return $projectConfig.inprogress_template ?? DEFAULT_INPROGRESS_TEMPLATE;
     if (task.column === "Review") return $projectConfig.review_template ?? DEFAULT_REVIEW_TEMPLATE;
     if (task.column === "Merge") return $projectConfig.merge_template ?? DEFAULT_MERGE_TEMPLATE;
     return null;
@@ -56,7 +57,9 @@
       } else if (task.has_run) {
         showConfirmReset = true;
       } else {
-        try { await runClaudeSession(task.id, task.description, task.use_plan, task.yolo, task.claude_path, task.worktree, task.model); }
+        const template = getTemplate();
+        const description = task.column === "InProgress" && template ? `${task.description}\n${template}` : task.description;
+        try { await runClaudeSession(task.id, description, task.use_plan, task.yolo, task.claude_path, task.worktree, task.model); }
         catch { showTerminal = true; }
       }
     } finally {
