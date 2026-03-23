@@ -22,6 +22,11 @@
   let isMoving = false;
 
   $: borderColor = STATUS_COLORS[task.status];
+  $: displayDate = (() => {
+    const raw = task.column === "Completed" && task.completed_at ? task.completed_at : task.created_at;
+    const d = new Date(raw);
+    return d.toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
+  })();
   $: isRunning = task.status === "Running";
   $: glowColor = task.status === "Running" ? "rgba(234, 179, 8, 0.15)"
     : task.status === "Success" ? "rgba(34, 197, 94, 0.1)"
@@ -88,6 +93,7 @@
 
 <div class="card" class:running={isRunning} style="--border-color: {borderColor}; --glow-color: {glowColor}">
   <div class="card-border-top"></div>
+  <span class="timestamp">{displayDate}</span>
   <div class="drag-handle" use:dragHandle title="Drag to move">
     <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
       <circle cx="9" cy="5" r="1.5"/><circle cx="15" cy="5" r="1.5"/>
@@ -188,6 +194,16 @@
     box-shadow: 0 0 18px rgba(234, 179, 8, 0.2);
     pointer-events: none;
   }
+  .timestamp {
+    position: absolute;
+    top: 8px;
+    left: 10px;
+    font-size: 10px;
+    color: rgba(108, 112, 134, 0.6);
+    font-family: "JetBrains Mono", "Fira Code", monospace;
+    letter-spacing: 0.2px;
+    user-select: none;
+  }
   .drag-handle {
     position: absolute;
     top: 8px;
@@ -211,7 +227,7 @@
   .description {
     color: rgba(205, 214, 244, 0.9);
     font-size: 13px;
-    margin: 4px 0 10px;
+    margin: 18px 0 10px;
     user-select: none;
     display: -webkit-box;
     -webkit-line-clamp: 2;

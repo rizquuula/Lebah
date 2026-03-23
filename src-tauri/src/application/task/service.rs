@@ -96,6 +96,11 @@ impl TaskApplicationService {
         // by reconstituting with new values
         let column = TaskColumn::from_str(&cmd.column)?;
         let status = TaskStatus::from_str(&cmd.status)?;
+        let completed_at = if column == TaskColumn::Completed {
+            task.completed_at().cloned().or_else(|| Some(chrono::Utc::now()))
+        } else {
+            task.completed_at().cloned()
+        };
         let new_task = Task::reconstitute(
             task_id,
             task.description().to_string(),
@@ -106,6 +111,7 @@ impl TaskApplicationService {
             task.worktree().cloned(),
             cmd.sort_order,
             *task.created_at(),
+            completed_at,
             task.has_run(),
         );
         self.task_repo.save(&project_id, &new_task)?;
@@ -192,6 +198,7 @@ impl TaskApplicationService {
             new_task.worktree().cloned(),
             new_task.sort_order(),
             *new_task.created_at(),
+            None,
             false,
         );
 

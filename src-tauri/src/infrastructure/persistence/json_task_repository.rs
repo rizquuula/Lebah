@@ -22,6 +22,8 @@ struct TaskRecord {
     yolo: bool,
     sort_order: i32,
     created_at: String,
+    #[serde(default)]
+    completed_at: Option<String>,
     claude_path: Option<String>,
     claude_command: Option<String>,
     worktree: Option<String>,
@@ -44,6 +46,7 @@ impl TaskRecord {
             yolo: task.execution_flags().yolo,
             sort_order: task.sort_order(),
             created_at: task.created_at().to_rfc3339(),
+            completed_at: task.completed_at().map(|dt| dt.to_rfc3339()),
             claude_path: task.agent_config().agent_path.clone(),
             claude_command: task.agent_config().agent_command.clone(),
             worktree: task.worktree().map(|w| w.0.clone()),
@@ -57,6 +60,11 @@ impl TaskRecord {
         let created_at = chrono::DateTime::parse_from_rfc3339(&self.created_at)
             .map(|dt| dt.with_timezone(&chrono::Utc))
             .unwrap_or_else(|_| chrono::Utc::now());
+        let completed_at = self.completed_at.and_then(|s| {
+            chrono::DateTime::parse_from_rfc3339(&s)
+                .map(|dt| dt.with_timezone(&chrono::Utc))
+                .ok()
+        });
         Ok(Task::reconstitute(
             TaskId::from_string(self.id),
             self.description,
@@ -75,6 +83,7 @@ impl TaskRecord {
             self.worktree.map(WorktreeRef::new),
             self.sort_order,
             created_at,
+            completed_at,
             self.has_run,
         ))
     }
