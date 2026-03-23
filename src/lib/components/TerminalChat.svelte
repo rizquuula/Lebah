@@ -133,6 +133,8 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    direction: rtl;
+    unicode-bidi: plaintext;
   }
   .result-bar {
     align-self: stretch;
