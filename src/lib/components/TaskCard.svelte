@@ -2,7 +2,7 @@
   import { updateTask, moveTask, runClaudeSession, stopClaudeSession, deleteTask, resetTaskSession, sendInputWithListener } from "../stores/tasks";
   import { projectConfig } from "../stores/config";
   import { setError } from "../stores/errors";
-  import { STATUS_COLORS, DEFAULT_REVIEW_TEMPLATE, DEFAULT_MERGE_TEMPLATE, type Task } from "../types";
+  import { STATUS_COLORS, DEFAULT_REVIEW_TEMPLATE, DEFAULT_MERGE_TEMPLATE, DEFAULT_INPROGRESS_TEMPLATE, type Task } from "../types";
   import TerminalModal from "./TerminalModal.svelte";
   import TaskModal from "./TaskModal.svelte";
   import TaskDetailModal from "./TaskDetailModal.svelte";
@@ -56,7 +56,8 @@
       } else if (task.has_run) {
         showConfirmReset = true;
       } else {
-        try { await runClaudeSession(task.id, task.description, task.use_plan, task.yolo, task.claude_path, task.worktree, task.model); }
+        const inprogressTemplate = task.column === "InProgress" ? `\n${$projectConfig.inprogress_template ?? DEFAULT_INPROGRESS_TEMPLATE}` : "";
+        try { await runClaudeSession(task.id, task.description + inprogressTemplate, task.use_plan, task.yolo, task.claude_path, task.worktree, task.model); }
         catch { showTerminal = true; }
       }
     } finally {

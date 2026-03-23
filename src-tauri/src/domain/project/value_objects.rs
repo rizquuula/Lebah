@@ -47,6 +47,7 @@ impl std::fmt::Display for ProjectPath {
 pub struct ProjectConfig {
     pub review_template: Option<String>,
     pub merge_template: Option<String>,
+    pub inprogress_template: Option<String>,
 }
 
 impl Default for ProjectConfig {
@@ -57,6 +58,9 @@ impl Default for ProjectConfig {
             ),
             merge_template: Some(
                 "Pull from main branch and check for conflict. Fix the conflict. Then merge this worktree to main.".to_string(),
+            ),
+            inprogress_template: Some(
+                "Help me do this, make comprehensive tasks first before executing".to_string(),
             ),
         }
     }
