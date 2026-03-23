@@ -25,8 +25,8 @@
 <style>
   .toggles {
     display: flex;
-    flex-direction: column;
-    gap: 4px;
+    flex-direction: row;
+    gap: 10px;
   }
   .toggle {
     display: flex;

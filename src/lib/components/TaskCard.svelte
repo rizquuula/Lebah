@@ -103,12 +103,6 @@
         <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor"><path d="M2 1.5l9 4.5-9 4.5V1.5z"/></svg>
       </button>
     {:else}
-      <TaskToggles
-        usePlan={task.use_plan}
-        yolo={task.yolo}
-        onTogglePlan={() => updateTask({ ...task, use_plan: !task.use_plan })}
-        onToggleYolo={() => updateTask({ ...task, yolo: !task.yolo })}
-      />
       <button class="btn-icon play" class:active={isRunning} title={isRunning ? "Stop" : "Run"}
         disabled={isPlaying || isResetting} on:click={handlePlay}>
         {#if isRunning}
@@ -140,6 +134,17 @@
       </button>
     </div>
   </div>
+
+  {#if task.column !== "Todo"}
+    <div class="bottom-row">
+      <TaskToggles
+        usePlan={task.use_plan}
+        yolo={task.yolo}
+        onTogglePlan={() => updateTask({ ...task, use_plan: !task.use_plan })}
+        onToggleYolo={() => updateTask({ ...task, yolo: !task.yolo })}
+      />
+    </div>
+  {/if}
 
   <div class="meta">
     <span class="uuid" title={task.id}>{task.model || "sonnet"}</span>
@@ -274,14 +279,17 @@
     color: #f38ba8;
   }
   .actions { margin-left: auto; display: flex; gap: 6px; }
+  .bottom-row {
+    margin-top: 8px;
+    padding-top: 6px;
+    border-top: 1px solid rgba(255, 255, 255, 0.03);
+  }
   .meta {
     display: flex;
     justify-content: space-between;
     font-size: 11px;
     color: rgba(108, 112, 134, 0.7);
     margin-top: 8px;
-    padding-top: 6px;
-    border-top: 1px solid rgba(255, 255, 255, 0.03);
   }
   .uuid { font-family: "JetBrains Mono", "Fira Code", monospace; letter-spacing: 0.3px; }
   .status { font-weight: 600; text-transform: uppercase; font-size: 10px; letter-spacing: 0.5px; }
