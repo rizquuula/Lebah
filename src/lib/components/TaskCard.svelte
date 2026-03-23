@@ -36,6 +36,7 @@
     : "transparent";
 
   function getTemplate(): string | null {
+    if (task.column === "InProgress") return $projectConfig.inprogress_template ?? DEFAULT_INPROGRESS_TEMPLATE;
     if (task.column === "Review") return $projectConfig.review_template ?? DEFAULT_REVIEW_TEMPLATE;
     if (task.column === "Merge") return $projectConfig.merge_template ?? DEFAULT_MERGE_TEMPLATE;
     return null;
@@ -56,8 +57,9 @@
       } else if (task.has_run) {
         showConfirmReset = true;
       } else {
-        const inprogressTemplate = task.column === "InProgress" ? `\n${$projectConfig.inprogress_template ?? DEFAULT_INPROGRESS_TEMPLATE}` : "";
-        try { await runClaudeSession(task.id, task.description + inprogressTemplate, task.use_plan, task.yolo, task.claude_path, task.worktree, task.model); }
+        const template = getTemplate();
+        const description = task.column === "InProgress" && template ? `${task.description}\n${template}` : task.description;
+        try { await runClaudeSession(task.id, description, task.use_plan, task.yolo, task.claude_path, task.worktree, task.model); }
         catch { showTerminal = true; }
       }
     } finally {
