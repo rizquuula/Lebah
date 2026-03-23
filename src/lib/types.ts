@@ -43,10 +43,12 @@ export const COLUMN_COLORS: Record<TaskColumn, string> = {
 export interface ProjectConfig {
   review_template: string | null;
   merge_template: string | null;
+  inprogress_template: string | null;
 }
 
 export const DEFAULT_REVIEW_TEMPLATE = "Help me to check for test, lint and build error if you not yet do it. Then do commit in the worktree.";
 export const DEFAULT_MERGE_TEMPLATE = "Pull from main branch and check for conflict. Fix the conflict. Then merge this worktree to main.";
+export const DEFAULT_INPROGRESS_TEMPLATE = "Help me do this task: <TASK_DESCRIPTION>. Make comprehensive tasks first before executing.";
 
 export interface UsageInfo {
   input_tokens: number;
