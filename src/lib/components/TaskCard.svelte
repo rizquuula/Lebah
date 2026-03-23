@@ -91,6 +91,14 @@
     finally { isMoving = false; }
   }
 
+  async function handleMoveToReview() {
+    if (isMoving) return;
+    isMoving = true;
+    try { await moveTask(task.id, "Review", 0); }
+    catch (e) { setError(`Failed to move task: ${e}`); }
+    finally { isMoving = false; }
+  }
+
   async function handleConfirmReset() {
     if (isResetting) return;
     showConfirmReset = false;
@@ -126,8 +134,10 @@
 
   <div class="controls">
     {#if task.column === "Todo"}
-      <button class="btn-icon play" title="Move to In Progress" disabled={isMoving} on:click={handleMoveToInProgress}>
-        <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor"><path d="M2 1.5l9 4.5-9 4.5V1.5z"/></svg>
+      <button class="btn-icon arrow-right" title="Move to In Progress" disabled={isMoving} on:click={handleMoveToInProgress}>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="5" y1="12" x2="19" y2="12"/><polyline points="13 6 19 12 13 18"/>
+        </svg>
       </button>
     {:else if task.column !== "Completed"}
       <button class="btn-icon play" class:active={isRunning} class:waiting={isWaiting}
@@ -147,6 +157,13 @@
           <polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/>
         </svg>
       </button>
+      {#if task.column === "InProgress"}
+        <button class="btn-icon arrow-right" title="Move to Review" disabled={isMoving} on:click={handleMoveToReview}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="5" y1="12" x2="19" y2="12"/><polyline points="13 6 19 12 13 18"/>
+          </svg>
+        </button>
+      {/if}
     {/if}
     {#if task.column !== "Todo"}
       <button class="btn-icon" title="View details" on:click={() => (showDetailModal = true)}>
@@ -328,6 +345,12 @@
     box-shadow: 0 0 8px rgba(234, 179, 8, 0.3);
     pointer-events: none;
   }
+  .btn-icon.arrow-right {
+    background: rgba(137, 180, 250, 0.12);
+    color: #89b4fa;
+    border-color: rgba(137, 180, 250, 0.2);
+  }
+  .btn-icon.arrow-right:hover:not(:disabled) { background: rgba(137, 180, 250, 0.25); }
   .btn-icon.terminal-btn.active {
     background: rgba(137, 180, 250, 0.2);
     color: #89b4fa;
