@@ -1,9 +1,7 @@
 <script lang="ts">
   import { invoke } from "@tauri-apps/api/core";
-  import { listen } from "@tauri-apps/api/event";
   import { createTask, updateTask } from "../stores/tasks";
-  import type { Task, ChatEntry, UsageInfo } from "../types";
-  import TerminalChat from "./TerminalChat.svelte";
+  import type { Task } from "../types";
 
   export let task: Task | null = null;
   export let onClose: () => void;
@@ -23,6 +21,7 @@
     try {
       const name = await invoke<string>("generate_worktree_name", {
         description: description.trim(),
+        model: model || null,
         claudePath: claudePath.trim() || null,
       });
       worktree = name.trim();
@@ -30,106 +29,6 @@
       worktreeError = String(e);
     } finally {
       generatingWorktree = false;
-    }
-  }
-
-  let generating = false;
-  let genEntries: ChatEntry[] = [];
-
-  function parseGenLine(raw: string): void {
-    if (!raw.trim()) return;
-    try {
-      const obj = JSON.parse(raw);
-
-      if (obj.type === "system" && obj.subtype === "init") {
-        genEntries = [...genEntries, { kind: "system", text: `Generating · ${obj.model ?? model}` }];
-        return;
-      }
-
-      if (obj.type === "assistant") {
-        if (obj.message?.content) {
-          for (const part of obj.message.content) {
-            if (part.type === "text" && part.text) {
-              const last = genEntries[genEntries.length - 1];
-              if (last?.kind === "assistant") {
-                genEntries[genEntries.length - 1] = { kind: "assistant", text: last.text + part.text };
-                genEntries = genEntries;
-              } else {
-                genEntries = [...genEntries, { kind: "assistant", text: part.text }];
-              }
-            }
-          }
-          const u = obj.message.usage;
-          if (u && u.output_tokens > 0) {
-            genEntries = [...genEntries, {
-              kind: "usage",
-              input: u.input_tokens ?? 0,
-              output: u.output_tokens ?? 0,
-              cacheRead: u.cache_read_input_tokens ?? 0,
-              cacheCreate: u.cache_creation_input_tokens ?? 0,
-            }];
-          }
-          return;
-        }
-        const delta = obj.content_block?.delta;
-        if (delta?.type === "text_delta" && delta.text) {
-          const last = genEntries[genEntries.length - 1];
-          if (last?.kind === "assistant") {
-            genEntries[genEntries.length - 1] = { kind: "assistant", text: last.text + delta.text };
-            genEntries = genEntries;
-          } else {
-            genEntries = [...genEntries, { kind: "assistant", text: delta.text }];
-          }
-          return;
-        }
-        return;
-      }
-
-      if (obj.type === "result") {
-        const usage: UsageInfo = {
-          input_tokens: obj.usage?.input_tokens ?? 0,
-          output_tokens: obj.usage?.output_tokens ?? 0,
-          cache_read_input_tokens: obj.usage?.cache_read_input_tokens ?? 0,
-          cache_creation_input_tokens: obj.usage?.cache_creation_input_tokens ?? 0,
-        };
-        genEntries = [...genEntries, {
-          kind: "result",
-          success: !obj.is_error,
-          cost: obj.total_cost_usd ?? 0,
-          duration_ms: obj.duration_ms ?? 0,
-          usage,
-        }];
-        return;
-      }
-    } catch {
-      if (raw.trim()) {
-        genEntries = [...genEntries, { kind: "system", text: raw }];
-      }
-    }
-  }
-
-  async function generateName() {
-    if (!description.trim() || generating) return;
-    generating = true;
-    genEntries = [];
-
-    const unlisten = await listen<string>("worktree-gen-line", (event) => {
-      parseGenLine(event.payload);
-    });
-
-    try {
-      const name = await invoke<string>("generate_worktree_name", {
-        description: description.trim(),
-        model: model || null,
-        claudePath: claudePath.trim() || null,
-      });
-      worktree = name;
-      worktreeError = "";
-    } catch (e) {
-      genEntries = [...genEntries, { kind: "system", text: `Error: ${e}` }];
-    } finally {
-      generating = false;
-      unlisten();
     }
   }
 
@@ -200,27 +99,7 @@
         class="text-input"
       />
 
-      <div class="worktree-label-row">
-        <label class="field-label" for="task-worktree">Worktree Name</label>
-        {#if !task}
-          <button
-            type="button"
-            class="btn-generate"
-            on:click={generateName}
-            disabled={generating || !description.trim()}
-            title="Generate name from description using AI"
-          >
-            {#if generating}
-              <span class="gen-spinner"></span>
-            {:else}
-              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
-              </svg>
-            {/if}
-            {generating ? "Generating…" : "Generate"}
-          </button>
-        {/if}
-      </div>
+      <label class="field-label" for="task-worktree">Worktree Name</label>
       {#if task}
         <div class="text-input readonly-field">{task.worktree ?? "—"}</div>
       {:else}
@@ -248,11 +127,6 @@
         </div>
         {#if worktreeError}
           <div class="field-error">{worktreeError}</div>
-        {/if}
-        {#if genEntries.length > 0}
-          <div class="gen-log">
-            <TerminalChat entries={genEntries} />
-          </div>
         {/if}
       {/if}
 
@@ -429,56 +303,6 @@
     font-size: 12px;
     color: rgba(239, 68, 68, 0.85);
     margin-top: 4px;
-  }
-  .worktree-label-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 6px;
-    margin-top: 14px;
-  }
-  .worktree-label-row .field-label {
-    margin: 0;
-  }
-  .btn-generate {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    padding: 3px 10px;
-    background: rgba(203, 166, 247, 0.1);
-    color: rgba(203, 166, 247, 0.7);
-    border: 1px solid rgba(203, 166, 247, 0.2);
-    border-radius: 20px;
-    font-size: 11px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: background 0.15s, color 0.15s;
-  }
-  .btn-generate:hover:not(:disabled) {
-    background: rgba(203, 166, 247, 0.18);
-    color: rgba(203, 166, 247, 0.95);
-  }
-  .btn-generate:disabled {
-    opacity: 0.4;
-    cursor: not-allowed;
-  }
-  .gen-spinner {
-    display: inline-block;
-    width: 10px;
-    height: 10px;
-    border: 1.5px solid rgba(203, 166, 247, 0.3);
-    border-top-color: rgba(203, 166, 247, 0.8);
-    border-radius: 50%;
-    animation: spin 0.6s linear infinite;
-  }
-  @keyframes spin { to { transform: rotate(360deg); } }
-  .gen-log {
-    margin-top: 8px;
-    border: 1px solid rgba(137, 180, 250, 0.1);
-    border-radius: 8px;
-    overflow: hidden;
-    max-height: 180px;
-    background: rgba(0, 0, 0, 0.15);
   }
   .actions {
     display: flex;
