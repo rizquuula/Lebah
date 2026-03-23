@@ -72,6 +72,14 @@
     finally { isMoving = false; }
   }
 
+  async function handleMoveToReview() {
+    if (isMoving) return;
+    isMoving = true;
+    try { await moveTask(task.id, "Review", 0); }
+    catch (e) { setError(`Failed to move task: ${e}`); }
+    finally { isMoving = false; }
+  }
+
   async function handleConfirmReset() {
     if (isResetting) return;
     showConfirmReset = false;
@@ -125,6 +133,11 @@
           <polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/>
         </svg>
       </button>
+      {#if task.column === "InProgress" && task.status === "Success"}
+        <button class="btn-icon move-next" title="Move to Review" disabled={isMoving} on:click={handleMoveToReview}>
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor"><path d="M2 1.5l9 4.5-9 4.5V1.5z"/></svg>
+        </button>
+      {/if}
     {/if}
     {#if task.column !== "Todo"}
       <button class="btn-icon" title="View details" on:click={() => (showDetailModal = true)}>
@@ -300,6 +313,12 @@
     box-shadow: 0 0 8px rgba(234, 179, 8, 0.3);
     pointer-events: none;
   }
+  .btn-icon.move-next {
+    background: rgba(34, 197, 94, 0.15);
+    color: #22c55e;
+    border-color: rgba(34, 197, 94, 0.2);
+  }
+  .btn-icon.move-next:hover:not(:disabled) { background: rgba(34, 197, 94, 0.3); }
   .btn-icon.terminal-btn.active {
     background: rgba(137, 180, 250, 0.2);
     color: #89b4fa;
