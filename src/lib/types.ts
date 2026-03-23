@@ -13,6 +13,7 @@ export enum TaskStatus {
   Failed = "Failed",
   Warning = "Warning",
   Waiting = "Waiting",
+  Canceled = "Canceled",
 }
 
 export interface Task {
@@ -87,4 +88,5 @@ export const STATUS_COLORS: Record<TaskStatus, string> = {
   [TaskStatus.Failed]: "#ef4444",
   [TaskStatus.Warning]: "#f97316",
   [TaskStatus.Waiting]: "#3b82f6",
+  [TaskStatus.Canceled]: "#6b7280",
 };

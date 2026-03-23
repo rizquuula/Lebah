@@ -18,10 +18,12 @@
   let showDetailModal = false;
   let showConfirmReset = false;
   let showConfirmDelete = false;
+  let showConfirmCancel = false;
   let isPlaying = false;
   let isDeleting = false;
   let isResetting = false;
   let isMoving = false;
+  let isCanceling = false;
 
   $: borderColor = STATUS_COLORS[task.status];
   $: displayDate = (() => {
@@ -126,6 +128,18 @@
     catch (e) { setError(`Failed to delete task: ${e}`); }
     finally { isDeleting = false; }
   }
+
+  async function handleConfirmCancel() {
+    if (isCanceling) return;
+    showConfirmCancel = false;
+    isCanceling = true;
+    try {
+      if (task.status === TaskStatus.Running) await stopClaudeSession(task.id);
+      await updateTask({ ...task, status: TaskStatus.Canceled, column: TaskColumn.Completed });
+      await moveTask(task.id, "Completed", 0);
+    } catch (e) { setError(`Failed to cancel task: ${e}`); }
+    finally { isCanceling = false; }
+  }
 </script>
 
 <div class="card" class:running={isRunning} style="--border-color: {borderColor}; --glow-color: {glowColor}">
@@ -165,7 +179,7 @@
           <polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/>
         </svg>
       </button>
-      {#if task.status === "Success"}
+      {#if task.status === TaskStatus.Success}
         <button class="btn-icon arrow-right" title="Move to Review" disabled={isMoving} on:click={handleMoveToReview}>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
             <line x1="5" y1="12" x2="19" y2="12"/><polyline points="13 6 19 12 13 18"/>
@@ -212,6 +226,16 @@
           </svg>
         </button>
       {/if}
+      {#if task.column !== "Completed"}
+        <button class="btn-icon cancel" title="Cancel task" disabled={isCanceling}
+          on:click={() => (showConfirmCancel = true)}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+            <circle cx="12" cy="12" r="10"/>
+            <line x1="15" y1="9" x2="9" y2="15"/>
+            <line x1="9" y1="9" x2="15" y2="15"/>
+          </svg>
+        </button>
+      {/if}
       <button class="btn-icon delete" title="Delete" disabled={isDeleting}
         on:click={() => (showConfirmDelete = true)}>
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
@@ -248,6 +272,13 @@
 {/if}
 {#if showDetailModal}
   <div use:portal><TaskDetailModal {task} onClose={() => (showDetailModal = false)} /></div>
+{/if}
+{#if showConfirmCancel}
+  <div use:portal>
+    <ConfirmDialog title="Cancel task?" detail="The task will be marked as canceled and moved to Completed."
+      confirmLabel="Cancel Task" loading={isCanceling} onConfirm={handleConfirmCancel}
+      onCancel={() => (showConfirmCancel = false)} />
+  </div>
 {/if}
 {#if showConfirmDelete}
   <div use:portal>
@@ -386,6 +417,11 @@
     background: rgba(137, 180, 250, 0.2);
     color: #89b4fa;
     border-color: rgba(137, 180, 250, 0.25);
+  }
+  .btn-icon.cancel:hover:not(:disabled) {
+    background: rgba(249, 115, 22, 0.2);
+    border-color: rgba(249, 115, 22, 0.3);
+    color: #f97316;
   }
   .btn-icon.delete:hover:not(:disabled) {
     background: rgba(243, 139, 168, 0.2);
