@@ -1,3 +1,5 @@
+use tauri::Emitter;
+
 #[tauri::command]
 pub fn check_path_exists(path: String) -> bool {
     std::path::Path::new(&path).exists()
@@ -6,28 +8,75 @@ pub fn check_path_exists(path: String) -> bool {
 #[tauri::command]
 pub async fn generate_worktree_name(
     description: String,
+    model: Option<String>,
     claude_path: Option<String>,
+    app_handle: tauri::AppHandle,
 ) -> Result<String, String> {
     let claude = claude_path.unwrap_or_else(|| "claude".to_string());
+
     let prompt = format!(
         "Based on this task\n\n{}\n\nplease generate a worktree name, with format\n\n<fix/feat/chore>-<worktree name max 2 word separated by dash>-<5 random string character>\n\nRespond with ONLY the worktree name, nothing else. No explanation, no punctuation, just the name.",
         description
     );
 
-    let output = tokio::process::Command::new(&claude)
-        .arg("-p")
-        .arg(&prompt)
-        .arg("--model")
-        .arg("claude-haiku-4-5-20251001")
-        .output()
-        .await
-        .map_err(|e| format!("Failed to run claude: {}", e))?;
+    let mut cmd = tokio::process::Command::new(&claude);
+    cmd.arg("--output-format").arg("stream-json")
+        .arg("--verbose")
+        .arg("--print").arg(&prompt);
 
-    if !output.status.success() {
-        let stderr = String::from_utf8_lossy(&output.stderr);
-        return Err(format!("Claude failed: {}", stderr));
+    if let Some(ref m) = model {
+        cmd.arg("--model").arg(m);
     }
 
-    let result = String::from_utf8_lossy(&output.stdout).trim().to_string();
-    Ok(result)
+    cmd.stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::piped());
+
+    let mut child = cmd.spawn().map_err(|e| format!("Failed to run claude: {}", e))?;
+
+    let stdout = child.stdout.take().ok_or("No stdout")?;
+    let mut lines = tokio::io::BufReader::new(stdout).lines();
+
+    let mut result_text = String::new();
+
+    use tokio::io::AsyncBufReadExt;
+    while let Some(line) = lines.next_line().await.map_err(|e| e.to_string())? {
+        if line.trim().is_empty() {
+            continue;
+        }
+        app_handle.emit("worktree-gen-line", &line).ok();
+
+        if let Ok(obj) = serde_json::from_str::<serde_json::Value>(&line) {
+            if obj["type"] == "assistant" {
+                if let Some(content) = obj["message"]["content"].as_array() {
+                    for part in content {
+                        if part["type"] == "text" {
+                            if let Some(text) = part["text"].as_str() {
+                                result_text += text;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    child.wait().await.map_err(|e| e.to_string())?;
+
+    let name: String = result_text
+        .trim()
+        .to_lowercase()
+        .chars()
+        .map(|c| if c.is_alphanumeric() || c == '-' { c } else { '-' })
+        .collect::<String>()
+        .split('-')
+        .filter(|s| !s.is_empty())
+        .collect::<Vec<_>>()
+        .join("-");
+
+    if name.is_empty() {
+        return Err("Claude did not return a valid name".to_string());
+    }
+
+    let name: String = name.chars().take(50).collect();
+    Ok(name)
 }
