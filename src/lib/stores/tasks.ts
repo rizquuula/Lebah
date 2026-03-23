@@ -110,15 +110,14 @@ export async function stopClaudeSession(id: string): Promise<void> {
   await loadTasks();
 }
 
-export async function sendInput(id: string, input: string, model: string | null = null, usePlan: boolean = false, yolo: boolean = false): Promise<void> {
-  await invoke("send_input", { id, input, model, usePlan, yolo });
+export async function sendInput(id: string, input: string, model: string | null = null, yolo: boolean = false): Promise<void> {
+  await invoke("send_input", { id, input, model, yolo });
 }
 
 export async function sendInputWithListener(
   id: string,
   input: string,
   model: string | null = null,
-  usePlan: boolean = false,
   yolo: boolean = false,
 ): Promise<void> {
   runningSessions.add(id);
@@ -152,7 +151,7 @@ export async function sendInputWithListener(
   });
 
   try {
-    await sendInput(id, input, model, usePlan, yolo);
+    await sendInput(id, input, model, yolo);
   } catch (e) {
     unlisten();
     runningSessions.delete(id);

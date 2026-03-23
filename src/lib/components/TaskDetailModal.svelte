@@ -44,43 +44,43 @@
 
     <div class="modal-body">
       <div class="section">
-        <label class="section-label">Description</label>
+        <span class="section-label">Description</span>
         <p class="description">{task.description}</p>
       </div>
 
       <div class="details-grid">
         <div class="detail-item">
-          <label class="detail-label">Model</label>
+          <span class="detail-label">Model</span>
           <span class="detail-value mono">{task.model ?? "sonnet"}</span>
         </div>
         <div class="detail-item">
-          <label class="detail-label">Session ID</label>
+          <span class="detail-label">Session ID</span>
           <span class="detail-value mono id-text" title={task.id}>{task.id}</span>
         </div>
         {#if task.worktree}
           <div class="detail-item">
-            <label class="detail-label">Worktree</label>
+            <span class="detail-label">Worktree</span>
             <span class="detail-value mono">{task.worktree}</span>
           </div>
         {/if}
         {#if task.claude_path}
           <div class="detail-item">
-            <label class="detail-label">Claude Path</label>
+            <span class="detail-label">Claude Path</span>
             <span class="detail-value mono">{task.claude_path}</span>
           </div>
         {/if}
         {#if task.claude_command}
           <div class="detail-item">
-            <label class="detail-label">Claude Command</label>
+            <span class="detail-label">Claude Command</span>
             <span class="detail-value mono">{task.claude_command}</span>
           </div>
         {/if}
         <div class="detail-item">
-          <label class="detail-label">Created</label>
+          <span class="detail-label">Created</span>
           <span class="detail-value">{new Date(task.created_at).toLocaleString()}</span>
         </div>
         <div class="detail-item">
-          <label class="detail-label">Flags</label>
+          <span class="detail-label">Flags</span>
           <span class="detail-value flags">
             {#if task.use_plan}<span class="flag plan">Plan</span>{/if}
             {#if task.yolo}<span class="flag yolo">Yolo</span>{/if}

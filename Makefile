@@ -44,7 +44,7 @@ build:
 	cargo tauri build
 
 run: build
-	RUST_LOG=debug ./src-tauri/target/release/lebah
+	RUST_LOG=debug "$${CARGO_TARGET_DIR:-src-tauri/target}/release/lebah"
 
 clean-soft:
 	@echo "Clearing caches..."

@@ -45,7 +45,7 @@
       } else if ((task.column === "Review" || task.column === "Merge") && task.has_run) {
         const template = getTemplate();
         if (template) {
-          try { await sendInputWithListener(task.id, template, task.model, false, task.yolo); }
+          try { await sendInputWithListener(task.id, template, task.model, task.yolo); }
           catch { showTerminal = true; }
         }
       } else if (task.has_run) {

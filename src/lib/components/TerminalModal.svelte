@@ -151,7 +151,7 @@
     inputValue = "";
     entries = [...entries, { kind: "user", text }];
     try {
-      await sendInputWithListener(task.id, text, selectedModel, false, task.yolo);
+      await sendInputWithListener(task.id, text, selectedModel, task.yolo);
     } catch (err) {
       entries = [...entries, { kind: "system", text: `Send failed: ${err}` }];
     }

@@ -67,18 +67,16 @@ pub fn send_input(
     id: String,
     input: String,
     model: Option<String>,
-    use_plan: bool,
     yolo: bool,
     services: State<'_, AppServices>,
 ) -> Result<(), String> {
-    log::info!("[cmd] send_input: id={} input_len={} model={:?} plan={} yolo={}", id, input.len(), model, use_plan, yolo);
+    log::info!("[cmd] send_input: id={} input_len={} model={:?} yolo={}", id, input.len(), model, yolo);
     services
         .session_service
         .send_input(SendInputCommand {
             task_id: id,
             input,
             model,
-            use_plan,
             yolo,
         })
         .map_err(|e| {
