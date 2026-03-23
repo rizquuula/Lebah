@@ -61,6 +61,7 @@ pub enum TaskStatus {
     Failed,
     Warning,
     Waiting,
+    Canceled,
 }
 
 impl TaskStatus {
@@ -72,6 +73,7 @@ impl TaskStatus {
             "Failed" => Ok(TaskStatus::Failed),
             "Warning" => Ok(TaskStatus::Warning),
             "Waiting" => Ok(TaskStatus::Waiting),
+            "Canceled" => Ok(TaskStatus::Canceled),
             _ => Err(DomainError::InvalidValue(format!("Unknown status: {}", s))),
         }
     }
@@ -84,6 +86,7 @@ impl TaskStatus {
             TaskStatus::Failed => "Failed",
             TaskStatus::Warning => "Warning",
             TaskStatus::Waiting => "Waiting",
+            TaskStatus::Canceled => "Canceled",
         }
     }
 }
