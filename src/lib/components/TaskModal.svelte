@@ -13,6 +13,27 @@
   let worktree = task?.worktree ?? "";
   let worktreeError = "";
   let model = task?.model ?? "sonnet";
+  let isGenerating = false;
+
+  async function generateWorktreeName() {
+    isGenerating = true;
+    worktreeError = "";
+    try {
+      const base = description.trim()
+        ? description.trim()
+            .toLowerCase()
+            .replace(/[^a-z0-9\s-]/g, "")
+            .trim()
+            .replace(/\s+/g, "-")
+            .replace(/-+/g, "-")
+            .slice(0, 40)
+        : "task";
+      const suffix = Math.random().toString(36).slice(2, 6);
+      worktree = `${base}-${suffix}`;
+    } finally {
+      isGenerating = false;
+    }
+  }
 
   async function handleSubmit() {
     if (!description.trim()) return;
@@ -85,14 +106,28 @@
       {#if task}
         <div class="text-input readonly-field">{task.worktree ?? "—"}</div>
       {:else}
-        <input
-          id="task-worktree"
-          type="text"
-          bind:value={worktree}
-          placeholder="feat-my-feature"
-          class="text-input"
-          class:input-error={!!worktreeError}
-        />
+        <div class="worktree-row">
+          <input
+            id="task-worktree"
+            type="text"
+            bind:value={worktree}
+            placeholder="feat-my-feature"
+            class="text-input"
+            class:input-error={!!worktreeError}
+            disabled={isGenerating}
+          />
+          <button
+            type="button"
+            class="btn-generate"
+            class:spinning={isGenerating}
+            on:click={generateWorktreeName}
+            title="Generate worktree name from description"
+          >
+            <svg class="star-icon" class:spin={isGenerating} width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+            </svg>
+          </button>
+        </div>
         {#if worktreeError}
           <div class="field-error">{worktreeError}</div>
         {/if}
@@ -214,6 +249,48 @@
   }
   textarea::placeholder, .text-input::placeholder {
     color: rgba(108, 112, 134, 0.6);
+  }
+  .worktree-row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+  .worktree-row .text-input {
+    flex: 1;
+  }
+  .btn-generate {
+    flex-shrink: 0;
+    width: 42px;
+    height: 42px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(137, 180, 250, 0.1);
+    color: rgba(137, 180, 250, 0.7);
+    border: 1px solid rgba(137, 180, 250, 0.2);
+    border-radius: 10px;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s, box-shadow 0.15s;
+  }
+  .btn-generate:hover {
+    background: rgba(137, 180, 250, 0.2);
+    color: #89b4fa;
+    box-shadow: 0 0 12px rgba(137, 180, 250, 0.15);
+  }
+  .btn-generate:active {
+    background: rgba(137, 180, 250, 0.25);
+  }
+  .btn-generate.spinning {
+    cursor: not-allowed;
+    opacity: 0.7;
+  }
+  .star-icon.spin {
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
   }
   .readonly-field {
     display: flex;
