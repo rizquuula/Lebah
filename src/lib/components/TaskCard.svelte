@@ -99,6 +99,14 @@
     finally { isMoving = false; }
   }
 
+  async function handleMoveToReview() {
+    if (isMoving) return;
+    isMoving = true;
+    try { await moveTask(task.id, "Review", 0); }
+    catch (e) { setError(`Failed to move task: ${e}`); }
+    finally { isMoving = false; }
+  }
+
   async function handleConfirmReset() {
     if (isResetting) return;
     showConfirmReset = false;
@@ -157,11 +165,13 @@
           <polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/>
         </svg>
       </button>
-      <button class="btn-icon arrow-right" title="Move to Review" disabled={isMoving} on:click={handleMoveToReview}>
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-          <line x1="5" y1="12" x2="19" y2="12"/><polyline points="13 6 19 12 13 18"/>
-        </svg>
-      </button>
+      {#if task.status === "Success"}
+        <button class="btn-icon arrow-right" title="Move to Review" disabled={isMoving} on:click={handleMoveToReview}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="5" y1="12" x2="19" y2="12"/><polyline points="13 6 19 12 13 18"/>
+          </svg>
+        </button>
+      {/if}
     {:else if task.column !== TaskColumn.Completed}
       <button class="btn-icon play" class:active={isRunning} class:waiting={isWaiting}
         title={isRunning ? "Stop" : isWaiting ? "Waiting (click to cancel)" : "Run"}
