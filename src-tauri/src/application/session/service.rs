@@ -74,13 +74,7 @@ impl SessionApplicationService {
             worktree: cmd.worktree,
             model: cmd.model,
             permission_mode: cmd.permission_mode,
-            extra_args: cmd.agent_command
-                .as_deref()
-                .unwrap_or("")
-                .split_whitespace()
-                .map(|s| s.to_string())
-                .filter(|s| !s.is_empty())
-                .collect(),
+            extra_args: Vec::new(),
             is_follow_up: false,
             agent_binary: cmd.agent_path,
         };

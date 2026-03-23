@@ -85,7 +85,7 @@ impl TaskApplicationService {
         task.update_agent_config(AgentConfig {
             agent_name: None,
             agent_path: cmd.agent_path,
-            agent_command: cmd.agent_command,
+
             model: cmd.model,
         });
         task.update_execution_flags(ExecutionFlags {

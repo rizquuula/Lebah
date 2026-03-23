@@ -18,7 +18,6 @@ pub fn get_tasks(services: State<'_, AppServices>) -> Result<Vec<TaskDto>, Strin
 pub fn create_task(
     description: String,
     claude_path: Option<String>,
-    claude_command: Option<String>,
     worktree: Option<String>,
     model: Option<String>,
     services: State<'_, AppServices>,
@@ -28,7 +27,6 @@ pub fn create_task(
         agent_config: AgentConfig {
             agent_name: None,
             agent_path: claude_path,
-            agent_command: claude_command,
             model,
         },
         execution_flags: ExecutionFlags::default(),
@@ -56,7 +54,6 @@ pub fn update_task(
         yolo: task.yolo,
         sort_order: task.sort_order,
         agent_path: task.claude_path,
-        agent_command: task.claude_command,
         model: task.model,
     };
     services.task_service.update_task(cmd).map_err(|e| {

@@ -105,8 +105,6 @@ pub struct AgentConfig {
     pub agent_name: Option<String>,
     /// Path to the agent binary (None = use PATH)
     pub agent_path: Option<String>,
-    /// Extra CLI arguments for the agent
-    pub agent_command: Option<String>,
     /// Model override
     pub model: Option<String>,
 }
@@ -116,7 +114,6 @@ impl Default for AgentConfig {
         Self {
             agent_name: None,
             agent_path: None,
-            agent_command: None,
             model: None,
         }
     }

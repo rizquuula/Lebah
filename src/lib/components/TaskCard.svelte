@@ -49,7 +49,7 @@
       } else if (task.has_run) {
         showConfirmReset = true;
       } else {
-        try { await runClaudeSession(task.id, task.description, task.use_plan, task.yolo, task.claude_path, task.claude_command, task.worktree, task.model); }
+        try { await runClaudeSession(task.id, task.description, task.use_plan, task.yolo, task.claude_path, task.worktree, task.model); }
         catch { showTerminal = true; }
       }
     } finally {
@@ -71,7 +71,7 @@
     isResetting = true;
     try {
       const t = await resetTaskSession(task.id);
-      await runClaudeSession(t.id, t.description, t.use_plan, t.yolo, t.claude_path, t.claude_command, t.worktree, t.model);
+      await runClaudeSession(t.id, t.description, t.use_plan, t.yolo, t.claude_path, t.worktree, t.model);
     } catch { showTerminal = true; }
     finally { isResetting = false; }
   }
