@@ -117,6 +117,19 @@ impl SessionApplicationService {
         let runner = self.resolve_runner(None)?;
         let task_id = TaskId::from_string(cmd.task_id.clone());
 
+        // Persist the user input as an output event so TerminalModal can show it
+        // both in real-time (via tauri_event_emitter) and on re-open (via getOutputBuffer).
+        let user_input_line = format!(
+            r#"{{"type":"user_input","text":{}}}"#,
+            serde_json::to_string(&cmd.input).unwrap_or_default()
+        );
+        let pre_project_path = self.current_project_path()?.unwrap_or_default();
+        self.event_bus.publish(DomainEvent::Session(SessionDomainEvent::SessionOutputReceived {
+            task_id: task_id.clone(),
+            line: user_input_line,
+            project_path: pre_project_path,
+        }));
+
         if let Some(ref m) = cmd.model {
             runner.update_model(&task_id, m)?;
         }

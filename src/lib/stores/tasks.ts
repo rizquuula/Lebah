@@ -1,6 +1,6 @@
 import { writable, get } from "svelte/store";
 import { invoke } from "@tauri-apps/api/core";
-import { emit, listen } from "@tauri-apps/api/event";
+import { listen } from "@tauri-apps/api/event";
 import { TaskColumn, TaskStatus, type Task } from "../types";
 
 export const tasks = writable<Task[]>([]);
@@ -179,9 +179,6 @@ export async function sendInputWithListener(
   tasks.update((all) =>
     all.map((t) => (t.id === id ? { ...t, status: TaskStatus.Running } : t)),
   );
-
-  // Emit synthetic user message so TerminalModal shows the sent text
-  await emit(`claude-output-${id}`, JSON.stringify({ type: "user_input", text: input }));
 
   const unlisten = await listen<string>(`claude-output-${id}`, async (event) => {
     try {

@@ -149,7 +149,6 @@
     const text = inputValue.trim();
     if (!text) return;
     inputValue = "";
-    entries = [...entries, { kind: "user", text }];
     try {
       await sendInputWithListener(task.id, text, selectedModel, task.yolo);
     } catch (err) {
