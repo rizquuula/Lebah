@@ -13,25 +13,25 @@
   let worktree = task?.worktree ?? "";
   let worktreeError = "";
   let model = task?.model ?? "sonnet";
-  let isGenerating = false;
+  let generatingWorktree = false;
 
   async function generateWorktreeName() {
-    isGenerating = true;
+    if (!description.trim()) {
+      worktreeError = "Enter a description first";
+      return;
+    }
     worktreeError = "";
+    generatingWorktree = true;
     try {
-      const base = description.trim()
-        ? description.trim()
-            .toLowerCase()
-            .replace(/[^a-z0-9\s-]/g, "")
-            .trim()
-            .replace(/\s+/g, "-")
-            .replace(/-+/g, "-")
-            .slice(0, 40)
-        : "task";
-      const suffix = Math.random().toString(36).slice(2, 6);
-      worktree = `${base}-${suffix}`;
+      const name = await invoke<string>("generate_worktree_name", {
+        description: description.trim(),
+        claudePath: claudePath.trim() || null,
+      });
+      worktree = name.trim();
+    } catch (e) {
+      worktreeError = String(e);
     } finally {
-      isGenerating = false;
+      generatingWorktree = false;
     }
   }
 
@@ -114,16 +114,17 @@
             placeholder="feat-my-feature"
             class="text-input"
             class:input-error={!!worktreeError}
-            disabled={isGenerating}
+            disabled={generatingWorktree}
           />
           <button
             type="button"
             class="btn-generate"
-            class:spinning={isGenerating}
+            class:spinning={generatingWorktree}
             on:click={generateWorktreeName}
-            title="Generate worktree name from description"
+            disabled={generatingWorktree}
+            title="Generate worktree name with AI"
           >
-            <svg class="star-icon" class:spin={isGenerating} width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+            <svg class="star-icon" class:spin={generatingWorktree} width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
               <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
             </svg>
           </button>
@@ -347,5 +348,46 @@
   }
   .btn-save:active {
     transform: translateY(0);
+  }
+  .worktree-row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+  .worktree-row .text-input {
+    flex: 1;
+  }
+  .btn-generate {
+    flex-shrink: 0;
+    width: 42px;
+    height: 42px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(203, 166, 247, 0.15);
+    color: #cba6f7;
+    border: 1px solid rgba(203, 166, 247, 0.25);
+    border-radius: 10px;
+    cursor: pointer;
+    transition: background 0.15s, box-shadow 0.15s, transform 0.1s;
+  }
+  .btn-generate:hover:not(:disabled) {
+    background: rgba(203, 166, 247, 0.28);
+    box-shadow: 0 0 14px rgba(203, 166, 247, 0.15);
+    transform: translateY(-1px);
+  }
+  .btn-generate:active:not(:disabled) {
+    transform: translateY(0);
+  }
+  .btn-generate:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+  .spin {
+    animation: spin 0.8s linear infinite;
   }
 </style>

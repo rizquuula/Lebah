@@ -5,6 +5,7 @@ import type { ProjectConfig } from "../types";
 export const projectConfig = writable<ProjectConfig>({
   review_template: null,
   merge_template: null,
+  inprogress_template: null,
 });
 
 export async function loadProjectConfig(): Promise<void> {
@@ -12,7 +13,7 @@ export async function loadProjectConfig(): Promise<void> {
     const config = await invoke<ProjectConfig>("get_project_config");
     projectConfig.set(config);
   } catch {
-    projectConfig.set({ review_template: null, merge_template: null });
+    projectConfig.set({ review_template: null, merge_template: null, inprogress_template: null });
   }
 }
 
