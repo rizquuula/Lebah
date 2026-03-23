@@ -16,10 +16,6 @@
   let generatingWorktree = false;
 
   async function generateWorktreeName() {
-    if (!description.trim()) {
-      worktreeError = "Enter a description first";
-      return;
-    }
     worktreeError = "";
     generatingWorktree = true;
     try {
@@ -119,7 +115,6 @@
           <button
             type="button"
             class="btn-generate"
-            class:spinning={generatingWorktree}
             on:click={generateWorktreeName}
             disabled={generatingWorktree || !description.trim()}
             title="Generate worktree name with AI"
@@ -267,31 +262,30 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    background: rgba(137, 180, 250, 0.1);
-    color: rgba(137, 180, 250, 0.7);
-    border: 1px solid rgba(137, 180, 250, 0.2);
+    background: rgba(203, 166, 247, 0.15);
+    color: #cba6f7;
+    border: 1px solid rgba(203, 166, 247, 0.25);
     border-radius: 10px;
     cursor: pointer;
-    transition: background 0.15s, color 0.15s, box-shadow 0.15s;
+    transition: background 0.15s, box-shadow 0.15s, transform 0.1s;
   }
-  .btn-generate:hover {
-    background: rgba(137, 180, 250, 0.2);
-    color: #89b4fa;
-    box-shadow: 0 0 12px rgba(137, 180, 250, 0.15);
+  .btn-generate:hover:not(:disabled) {
+    background: rgba(203, 166, 247, 0.28);
+    box-shadow: 0 0 14px rgba(203, 166, 247, 0.15);
+    transform: translateY(-1px);
   }
-  .btn-generate:active {
-    background: rgba(137, 180, 250, 0.25);
+  .btn-generate:active:not(:disabled) {
+    transform: translateY(0);
   }
-  .btn-generate.spinning {
+  .btn-generate:disabled {
+    opacity: 0.4;
     cursor: not-allowed;
-    opacity: 0.7;
-  }
-  .star-icon.spin {
-    animation: spin 0.8s linear infinite;
   }
   @keyframes spin {
-    from { transform: rotate(0deg); }
     to { transform: rotate(360deg); }
+  }
+  .spin {
+    animation: spin 0.8s linear infinite;
   }
   .readonly-field {
     display: flex;
