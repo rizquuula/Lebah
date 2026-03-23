@@ -12,80 +12,71 @@ pub async fn generate_worktree_name(
     claude_path: Option<String>,
     app_handle: tauri::AppHandle,
 ) -> Result<String, String> {
-    tauri::async_runtime::spawn_blocking(move || {
-        let binary = claude_path.as_deref().unwrap_or("claude");
+    let claude = claude_path.unwrap_or_else(|| "claude".to_string());
 
-        let prompt = format!(
-            "Generate a concise git branch/worktree name for this task. \
-            Rules: kebab-case only, max 30 characters, lowercase, hyphens only (no underscores or spaces), \
-            use a short prefix like feat-, fix-, or chore- based on context. \
-            Respond with ONLY the branch name, nothing else, no explanation.\n\nTask: {}",
-            description
-        );
+    let prompt = format!(
+        "Based on this task\n\n{}\n\nplease generate a worktree name, with format\n\n<fix/feat/chore>-<worktree name max 2 word separated by dash>-<5 random string character>\n\nRespond with ONLY the worktree name, nothing else. No explanation, no punctuation, just the name.",
+        description
+    );
 
-        let mut cmd = std::process::Command::new(binary);
-        cmd.arg("--output-format").arg("stream-json")
-            .arg("--verbose")
-            .arg("--print").arg(&prompt);
+    let mut cmd = tokio::process::Command::new(&claude);
+    cmd.arg("--output-format").arg("stream-json")
+        .arg("--verbose")
+        .arg("--print").arg(&prompt);
 
-        if let Some(ref m) = model {
-            cmd.arg("--model").arg(m);
+    if let Some(ref m) = model {
+        cmd.arg("--model").arg(m);
+    }
+
+    cmd.stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::piped());
+
+    let mut child = cmd.spawn().map_err(|e| format!("Failed to run claude: {}", e))?;
+
+    let stdout = child.stdout.take().ok_or("No stdout")?;
+    let mut lines = tokio::io::BufReader::new(stdout).lines();
+
+    let mut result_text = String::new();
+
+    use tokio::io::AsyncBufReadExt;
+    while let Some(line) = lines.next_line().await.map_err(|e| e.to_string())? {
+        if line.trim().is_empty() {
+            continue;
         }
+        app_handle.emit("worktree-gen-line", &line).ok();
 
-        cmd.stdin(std::process::Stdio::null())
-            .stdout(std::process::Stdio::piped())
-            .stderr(std::process::Stdio::piped());
-
-        let mut child = cmd.spawn().map_err(|e| format!("Failed to spawn claude: {}", e))?;
-
-        let stdout = child.stdout.take().ok_or("No stdout")?;
-        let reader = std::io::BufReader::new(stdout);
-
-        let mut result_text = String::new();
-
-        use std::io::BufRead;
-        for line in reader.lines() {
-            let line = line.map_err(|e| e.to_string())?;
-            if line.trim().is_empty() {
-                continue;
-            }
-            app_handle.emit("worktree-gen-line", &line).ok();
-
-            if let Ok(obj) = serde_json::from_str::<serde_json::Value>(&line) {
-                if obj["type"] == "assistant" {
-                    if let Some(content) = obj["message"]["content"].as_array() {
-                        for part in content {
-                            if part["type"] == "text" {
-                                if let Some(text) = part["text"].as_str() {
-                                    result_text += text;
-                                }
+        if let Ok(obj) = serde_json::from_str::<serde_json::Value>(&line) {
+            if obj["type"] == "assistant" {
+                if let Some(content) = obj["message"]["content"].as_array() {
+                    for part in content {
+                        if part["type"] == "text" {
+                            if let Some(text) = part["text"].as_str() {
+                                result_text += text;
                             }
                         }
                     }
                 }
             }
         }
+    }
 
-        child.wait().map_err(|e| e.to_string())?;
+    child.wait().await.map_err(|e| e.to_string())?;
 
-        let name: String = result_text
-            .trim()
-            .to_lowercase()
-            .chars()
-            .map(|c| if c.is_alphanumeric() || c == '-' { c } else { '-' })
-            .collect::<String>()
-            .split('-')
-            .filter(|s| !s.is_empty())
-            .collect::<Vec<_>>()
-            .join("-");
+    let name: String = result_text
+        .trim()
+        .to_lowercase()
+        .chars()
+        .map(|c| if c.is_alphanumeric() || c == '-' { c } else { '-' })
+        .collect::<String>()
+        .split('-')
+        .filter(|s| !s.is_empty())
+        .collect::<Vec<_>>()
+        .join("-");
 
-        if name.is_empty() {
-            return Err("Claude did not return a valid name".to_string());
-        }
+    if name.is_empty() {
+        return Err("Claude did not return a valid name".to_string());
+    }
 
-        let name: String = name.chars().take(50).collect();
-        Ok(name)
-    })
-    .await
-    .map_err(|e| e.to_string())?
+    let name: String = name.chars().take(50).collect();
+    Ok(name)
 }

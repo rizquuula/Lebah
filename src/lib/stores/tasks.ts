@@ -1,4 +1,4 @@
-import { writable } from "svelte/store";
+import { writable, get } from "svelte/store";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import type { Task, TaskColumn, TaskStatus } from "../types";
@@ -9,13 +9,65 @@ export const tasks = writable<Task[]>([]);
 // doesn't overwrite their in-memory Running status with stale DB state.
 const runningSessions = new Set<string>();
 
+// Track waiting merge task IDs so loadTasks() doesn't overwrite their status.
+const waitingMergeSessions = new Set<string>();
+
+// Queue for sequential merge processing
+interface MergeJob {
+  id: string;
+  description: string;
+  usePlan: boolean;
+  yolo: boolean;
+  claudePath: string | null;
+  worktree: string | null;
+  model: string | null;
+  hasRun: boolean;
+  template: string | null;
+}
+const mergeWaitQueue: MergeJob[] = [];
+
+export function isAnyMergeRunning(): boolean {
+  return get(tasks).some((t) => t.column === "Merge" && t.status === "Running");
+}
+
+export async function queueMergeTask(job: MergeJob): Promise<void> {
+  mergeWaitQueue.push(job);
+  waitingMergeSessions.add(job.id);
+  tasks.update((all) =>
+    all.map((t) => (t.id === job.id ? { ...t, status: "Waiting" as TaskStatus } : t)),
+  );
+  const currentTask = get(tasks).find((t) => t.id === job.id);
+  if (currentTask) {
+    await invoke("update_task", { task: { ...currentTask, status: "Waiting" } });
+  }
+}
+
+export function cancelMergeWait(id: string): void {
+  const idx = mergeWaitQueue.findIndex((j) => j.id === id);
+  if (idx !== -1) mergeWaitQueue.splice(idx, 1);
+  waitingMergeSessions.delete(id);
+}
+
+async function startNextWaitingMerge(): Promise<void> {
+  const job = mergeWaitQueue.shift();
+  if (!job) return;
+  waitingMergeSessions.delete(job.id);
+  if (job.hasRun && job.template) {
+    await sendInputWithListener(job.id, job.template, job.model, job.yolo);
+  } else {
+    await runClaudeSession(job.id, job.description, job.usePlan, job.yolo, job.claudePath, job.worktree, job.model);
+  }
+}
+
 export async function loadTasks() {
   try {
     const result = await invoke<Task[]>("get_tasks");
     tasks.set(
-      result.map((t) =>
-        runningSessions.has(t.id) ? { ...t, status: "Running" as TaskStatus } : t,
-      ),
+      result.map((t) => {
+        if (runningSessions.has(t.id)) return { ...t, status: "Running" as TaskStatus };
+        if (waitingMergeSessions.has(t.id)) return { ...t, status: "Waiting" as TaskStatus };
+        return t;
+      }),
     );
   } catch (e) {
     console.error("loadTasks failed:", e);
@@ -84,7 +136,10 @@ export async function runClaudeSession(
         });
         if (status === "Success" && taskColumn) {
           if (taskColumn === "Review") await moveTask(id, "Merge", 0);
-          else if (taskColumn === "Merge") await moveTask(id, "Completed", 0);
+          else if (taskColumn === "Merge") {
+            await moveTask(id, "Completed", 0);
+            await startNextWaitingMerge();
+          }
         }
       }
     } catch {}
@@ -144,7 +199,10 @@ export async function sendInputWithListener(
         });
         if (status === "Success" && taskColumn) {
           if (taskColumn === "Review") await moveTask(id, "Merge", 0);
-          else if (taskColumn === "Merge") await moveTask(id, "Completed", 0);
+          else if (taskColumn === "Merge") {
+            await moveTask(id, "Completed", 0);
+            await startNextWaitingMerge();
+          }
         }
       }
     } catch {}

@@ -1,8 +1,8 @@
 <script lang="ts">
-  import { updateTask, moveTask, runClaudeSession, stopClaudeSession, deleteTask, resetTaskSession, sendInputWithListener } from "../stores/tasks";
+  import { updateTask, moveTask, runClaudeSession, stopClaudeSession, deleteTask, resetTaskSession, sendInputWithListener, isAnyMergeRunning, queueMergeTask, cancelMergeWait } from "../stores/tasks";
   import { projectConfig } from "../stores/config";
   import { setError } from "../stores/errors";
-  import { STATUS_COLORS, DEFAULT_REVIEW_TEMPLATE, DEFAULT_MERGE_TEMPLATE, type Task } from "../types";
+  import { STATUS_COLORS, DEFAULT_REVIEW_TEMPLATE, DEFAULT_MERGE_TEMPLATE, DEFAULT_INPROGRESS_TEMPLATE, type Task } from "../types";
   import TerminalModal from "./TerminalModal.svelte";
   import TaskModal from "./TaskModal.svelte";
   import TaskDetailModal from "./TaskDetailModal.svelte";
@@ -30,12 +30,17 @@
     return d.toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
   })();
   $: isRunning = task.status === "Running";
+  $: isWaiting = task.status === "Waiting";
   $: glowColor = task.status === "Running" ? "rgba(234, 179, 8, 0.15)"
     : task.status === "Success" ? "rgba(34, 197, 94, 0.1)"
     : task.status === "Failed" ? "rgba(239, 68, 68, 0.1)"
     : "transparent";
 
   function getTemplate(): string | null {
+    if (task.column === "InProgress") {
+      const tpl = $projectConfig.inprogress_template ?? DEFAULT_INPROGRESS_TEMPLATE;
+      return tpl.replace("<TASK_DESCRIPTION>", task.description);
+    }
     if (task.column === "Review") return $projectConfig.review_template ?? DEFAULT_REVIEW_TEMPLATE;
     if (task.column === "Merge") return $projectConfig.merge_template ?? DEFAULT_MERGE_TEMPLATE;
     return null;
@@ -47,17 +52,31 @@
     try {
       if (task.status === "Running") {
         await stopClaudeSession(task.id);
-      } else if ((task.column === "Review" || task.column === "Merge") && task.has_run) {
+      } else if (task.column === "Merge" && task.status === "Waiting") {
+        // Already queued — clicking play cancels the waiting status
+        cancelMergeWait(task.id);
+        await updateTask({ ...task, status: "Idle" });
+      } else if ((task.column === "InProgress" || task.column === "Review" || task.column === "Merge") && task.has_run) {
         const template = getTemplate();
         if (template) {
-          try { await sendInputWithListener(task.id, template, task.model, task.yolo); }
-          catch { showTerminal = true; }
+          if (task.column === "Merge" && isAnyMergeRunning()) {
+            await queueMergeTask({ id: task.id, description: task.description, usePlan: task.use_plan, yolo: task.yolo, claudePath: task.claude_path, worktree: task.worktree, model: task.model, hasRun: task.has_run, template });
+          } else {
+            try { await sendInputWithListener(task.id, template, task.model, task.yolo); }
+            catch { showTerminal = true; }
+          }
         }
       } else if (task.has_run) {
         showConfirmReset = true;
       } else {
-        try { await runClaudeSession(task.id, task.description, task.use_plan, task.yolo, task.claude_path, task.worktree, task.model); }
-        catch { showTerminal = true; }
+        const template = getTemplate();
+        const description = task.column === "InProgress" && template ? `${task.description}\n${template}` : task.description;
+        if (task.column === "Merge" && isAnyMergeRunning()) {
+          await queueMergeTask({ id: task.id, description: task.description, usePlan: task.use_plan, yolo: task.yolo, claudePath: task.claude_path, worktree: task.worktree, model: task.model, hasRun: task.has_run, template });
+        } else {
+          try { await runClaudeSession(task.id, description, task.use_plan, task.yolo, task.claude_path, task.worktree, task.model); }
+          catch { showTerminal = true; }
+        }
       }
     } finally {
       isPlaying = false;
@@ -68,6 +87,14 @@
     if (isMoving) return;
     isMoving = true;
     try { await moveTask(task.id, "InProgress", 0); }
+    catch (e) { setError(`Failed to move task: ${e}`); }
+    finally { isMoving = false; }
+  }
+
+  async function handleMoveToReview() {
+    if (isMoving) return;
+    isMoving = true;
+    try { await moveTask(task.id, "Review", 0); }
     catch (e) { setError(`Failed to move task: ${e}`); }
     finally { isMoving = false; }
   }
@@ -107,14 +134,19 @@
 
   <div class="controls">
     {#if task.column === "Todo"}
-      <button class="btn-icon play" title="Move to In Progress" disabled={isMoving} on:click={handleMoveToInProgress}>
-        <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor"><path d="M2 1.5l9 4.5-9 4.5V1.5z"/></svg>
+      <button class="btn-icon arrow-right" title="Move to In Progress" disabled={isMoving} on:click={handleMoveToInProgress}>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="5" y1="12" x2="19" y2="12"/><polyline points="13 6 19 12 13 18"/>
+        </svg>
       </button>
     {:else if task.column !== "Completed"}
-      <button class="btn-icon play" class:active={isRunning} title={isRunning ? "Stop" : "Run"}
+      <button class="btn-icon play" class:active={isRunning} class:waiting={isWaiting}
+        title={isRunning ? "Stop" : isWaiting ? "Waiting (click to cancel)" : "Run"}
         disabled={isPlaying || isResetting} on:click={handlePlay}>
         {#if isRunning}
           <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor"><rect x="1" y="1" width="10" height="10" rx="1"/></svg>
+        {:else if isWaiting}
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor"><rect x="1" y="1" width="4" height="10" rx="1"/><rect x="7" y="1" width="4" height="10" rx="1"/></svg>
         {:else}
           <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor"><path d="M2 1.5l9 4.5-9 4.5V1.5z"/></svg>
         {/if}
@@ -125,6 +157,13 @@
           <polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/>
         </svg>
       </button>
+      {#if task.column === "InProgress"}
+        <button class="btn-icon arrow-right" title="Move to Review" disabled={isMoving} on:click={handleMoveToReview}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="5" y1="12" x2="19" y2="12"/><polyline points="13 6 19 12 13 18"/>
+          </svg>
+        </button>
+      {/if}
     {/if}
     {#if task.column !== "Todo"}
       <button class="btn-icon" title="View details" on:click={() => (showDetailModal = true)}>
@@ -286,6 +325,12 @@
     border-color: rgba(166, 227, 161, 0.2);
   }
   .btn-icon.play:hover:not(:disabled) { background: rgba(166, 227, 161, 0.3); }
+  .btn-icon.play.waiting {
+    background: rgba(59, 130, 246, 0.15);
+    color: #3b82f6;
+    border-color: rgba(59, 130, 246, 0.2);
+  }
+  .btn-icon.play.waiting:hover:not(:disabled) { background: rgba(59, 130, 246, 0.3); }
   .btn-icon.play.active {
     background: rgba(234, 179, 8, 0.15);
     color: #eab308;
@@ -300,6 +345,12 @@
     box-shadow: 0 0 8px rgba(234, 179, 8, 0.3);
     pointer-events: none;
   }
+  .btn-icon.arrow-right {
+    background: rgba(137, 180, 250, 0.12);
+    color: #89b4fa;
+    border-color: rgba(137, 180, 250, 0.2);
+  }
+  .btn-icon.arrow-right:hover:not(:disabled) { background: rgba(137, 180, 250, 0.25); }
   .btn-icon.terminal-btn.active {
     background: rgba(137, 180, 250, 0.2);
     color: #89b4fa;
