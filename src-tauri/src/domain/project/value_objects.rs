@@ -60,7 +60,7 @@ impl Default for ProjectConfig {
                 "Pull from main branch and check for conflict. Fix the conflict. Then merge this worktree to main.".to_string(),
             ),
             inprogress_template: Some(
-                "Help me do this, make comprehensive tasks first before executing".to_string(),
+                "Help me do this task: <TASK_DESCRIPTION>. Make comprehensive tasks first before executing.".to_string(),
             ),
         }
     }

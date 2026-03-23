@@ -16,22 +16,22 @@
 
   $: hasTemplate = column === "InProgress" || column === "Review" || column === "Merge";
 
-  function getColumnTemplate(): string {
-    if (column === "Review") return $projectConfig.review_template ?? DEFAULT_REVIEW_TEMPLATE;
-    if (column === "Merge") return $projectConfig.merge_template ?? DEFAULT_MERGE_TEMPLATE;
-    return $projectConfig.inprogress_template ?? DEFAULT_INPROGRESS_TEMPLATE;
-  }
-
   function openTemplatePopover() {
-    editingTemplate = getColumnTemplate();
+    if (column === "InProgress") {
+      editingTemplate = $projectConfig.inprogress_template ?? DEFAULT_INPROGRESS_TEMPLATE;
+    } else if (column === "Review") {
+      editingTemplate = $projectConfig.review_template ?? DEFAULT_REVIEW_TEMPLATE;
+    } else {
+      editingTemplate = $projectConfig.merge_template ?? DEFAULT_MERGE_TEMPLATE;
+    }
     showTemplatePopover = !showTemplatePopover;
   }
 
   async function saveTemplate() {
     const updated = { ...$projectConfig };
-    if (column === "Review") updated.review_template = editingTemplate;
-    else if (column === "Merge") updated.merge_template = editingTemplate;
-    else updated.inprogress_template = editingTemplate;
+    if (column === "InProgress") updated.inprogress_template = editingTemplate;
+    else if (column === "Review") updated.review_template = editingTemplate;
+    else updated.merge_template = editingTemplate;
     await saveProjectConfig(updated);
     showTemplatePopover = false;
   }

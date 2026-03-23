@@ -36,7 +36,10 @@
     : "transparent";
 
   function getTemplate(): string | null {
-    if (task.column === "InProgress") return $projectConfig.inprogress_template ?? DEFAULT_INPROGRESS_TEMPLATE;
+    if (task.column === "InProgress") {
+      const tpl = $projectConfig.inprogress_template ?? DEFAULT_INPROGRESS_TEMPLATE;
+      return tpl.replace("<TASK_DESCRIPTION>", task.description);
+    }
     if (task.column === "Review") return $projectConfig.review_template ?? DEFAULT_REVIEW_TEMPLATE;
     if (task.column === "Merge") return $projectConfig.merge_template ?? DEFAULT_MERGE_TEMPLATE;
     return null;
@@ -48,7 +51,7 @@
     try {
       if (task.status === "Running") {
         await stopClaudeSession(task.id);
-      } else if ((task.column === "Review" || task.column === "Merge") && task.has_run) {
+      } else if ((task.column === "InProgress" || task.column === "Review" || task.column === "Merge") && task.has_run) {
         const template = getTemplate();
         if (template) {
           try { await sendInputWithListener(task.id, template, task.model, task.yolo); }
