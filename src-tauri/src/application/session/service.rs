@@ -193,6 +193,7 @@ impl SessionApplicationService {
         std::thread::spawn(move || {
             log::debug!("[session] Stdout reader thread started for task {}", task_id_c.0);
             for line in handle.stdout_rx {
+                log::debug!("[claude-json] {}", line);
                 event_bus.publish(DomainEvent::Session(SessionDomainEvent::SessionOutputReceived {
                     task_id: task_id_c.clone(),
                     line,

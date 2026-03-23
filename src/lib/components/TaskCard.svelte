@@ -142,17 +142,6 @@
     </div>
   </div>
 
-  {#if task.column !== "Todo"}
-    <div class="bottom-row">
-      <TaskToggles
-        usePlan={task.use_plan}
-        yolo={task.yolo}
-        onTogglePlan={() => updateTask({ ...task, use_plan: !task.use_plan })}
-        onToggleYolo={() => updateTask({ ...task, yolo: !task.yolo })}
-      />
-    </div>
-  {/if}
-
   <div class="meta">
     <span class="uuid" title={task.id}>{task.model || "sonnet"}</span>
     <span class="status" style="color: {borderColor}">{task.status}</span>

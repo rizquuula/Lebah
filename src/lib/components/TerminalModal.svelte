@@ -44,7 +44,7 @@
                 entries = [...entries, { kind: "assistant", text: part.text }];
               }
             } else if (part.type === "tool_use") {
-              entries = [...entries, { kind: "tool_use", name: part.name ?? "unknown", input: "" }];
+              entries = [...entries, { kind: "tool_use", name: part.name ?? "unknown", input: part.input ? JSON.stringify(part.input) : "" }];
             }
           }
           const u = obj.message.usage;
@@ -80,7 +80,7 @@
         }
         const cb = obj.content_block;
         if (cb?.type === "tool_use") {
-          entries = [...entries, { kind: "tool_use", name: cb.name ?? "unknown", input: "" }];
+          entries = [...entries, { kind: "tool_use", name: cb.name ?? "unknown", input: cb.input ? JSON.stringify(cb.input) : "" }];
           return;
         }
         if (cb?.type === "text" && cb.text) {
