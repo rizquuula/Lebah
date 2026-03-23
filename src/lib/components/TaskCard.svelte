@@ -101,14 +101,6 @@
     finally { isMoving = false; }
   }
 
-  async function handleMoveToReview() {
-    if (isMoving) return;
-    isMoving = true;
-    try { await moveTask(task.id, "Review", 0); }
-    catch (e) { setError(`Failed to move task: ${e}`); }
-    finally { isMoving = false; }
-  }
-
   async function handleConfirmReset() {
     if (isResetting) return;
     showConfirmReset = false;
