@@ -218,23 +218,28 @@
           </svg>
         </button>
       {/if}
-      {#if task.column !== "Completed"}
-        <button class="btn-icon cancel" title="Cancel task" disabled={isCanceling}
-          on:click={() => (showConfirmCancel = true)}>
+      <div class="delete-wrapper">
+        <button class="btn-icon delete" title="Delete" disabled={isDeleting}
+          on:click={() => (showConfirmDelete = true)}>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-            <circle cx="12" cy="12" r="10"/>
-            <line x1="15" y1="9" x2="9" y2="15"/>
-            <line x1="9" y1="9" x2="15" y2="15"/>
+            <polyline points="3 6 5 6 21 6"/>
+            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
           </svg>
         </button>
-      {/if}
-      <button class="btn-icon delete" title="Delete" disabled={isDeleting}
-        on:click={() => (showConfirmDelete = true)}>
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-          <polyline points="3 6 5 6 21 6"/>
-          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
-        </svg>
-      </button>
+        {#if task.column !== "Completed"}
+          <div class="cancel-popup">
+            <button class="btn-icon cancel" title="Cancel task" disabled={isCanceling}
+              on:click={() => (showConfirmCancel = true)}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                <circle cx="12" cy="12" r="10"/>
+                <line x1="15" y1="9" x2="9" y2="15"/>
+                <line x1="9" y1="9" x2="15" y2="15"/>
+              </svg>
+            </button>
+            <span class="cancel-label">Cancel</span>
+          </div>
+        {/if}
+      </div>
     </div>
   </div>
 
@@ -295,7 +300,6 @@
     padding: 12px;
     margin-bottom: 8px;
     position: relative;
-    overflow: hidden;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
   }
   .card:hover { border-color: rgba(255, 255, 255, 0.1); }
@@ -421,6 +425,52 @@
     color: #f38ba8;
   }
   .actions { margin-left: auto; display: flex; gap: 6px; }
+  .delete-wrapper {
+    position: relative;
+  }
+  .cancel-popup::before {
+    content: '';
+    position: absolute;
+    bottom: 100%;
+    left: 0;
+    right: 0;
+    height: 10px;
+  }
+  .cancel-popup {
+    position: absolute;
+    top: calc(100% + 4px);
+    right: 0;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(30, 30, 35, 0.95);
+    border: 1px solid rgba(249, 115, 22, 0.3);
+    border-radius: 8px;
+    padding: 4px 8px 4px 4px;
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(-4px);
+    transition: opacity 0.15s ease, transform 0.15s ease;
+    z-index: 10;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  }
+  .delete-wrapper:hover .cancel-popup {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateY(0);
+  }
+  .cancel-popup:hover {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateY(0);
+  }
+  .cancel-label {
+    font-size: 11px;
+    color: #f97316;
+    font-weight: 500;
+    user-select: none;
+  }
   .bottom-row {
     margin-top: 8px;
     padding-top: 6px;
