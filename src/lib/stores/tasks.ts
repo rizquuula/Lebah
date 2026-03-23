@@ -26,14 +26,12 @@ export async function loadTasks() {
 export async function createTask(
   description: string,
   claudePath: string | null = null,
-  claudeCommand: string | null = null,
   worktree: string | null = null,
   model: string | null = null,
 ): Promise<Task> {
   const task = await invoke<Task>("create_task", {
     description,
     claudePath,
-    claudeCommand,
     worktree,
     model,
   });
@@ -66,7 +64,6 @@ export async function runClaudeSession(
   usePlan: boolean,
   yolo: boolean,
   claudePath: string | null = null,
-  claudeCommand: string | null = null,
   worktree: string | null = null,
   model: string | null = null,
 ): Promise<void> {
@@ -94,7 +91,7 @@ export async function runClaudeSession(
   });
 
   try {
-    await invoke("run_claude_session", { id, description, usePlan, yolo, claudePath, claudeCommand, worktree, model });
+    await invoke("run_claude_session", { id, description, usePlan, yolo, claudePath, worktree, model });
     await loadTasks();
   } catch {
     unlisten();

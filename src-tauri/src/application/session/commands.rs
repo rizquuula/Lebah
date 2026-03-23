@@ -7,7 +7,6 @@ pub struct StartSessionCommand {
     pub description: String,
     pub permission_mode: PermissionMode,
     pub agent_path: Option<String>,
-    pub agent_command: Option<String>,
     pub worktree: Option<WorktreeRef>,
     pub project_path: Option<ProjectPath>,
     pub model: Option<String>,

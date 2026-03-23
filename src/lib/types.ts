@@ -11,7 +11,6 @@ export interface Task {
   sort_order: number;
   created_at: string;
   claude_path: string | null;
-  claude_command: string | null;
   worktree: string | null;
   has_run: boolean;
   model: string | null;

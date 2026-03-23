@@ -10,7 +10,6 @@
 
   let description = task?.description ?? "";
   let claudePath = task?.claude_path ?? "";
-  let claudeCommand = task?.claude_command ?? "";
   let worktree = task?.worktree ?? "";
   let worktreeError = "";
   let model = task?.model ?? "sonnet";
@@ -19,7 +18,6 @@
     if (!description.trim()) return;
 
     const pathVal = claudePath.trim() || null;
-    const cmdVal = claudeCommand.trim() || null;
     const worktreeVal = worktree.trim().replace(/\//g, '-') || null;
     const modelVal = model.trim() || null;
 
@@ -37,11 +35,10 @@
           ...task,
           description: description.trim(),
           claude_path: pathVal,
-          claude_command: cmdVal,
           model: modelVal,
         });
       } else {
-        await createTask(description.trim(), pathVal, cmdVal, worktreeVal, modelVal);
+        await createTask(description.trim(), pathVal, worktreeVal, modelVal);
       }
       onClose();
     } catch (e) {
@@ -81,15 +78,6 @@
         type="text"
         bind:value={claudePath}
         placeholder="claude (default)"
-        class="text-input"
-      />
-
-      <label class="field-label" for="task-claude-command">Extra Arguments</label>
-      <input
-        id="task-claude-command"
-        type="text"
-        bind:value={claudeCommand}
-        placeholder="e.g. --model opus --verbose"
         class="text-input"
       />
 

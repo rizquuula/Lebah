@@ -23,6 +23,7 @@ struct TaskRecord {
     sort_order: i32,
     created_at: String,
     claude_path: Option<String>,
+    #[serde(default)]
     claude_command: Option<String>,
     worktree: Option<String>,
     #[serde(default)]
@@ -45,7 +46,7 @@ impl TaskRecord {
             sort_order: task.sort_order(),
             created_at: task.created_at().to_rfc3339(),
             claude_path: task.agent_config().agent_path.clone(),
-            claude_command: task.agent_config().agent_command.clone(),
+            claude_command: None,
             worktree: task.worktree().map(|w| w.0.clone()),
             has_run: task.has_run(),
             model: task.agent_config().model.clone(),
@@ -65,7 +66,6 @@ impl TaskRecord {
             AgentConfig {
                 agent_name: self.agent_name,
                 agent_path: self.claude_path,
-                agent_command: self.claude_command,
                 model: self.model,
             },
             ExecutionFlags {
