@@ -121,7 +121,7 @@
             class="btn-generate"
             class:spinning={generatingWorktree}
             on:click={generateWorktreeName}
-            disabled={generatingWorktree}
+            disabled={generatingWorktree || !description.trim()}
             title="Generate worktree name with AI"
           >
             <svg class="star-icon" class:spin={generatingWorktree} width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
