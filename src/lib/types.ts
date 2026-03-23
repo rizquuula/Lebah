@@ -1,5 +1,5 @@
 export type TaskColumn = "Todo" | "InProgress" | "Review" | "Merge" | "Completed";
-export type TaskStatus = "Idle" | "Running" | "Success" | "Failed" | "Warning";
+export type TaskStatus = "Idle" | "Running" | "Success" | "Failed" | "Warning" | "Waiting";
 
 export interface Task {
   id: string;
@@ -70,4 +70,5 @@ export const STATUS_COLORS: Record<TaskStatus, string> = {
   Success: "#22c55e",
   Failed: "#ef4444",
   Warning: "#f97316",
+  Waiting: "#3b82f6",
 };
