@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { type Task, STATUS_COLORS, COLUMN_COLORS } from "../types";
+  import { type Task, STATUS_COLORS, COLUMN_COLORS, TaskColumn } from "../types";
 
   export let task: Task;
   export let onClose: () => void;
@@ -11,12 +11,12 @@
     if (e.key === "Escape") onClose();
   }
 
-  const columnLabel: Record<string, string> = {
-    Todo: "To-Do",
-    InProgress: "In Progress",
-    Review: "Review",
-    Merge: "Merge",
-    Completed: "Completed",
+  const columnLabel: Record<TaskColumn, string> = {
+    [TaskColumn.Todo]: "To-Do",
+    [TaskColumn.InProgress]: "In Progress",
+    [TaskColumn.Review]: "Review",
+    [TaskColumn.Merge]: "Merge",
+    [TaskColumn.Completed]: "Completed",
   };
 </script>
 
@@ -67,12 +67,6 @@
           <div class="detail-item">
             <span class="detail-label">Claude Path</span>
             <span class="detail-value mono">{task.claude_path}</span>
-          </div>
-        {/if}
-        {#if task.claude_command}
-          <div class="detail-item">
-            <span class="detail-label">Claude Command</span>
-            <span class="detail-value mono">{task.claude_command}</span>
           </div>
         {/if}
         <div class="detail-item">

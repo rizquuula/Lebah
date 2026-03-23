@@ -1,4 +1,4 @@
-.PHONY: help setup dev build run clean clean-soft setup-rust setup-node setup-tauri tree
+.PHONY: help setup dev build run clean clean-soft setup-rust setup-node setup-tauri tree test
 .DEFAULT_GOAL := help
 
 help:
@@ -11,6 +11,7 @@ help:
 	@echo "  dev     Run in development mode"
 	@echo "  build   Build for production"
 	@echo "  run     Run the release build"
+	@echo "  test    Run all checks (Rust tests, Svelte type check, Cargo check)"
 	@echo "  clean       Clean all build artifacts and dependencies"
 	@echo "  clean-soft  Clear caches only (Vite, Cargo incremental)"
 	@echo ""
@@ -45,6 +46,15 @@ build:
 
 run: build
 	RUST_LOG=debug "$${CARGO_TARGET_DIR:-src-tauri/target}/release/lebah"
+
+test:
+	@echo "Running Rust checks..."
+	cd src-tauri && cargo check
+	@echo "Running Rust tests..."
+	cd src-tauri && cargo test
+	@echo "Running Svelte type check..."
+	npx svelte-check --tsconfig tsconfig.json
+	@echo "All checks passed!"
 
 clean-soft:
 	@echo "Clearing caches..."

@@ -2,7 +2,7 @@
   import { onMount } from "svelte";
   import { tasks, loadTasks } from "../stores/tasks";
   import { loadProjectConfig } from "../stores/config";
-  import { COLUMNS, COLUMN_COLORS, type Task, type TaskColumn } from "../types";
+  import { COLUMNS, COLUMN_COLORS, TaskColumn, type Task } from "../types";
   import Column from "./Column.svelte";
   import TaskModal from "./TaskModal.svelte";
 
@@ -15,7 +15,7 @@
 
   function tasksByColumn(allTasks: Task[], column: TaskColumn): Task[] {
     const filtered = allTasks.filter((t) => t.column === column);
-    if (column === "Completed") {
+    if (column === TaskColumn.Completed) {
       return filtered.sort((a, b) => {
         const ta = a.completed_at ?? a.created_at;
         const tb = b.completed_at ?? b.created_at;

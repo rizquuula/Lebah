@@ -1,7 +1,7 @@
 import { writable, get } from "svelte/store";
 import { invoke } from "@tauri-apps/api/core";
-import { listen } from "@tauri-apps/api/event";
-import type { Task, TaskColumn, TaskStatus } from "../types";
+import { emit, listen } from "@tauri-apps/api/event";
+import { TaskColumn, TaskStatus, type Task } from "../types";
 
 export const tasks = writable<Task[]>([]);
 
@@ -27,18 +27,18 @@ interface MergeJob {
 const mergeWaitQueue: MergeJob[] = [];
 
 export function isAnyMergeRunning(): boolean {
-  return get(tasks).some((t) => t.column === "Merge" && t.status === "Running");
+  return get(tasks).some((t) => t.column === TaskColumn.Merge && t.status === TaskStatus.Running);
 }
 
 export async function queueMergeTask(job: MergeJob): Promise<void> {
   mergeWaitQueue.push(job);
   waitingMergeSessions.add(job.id);
   tasks.update((all) =>
-    all.map((t) => (t.id === job.id ? { ...t, status: "Waiting" as TaskStatus } : t)),
+    all.map((t) => (t.id === job.id ? { ...t, status: TaskStatus.Waiting } : t)),
   );
   const currentTask = get(tasks).find((t) => t.id === job.id);
   if (currentTask) {
-    await invoke("update_task", { task: { ...currentTask, status: "Waiting" } });
+    await invoke("update_task", { task: { ...currentTask, status: TaskStatus.Waiting } });
   }
 }
 
@@ -64,8 +64,8 @@ export async function loadTasks() {
     const result = await invoke<Task[]>("get_tasks");
     tasks.set(
       result.map((t) => {
-        if (runningSessions.has(t.id)) return { ...t, status: "Running" as TaskStatus };
-        if (waitingMergeSessions.has(t.id)) return { ...t, status: "Waiting" as TaskStatus };
+        if (runningSessions.has(t.id)) return { ...t, status: TaskStatus.Running };
+        if (waitingMergeSessions.has(t.id)) return { ...t, status: TaskStatus.Waiting };
         return t;
       }),
     );
@@ -127,17 +127,17 @@ export async function runClaudeSession(
       if (msg.type === "result") {
         unlisten();
         runningSessions.delete(id);
-        const status: TaskStatus = msg.is_error ? "Failed" : "Success";
-        let taskColumn: string | undefined;
+        const status: TaskStatus = msg.is_error ? TaskStatus.Failed : TaskStatus.Success;
+        let taskColumn: TaskColumn | undefined;
         tasks.update((all) => {
           const found = all.find((t) => t.id === id);
           if (found) taskColumn = found.column;
           return all.map((t) => (t.id === id ? { ...t, status } : t));
         });
-        if (status === "Success" && taskColumn) {
-          if (taskColumn === "Review") await moveTask(id, "Merge", 0);
-          else if (taskColumn === "Merge") {
-            await moveTask(id, "Completed", 0);
+        if (status === TaskStatus.Success && taskColumn) {
+          if (taskColumn === TaskColumn.Review) await moveTask(id, TaskColumn.Merge, 0);
+          else if (taskColumn === TaskColumn.Merge) {
+            await moveTask(id, TaskColumn.Completed, 0);
             await startNextWaitingMerge();
           }
         }
@@ -177,11 +177,10 @@ export async function sendInputWithListener(
 ): Promise<void> {
   runningSessions.add(id);
   tasks.update((all) =>
-    all.map((t) => (t.id === id ? { ...t, status: "Running" as TaskStatus } : t)),
+    all.map((t) => (t.id === id ? { ...t, status: TaskStatus.Running } : t)),
   );
 
   // Emit synthetic user message so TerminalModal shows the sent text
-  const { emit } = await import("@tauri-apps/api/event");
   await emit(`claude-output-${id}`, JSON.stringify({ type: "user_input", text: input }));
 
   const unlisten = await listen<string>(`claude-output-${id}`, async (event) => {
@@ -190,17 +189,17 @@ export async function sendInputWithListener(
       if (msg.type === "result") {
         unlisten();
         runningSessions.delete(id);
-        const status: TaskStatus = msg.is_error ? "Failed" : "Success";
-        let taskColumn: string | undefined;
+        const status: TaskStatus = msg.is_error ? TaskStatus.Failed : TaskStatus.Success;
+        let taskColumn: TaskColumn | undefined;
         tasks.update((all) => {
           const t = all.find((t) => t.id === id);
           if (t) taskColumn = t.column;
           return all.map((t) => (t.id === id ? { ...t, status } : t));
         });
-        if (status === "Success" && taskColumn) {
-          if (taskColumn === "Review") await moveTask(id, "Merge", 0);
-          else if (taskColumn === "Merge") {
-            await moveTask(id, "Completed", 0);
+        if (status === TaskStatus.Success && taskColumn) {
+          if (taskColumn === TaskColumn.Review) await moveTask(id, TaskColumn.Merge, 0);
+          else if (taskColumn === TaskColumn.Merge) {
+            await moveTask(id, TaskColumn.Completed, 0);
             await startNextWaitingMerge();
           }
         }

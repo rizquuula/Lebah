@@ -1,5 +1,19 @@
-export type TaskColumn = "Todo" | "InProgress" | "Review" | "Merge" | "Completed";
-export type TaskStatus = "Idle" | "Running" | "Success" | "Failed" | "Warning" | "Waiting";
+export enum TaskColumn {
+  Todo = "Todo",
+  InProgress = "InProgress",
+  Review = "Review",
+  Merge = "Merge",
+  Completed = "Completed",
+}
+
+export enum TaskStatus {
+  Idle = "Idle",
+  Running = "Running",
+  Success = "Success",
+  Failed = "Failed",
+  Warning = "Warning",
+  Waiting = "Waiting",
+}
 
 export interface Task {
   id: string;
@@ -25,19 +39,19 @@ export interface GitStatus {
 }
 
 export const COLUMNS: { key: TaskColumn; label: string }[] = [
-  { key: "Todo", label: "To-Do" },
-  { key: "InProgress", label: "In Progress" },
-  { key: "Review", label: "Review" },
-  { key: "Merge", label: "Merge" },
-  { key: "Completed", label: "Completed" },
+  { key: TaskColumn.Todo, label: "To-Do" },
+  { key: TaskColumn.InProgress, label: "In Progress" },
+  { key: TaskColumn.Review, label: "Review" },
+  { key: TaskColumn.Merge, label: "Merge" },
+  { key: TaskColumn.Completed, label: "Completed" },
 ];
 
 export const COLUMN_COLORS: Record<TaskColumn, string> = {
-  Todo: "#89b4fa",
-  InProgress: "#f9e2af",
-  Review: "#cba6f7",
-  Merge: "#a6e3a1",
-  Completed: "#94e2d5",
+  [TaskColumn.Todo]: "#89b4fa",
+  [TaskColumn.InProgress]: "#f9e2af",
+  [TaskColumn.Review]: "#cba6f7",
+  [TaskColumn.Merge]: "#a6e3a1",
+  [TaskColumn.Completed]: "#94e2d5",
 };
 
 export interface ProjectConfig {
@@ -67,10 +81,10 @@ export type ChatEntry =
   | { kind: "system"; text: string };
 
 export const STATUS_COLORS: Record<TaskStatus, string> = {
-  Idle: "#6b7280",
-  Running: "#eab308",
-  Success: "#22c55e",
-  Failed: "#ef4444",
-  Warning: "#f97316",
-  Waiting: "#3b82f6",
+  [TaskStatus.Idle]: "#6b7280",
+  [TaskStatus.Running]: "#eab308",
+  [TaskStatus.Success]: "#22c55e",
+  [TaskStatus.Failed]: "#ef4444",
+  [TaskStatus.Warning]: "#f97316",
+  [TaskStatus.Waiting]: "#3b82f6",
 };

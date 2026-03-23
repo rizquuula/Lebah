@@ -2,7 +2,7 @@
   import { dragHandleZone } from "svelte-dnd-action";
   import { moveTaskBatch } from "../stores/tasks";
   import { projectConfig, saveProjectConfig } from "../stores/config";
-  import { DEFAULT_REVIEW_TEMPLATE, DEFAULT_MERGE_TEMPLATE, DEFAULT_INPROGRESS_TEMPLATE, type Task, type TaskColumn } from "../types";
+  import { DEFAULT_REVIEW_TEMPLATE, DEFAULT_MERGE_TEMPLATE, DEFAULT_INPROGRESS_TEMPLATE, TaskColumn, type Task } from "../types";
   import TaskCard from "./TaskCard.svelte";
 
   export let column: TaskColumn;
@@ -14,12 +14,12 @@
   let showTemplatePopover = false;
   let editingTemplate = "";
 
-  $: hasTemplate = column === "InProgress" || column === "Review" || column === "Merge";
+  $: hasTemplate = column === TaskColumn.InProgress || column === TaskColumn.Review || column === TaskColumn.Merge;
 
   function openTemplatePopover() {
-    if (column === "InProgress") {
+    if (column === TaskColumn.InProgress) {
       editingTemplate = $projectConfig.inprogress_template ?? DEFAULT_INPROGRESS_TEMPLATE;
-    } else if (column === "Review") {
+    } else if (column === TaskColumn.Review) {
       editingTemplate = $projectConfig.review_template ?? DEFAULT_REVIEW_TEMPLATE;
     } else {
       editingTemplate = $projectConfig.merge_template ?? DEFAULT_MERGE_TEMPLATE;
@@ -29,8 +29,8 @@
 
   async function saveTemplate() {
     const updated = { ...$projectConfig };
-    if (column === "InProgress") updated.inprogress_template = editingTemplate;
-    else if (column === "Review") updated.review_template = editingTemplate;
+    if (column === TaskColumn.InProgress) updated.inprogress_template = editingTemplate;
+    else if (column === TaskColumn.Review) updated.review_template = editingTemplate;
     else updated.merge_template = editingTemplate;
     await saveProjectConfig(updated);
     showTemplatePopover = false;
@@ -57,7 +57,7 @@
   <div class="header">
     <h2>{label}</h2>
     <span class="count">{items.length}</span>
-    {#if column === "Todo"}
+    {#if column === TaskColumn.Todo}
       <button class="btn-add" on:click={onAddTask} title="Add task" aria-label="Add task">
         <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
           <path d="M7 1v12M1 7h12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
