@@ -5,6 +5,7 @@
   import { STATUS_COLORS, DEFAULT_REVIEW_TEMPLATE, DEFAULT_MERGE_TEMPLATE, type Task } from "../types";
   import TerminalModal from "./TerminalModal.svelte";
   import TaskModal from "./TaskModal.svelte";
+  import TaskDetailModal from "./TaskDetailModal.svelte";
   import ConfirmDialog from "./ConfirmDialog.svelte";
   import TaskToggles from "./TaskToggles.svelte";
   import { portal } from "../actions/portal";
@@ -14,6 +15,7 @@
 
   let showTerminal = false;
   let showEditModal = false;
+  let showDetailModal = false;
   let showConfirmReset = false;
   let showConfirmDelete = false;
   let isPlaying = false;
@@ -118,6 +120,14 @@
         </svg>
       </button>
     {/if}
+    {#if task.column !== "Todo"}
+      <button class="btn-icon" title="View details" on:click={() => (showDetailModal = true)}>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+          <circle cx="12" cy="12" r="3"/>
+        </svg>
+      </button>
+    {/if}
     <div class="actions">
       {#if task.column === "Todo"}
         <button class="btn-icon" title="Edit" on:click={() => (showEditModal = true)}>
@@ -160,6 +170,9 @@
 {/if}
 {#if showEditModal}
   <div use:portal><TaskModal {task} onClose={() => (showEditModal = false)} /></div>
+{/if}
+{#if showDetailModal}
+  <div use:portal><TaskDetailModal {task} onClose={() => (showDetailModal = false)} /></div>
 {/if}
 {#if showConfirmDelete}
   <div use:portal>
