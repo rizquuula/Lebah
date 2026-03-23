@@ -134,9 +134,7 @@ impl SessionApplicationService {
             project_path: project_path.clone().map(crate::domain::project::value_objects::ProjectPath::new),
             worktree: None,
             model: cmd.model,
-            permission_mode: if cmd.use_plan {
-                PermissionMode::Plan
-            } else if cmd.yolo {
+            permission_mode: if cmd.yolo {
                 PermissionMode::Sandbox
             } else {
                 PermissionMode::Full
