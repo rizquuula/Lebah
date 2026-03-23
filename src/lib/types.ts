@@ -10,6 +10,7 @@ export interface Task {
   yolo: boolean;
   sort_order: number;
   created_at: string;
+  completed_at: string | null;
   claude_path: string | null;
   worktree: string | null;
   has_run: boolean;

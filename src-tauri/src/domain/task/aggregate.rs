@@ -20,6 +20,7 @@ pub struct Task {
     worktree: Option<WorktreeRef>,
     sort_order: i32,
     created_at: DateTime<Utc>,
+    completed_at: Option<DateTime<Utc>>,
     has_run: bool,
 }
 
@@ -42,6 +43,7 @@ impl Task {
             worktree,
             sort_order,
             created_at: Utc::now(),
+            completed_at: None,
             has_run: false,
         }
     }
@@ -58,6 +60,7 @@ impl Task {
         worktree: Option<WorktreeRef>,
         sort_order: i32,
         created_at: DateTime<Utc>,
+        completed_at: Option<DateTime<Utc>>,
         has_run: bool,
     ) -> Self {
         Task {
@@ -70,6 +73,7 @@ impl Task {
             worktree,
             sort_order,
             created_at,
+            completed_at,
             has_run,
         }
     }
@@ -88,6 +92,9 @@ impl Task {
             });
         }
         let from = self.column.clone();
+        if column == TaskColumn::Completed && self.completed_at.is_none() {
+            self.completed_at = Some(Utc::now());
+        }
         self.column = column.clone();
         self.sort_order = sort_order;
         Ok(TaskDomainEvent::TaskMoved {
@@ -150,5 +157,6 @@ impl Task {
     pub fn worktree(&self) -> Option<&WorktreeRef> { self.worktree.as_ref() }
     pub fn sort_order(&self) -> i32 { self.sort_order }
     pub fn created_at(&self) -> &DateTime<Utc> { &self.created_at }
+    pub fn completed_at(&self) -> Option<&DateTime<Utc>> { self.completed_at.as_ref() }
     pub fn has_run(&self) -> bool { self.has_run }
 }

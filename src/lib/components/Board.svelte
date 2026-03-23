@@ -14,9 +14,15 @@
   let activeColumn: { key: TaskColumn; label: string } | null = null;
 
   function tasksByColumn(allTasks: Task[], column: TaskColumn): Task[] {
-    return allTasks
-      .filter((t) => t.column === column)
-      .sort((a, b) => a.sort_order - b.sort_order);
+    const filtered = allTasks.filter((t) => t.column === column);
+    if (column === "Completed") {
+      return filtered.sort((a, b) => {
+        const ta = a.completed_at ?? a.created_at;
+        const tb = b.completed_at ?? b.created_at;
+        return tb.localeCompare(ta);
+      });
+    }
+    return filtered.sort((a, b) => a.sort_order - b.sort_order);
   }
 </script>
 
