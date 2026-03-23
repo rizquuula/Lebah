@@ -35,7 +35,7 @@
           </svg>
           {entry.name}
           {#if entry.input}
-            <span class="tool-input">{entry.input}</span>
+            <span class="tool-input">…{entry.input.slice(-50)}</span>
           {/if}
         </div>
       {:else if entry.kind === "usage"}
