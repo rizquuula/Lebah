@@ -97,9 +97,9 @@ impl TaskApplicationService {
         let column = TaskColumn::from_str(&cmd.column)?;
         let status = TaskStatus::from_str(&cmd.status)?;
         let completed_at = if column == TaskColumn::Completed {
-            task.completed_at().copied().or_else(|| Some(chrono::Utc::now()))
+            task.completed_at().cloned().or_else(|| Some(chrono::Utc::now()))
         } else {
-            task.completed_at().copied()
+            task.completed_at().cloned()
         };
         let new_task = Task::reconstitute(
             task_id,
