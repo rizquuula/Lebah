@@ -13,6 +13,27 @@
   let worktree = task?.worktree ?? "";
   let worktreeError = "";
   let model = task?.model ?? "sonnet";
+  let generatingWorktree = false;
+
+  async function generateWorktreeName() {
+    if (!description.trim()) {
+      worktreeError = "Enter a description first";
+      return;
+    }
+    worktreeError = "";
+    generatingWorktree = true;
+    try {
+      const name = await invoke<string>("generate_worktree_name", {
+        description: description.trim(),
+        claudePath: claudePath.trim() || null,
+      });
+      worktree = name.trim();
+    } catch (e) {
+      worktreeError = String(e);
+    } finally {
+      generatingWorktree = false;
+    }
+  }
 
   async function handleSubmit() {
     if (!description.trim()) return;
@@ -85,14 +106,33 @@
       {#if task}
         <div class="text-input readonly-field">{task.worktree ?? "—"}</div>
       {:else}
-        <input
-          id="task-worktree"
-          type="text"
-          bind:value={worktree}
-          placeholder="feat-my-feature"
-          class="text-input"
-          class:input-error={!!worktreeError}
-        />
+        <div class="worktree-row">
+          <input
+            id="task-worktree"
+            type="text"
+            bind:value={worktree}
+            placeholder="feat-my-feature"
+            class="text-input"
+            class:input-error={!!worktreeError}
+          />
+          <button
+            type="button"
+            class="btn-generate"
+            on:click={generateWorktreeName}
+            disabled={generatingWorktree}
+            title="Generate worktree name with AI"
+          >
+            {#if generatingWorktree}
+              <svg class="spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+                <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
+              </svg>
+            {:else}
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/>
+              </svg>
+            {/if}
+          </button>
+        </div>
         {#if worktreeError}
           <div class="field-error">{worktreeError}</div>
         {/if}
@@ -270,5 +310,46 @@
   }
   .btn-save:active {
     transform: translateY(0);
+  }
+  .worktree-row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+  .worktree-row .text-input {
+    flex: 1;
+  }
+  .btn-generate {
+    flex-shrink: 0;
+    width: 42px;
+    height: 42px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(203, 166, 247, 0.15);
+    color: #cba6f7;
+    border: 1px solid rgba(203, 166, 247, 0.25);
+    border-radius: 10px;
+    cursor: pointer;
+    transition: background 0.15s, box-shadow 0.15s, transform 0.1s;
+  }
+  .btn-generate:hover:not(:disabled) {
+    background: rgba(203, 166, 247, 0.28);
+    box-shadow: 0 0 14px rgba(203, 166, 247, 0.15);
+    transform: translateY(-1px);
+  }
+  .btn-generate:active:not(:disabled) {
+    transform: translateY(0);
+  }
+  .btn-generate:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+  .spin {
+    animation: spin 0.8s linear infinite;
   }
 </style>
