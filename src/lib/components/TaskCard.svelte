@@ -103,13 +103,6 @@
         <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor"><path d="M2 1.5l9 4.5-9 4.5V1.5z"/></svg>
       </button>
     {:else}
-      <TaskToggles
-        usePlan={task.use_plan}
-        yolo={task.yolo}
-        showPlan={task.column !== "Review" && task.column !== "Merge"}
-        onTogglePlan={() => updateTask({ ...task, use_plan: !task.use_plan })}
-        onToggleYolo={() => updateTask({ ...task, yolo: !task.yolo })}
-      />
       <button class="btn-icon play" class:active={isRunning} title={isRunning ? "Stop" : "Run"}
         disabled={isPlaying || isResetting} on:click={handlePlay}>
         {#if isRunning}
@@ -141,6 +134,18 @@
       </button>
     </div>
   </div>
+
+  {#if task.column !== "Todo" && task.column !== "Completed"}
+    <div class="bottom-row">
+      <TaskToggles
+        usePlan={task.use_plan}
+        yolo={task.yolo}
+        showPlan={task.column !== "Review" && task.column !== "Merge"}
+        onTogglePlan={() => updateTask({ ...task, use_plan: !task.use_plan })}
+        onToggleYolo={() => updateTask({ ...task, yolo: !task.yolo })}
+      />
+    </div>
+  {/if}
 
   <div class="meta">
     <span class="uuid" title={task.id}>{task.model || "sonnet"}</span>
