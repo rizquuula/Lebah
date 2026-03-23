@@ -1,11 +1,13 @@
 <script lang="ts">
   export let usePlan: boolean;
   export let yolo: boolean;
+  export let showPlan: boolean = true;
   export let onTogglePlan: () => void;
   export let onToggleYolo: () => void;
 </script>
 
 <div class="toggles">
+  {#if showPlan}
   <label class="toggle" title="Use Plan">
     <div class="toggle-track" class:active={usePlan}>
       <div class="toggle-thumb"></div>
@@ -13,6 +15,7 @@
     <input type="checkbox" checked={usePlan} on:change={onTogglePlan} class="sr-only" />
     <span class="toggle-label">Plan</span>
   </label>
+  {/if}
   <label class="toggle" title="Skip permissions (--dangerously-skip-permissions)">
     <div class="toggle-track" class:active={yolo} class:yolo={yolo}>
       <div class="toggle-thumb"></div>

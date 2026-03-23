@@ -43,7 +43,7 @@
       } else if ((task.column === "Review" || task.column === "Merge") && task.has_run) {
         const template = getTemplate();
         if (template) {
-          try { await sendInputWithListener(task.id, template, task.model, task.use_plan, task.yolo); }
+          try { await sendInputWithListener(task.id, template, task.model, false, task.yolo); }
           catch { showTerminal = true; }
         }
       } else if (task.has_run) {
@@ -103,6 +103,13 @@
         <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor"><path d="M2 1.5l9 4.5-9 4.5V1.5z"/></svg>
       </button>
     {:else}
+      <TaskToggles
+        usePlan={task.use_plan}
+        yolo={task.yolo}
+        showPlan={task.column !== "Review" && task.column !== "Merge"}
+        onTogglePlan={() => updateTask({ ...task, use_plan: !task.use_plan })}
+        onToggleYolo={() => updateTask({ ...task, yolo: !task.yolo })}
+      />
       <button class="btn-icon play" class:active={isRunning} title={isRunning ? "Stop" : "Run"}
         disabled={isPlaying || isResetting} on:click={handlePlay}>
         {#if isRunning}
