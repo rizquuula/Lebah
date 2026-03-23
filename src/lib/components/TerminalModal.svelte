@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount, onDestroy } from "svelte";
   import { listen, type UnlistenFn } from "@tauri-apps/api/event";
-  import { sendInput, getOutputBuffer } from "../stores/tasks";
+  import { sendInputWithListener, getOutputBuffer } from "../stores/tasks";
   import type { Task, ChatEntry, UsageInfo } from "../types";
   import { STATUS_COLORS } from "../types";
   import TerminalChat from "./TerminalChat.svelte";
@@ -151,7 +151,7 @@
     inputValue = "";
     entries = [...entries, { kind: "user", text }];
     try {
-      await sendInput(task.id, text, selectedModel, task.use_plan, task.yolo);
+      await sendInputWithListener(task.id, text, selectedModel, false, task.yolo);
     } catch (err) {
       entries = [...entries, { kind: "system", text: `Send failed: ${err}` }];
     }
