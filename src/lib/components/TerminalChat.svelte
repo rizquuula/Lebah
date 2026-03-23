@@ -9,6 +9,39 @@
     return n.toLocaleString(undefined, { maximumFractionDigits: decimals });
   }
 
+  function formatToolInput(name: string, rawJson: string): string {
+    if (!rawJson) return "";
+    try {
+      const p = JSON.parse(rawJson);
+      switch (name) {
+        case "Read": return p.file_path ?? "";
+        case "Write": return p.file_path ?? "";
+        case "Edit": {
+          const file = p.file_path ?? "";
+          const old = p.old_string ? p.old_string.slice(0, 60).replace(/\n/g, "↵") : "";
+          return old ? `${file} · ${old}` : file;
+        }
+        case "Glob": return p.path ? `${p.pattern} in ${p.path}` : p.pattern ?? "";
+        case "Grep": {
+          let s = p.pattern ?? "";
+          if (p.path) s += ` in ${p.path}`;
+          if (p.glob) s += ` (${p.glob})`;
+          return s;
+        }
+        case "Bash": return p.command?.slice(0, 120) ?? "";
+        case "Agent": return p.description ?? p.prompt?.slice(0, 80) ?? "";
+        case "WebFetch": return p.url ?? "";
+        case "WebSearch": return p.query ?? "";
+        default: {
+          const vals = Object.values(p).filter((v): v is string => typeof v === "string" && v.length < 200);
+          return vals[0] ?? "";
+        }
+      }
+    } catch {
+      return rawJson.slice(0, 100);
+    }
+  }
+
   function scrollToBottom() {
     setTimeout(() => { if (chatEl) chatEl.scrollTop = chatEl.scrollHeight; }, 0);
   }
@@ -34,8 +67,8 @@
             <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>
           </svg>
           {entry.name}
-          {#if entry.input}
-            <span class="tool-input">{entry.input}</span>
+          {#if formatToolInput(entry.name, entry.input)}
+            <span class="tool-input">{formatToolInput(entry.name, entry.input)}</span>
           {/if}
         </div>
       {:else if entry.kind === "usage"}
@@ -129,7 +162,7 @@
   }
   .tool-input {
     color: rgba(166, 227, 161, 0.45);
-    max-width: 300px;
+    max-width: 500px;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
