@@ -4,7 +4,7 @@ pub fn check_path_exists(path: String) -> bool {
 }
 
 #[tauri::command]
-pub fn generate_worktree_name(
+pub async fn generate_worktree_name(
     description: String,
     claude_path: Option<String>,
 ) -> Result<String, String> {
@@ -14,12 +14,13 @@ pub fn generate_worktree_name(
         description
     );
 
-    let output = std::process::Command::new(&claude)
+    let output = tokio::process::Command::new(&claude)
         .arg("-p")
         .arg(&prompt)
         .arg("--model")
         .arg("claude-haiku-4-5-20251001")
         .output()
+        .await
         .map_err(|e| format!("Failed to run claude: {}", e))?;
 
     if !output.status.success() {
