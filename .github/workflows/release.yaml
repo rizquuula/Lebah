@@ -25,6 +25,8 @@ jobs:
           OPENROUTER_MODEL: ${{ secrets.OPENROUTER_MODEL }}
           RELEASE_NOTES_PROMPT: ${{ secrets.RELEASE_NOTES_PROMPT }}
         run: |
+          set +e  # Disable exit-on-error for better debugging
+          
           # Get commits since previous tag (or last 50 if no previous tag)
           PREV_TAG=$(git tag --sort=-version:refname | grep -v "^${GITHUB_REF_NAME}$" | head -1)
           if [ -n "$PREV_TAG" ]; then
