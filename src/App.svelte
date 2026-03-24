@@ -254,9 +254,10 @@
   .version {
     font-size: 10px;
     font-weight: 600;
-    color: #a3e635;
+    color: #ffb300;
+    -webkit-text-fill-color: #ffb300;
     background-color: transparent;
-    border: 1px solid #a3e635;
+    border: 1px solid #ffb300;
     border-radius: 4px;
     padding: 1px 5px;
     margin-left: 6px;
