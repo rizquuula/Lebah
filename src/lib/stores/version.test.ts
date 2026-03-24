@@ -33,4 +33,16 @@ describe("version store", () => {
 
     expect(get(appVersion)).toBe("");
   });
+
+  it("version string is suitable for badge display (no leading v)", async () => {
+    mockInvoke.mockResolvedValueOnce("0.1.1");
+
+    const { loadAppVersion, appVersion } = await import("./version");
+    await loadAppVersion();
+
+    const version = get(appVersion);
+    // Badge renders as "v{version}" — version itself should not start with "v"
+    expect(version).not.toMatch(/^v/);
+    expect(version).toMatch(/^\d+\.\d+\.\d+/);
+  });
 });

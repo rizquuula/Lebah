@@ -252,16 +252,19 @@
     letter-spacing: 0.02em;
   }
   .version {
-    font-size: 11px;
+    font-size: 10px;
     font-weight: 600;
+    color: #a3e635;
+    background-color: transparent;
+    border: 1px solid #a3e635;
+    border-radius: 4px;
+    padding: 1px 5px;
     margin-left: 6px;
     vertical-align: middle;
-    letter-spacing: 0;
-    background: linear-gradient(135deg, #f59e0b, #f97316);
-    color: #1a1a2e;
-    padding: 1px 6px;
-    border-radius: 4px;
-    opacity: 1;
+    letter-spacing: 0.04em;
+    line-height: 1.4;
+    display: inline-block;
+    opacity: 0.9;
   }
   .subtitle {
     font-size: 13px;
