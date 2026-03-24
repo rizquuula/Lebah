@@ -138,9 +138,9 @@ impl GitPort for GitInfraService {
             )));
         }
 
-        // Then push to the upstream branch
+        // Then push current branch to origin
         let push_output = Command::new("git")
-            .args(["push", "-u", "origin", "@{upstream}"])
+            .args(["push", "-u", "origin", "HEAD"])
             .current_dir(path)
             .output()
             .map_err(|e| ApplicationError::Git(format!("Failed to run git push: {}", e)))?;
