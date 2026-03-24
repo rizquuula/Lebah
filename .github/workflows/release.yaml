@@ -39,7 +39,7 @@ jobs:
 
           PROMPT=$(printf '%s\n\nVersion: %s\nCommits:\n%s' "$BASE_PROMPT" "$VERSION" "$COMMITS")
 
-          RESPONSE=$(curl -sf https://openrouter.ai/api/v1/chat/completions \
+          curl -s https://openrouter.ai/api/v1/chat/completions \
             -H "Authorization: Bearer ${OPENROUTER_API_KEY}" \
             -H "Content-Type: application/json" \
             -H "HTTP-Referer: https://github.com/${GITHUB_REPOSITORY}" \
@@ -48,7 +48,18 @@ jobs:
               --arg model "$MODEL" \
               --arg prompt "$PROMPT" \
               '{model: $model, messages: [{role: "user", content: $prompt}]}'
-            )") || { echo "curl failed with exit code $?"; cat release_notes.txt 2>/dev/null; exit 1; }
+            )" > api_response.json
+
+          echo "API Response:"
+          cat api_response.json
+          echo ""
+
+          RESPONSE=$(cat api_response.json)
+          ERROR_MSG=$(echo "$RESPONSE" | jq -r '.error.message // "Unknown error"')
+          if echo "$RESPONSE" | jq -e '.error' > /dev/null 2>&1; then
+            echo "::error::OpenRouter API returned error: $ERROR_MSG"
+            exit 1
+          fi
 
           BODY=$(echo "$RESPONSE" | jq -r '.choices[0].message.content // "See assets below for downloads."')
 
