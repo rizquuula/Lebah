@@ -39,7 +39,7 @@ setup-tauri:
 	cargo install tauri-cli --version "^2"
 
 dev:
-	RUST_LOG=debug cargo tauri dev --no-watch
+	cargo tauri dev --no-watch
 
 build:
 	cargo tauri build
