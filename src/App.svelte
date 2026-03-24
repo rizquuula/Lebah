@@ -9,6 +9,7 @@
   import { projectPath, gitStatus, openProject, loadProjectPath, refreshGitStatus } from "./lib/stores/project";
   import { lastError, clearError } from "./lib/stores/errors";
   import { initializeConfigSubscription } from "./lib/stores/config";
+  import { appVersion, loadAppVersion } from "./lib/stores/version";
 
   let showSettings = false;
   let showPushDialog = false;
@@ -18,6 +19,7 @@
 
   onMount(async () => {
     await loadProjectPath();
+    await loadAppVersion();
     initializeConfigSubscription();
     gitPollInterval = setInterval(() => {
       if ($projectPath) refreshGitStatus();
@@ -59,7 +61,7 @@
       <div class="logo-icon">
         <img src="/lebah-logo.png" alt="Lebah" />
       </div>
-      <h1>Lebah</h1>
+      <h1>Lebah{#if $appVersion}<span class="version">v{$appVersion}</span>{/if}</h1>
       <span class="subtitle">Claude Code Orchestrator</span>
     </div>
 
@@ -227,6 +229,14 @@
     background-clip: text;
     filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.8));
     letter-spacing: 0.02em;
+  }
+  .version {
+    font-size: 11px;
+    font-weight: 500;
+    opacity: 0.6;
+    margin-left: 6px;
+    vertical-align: middle;
+    letter-spacing: 0;
   }
   .subtitle {
     font-size: 13px;
