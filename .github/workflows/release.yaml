@@ -39,14 +39,16 @@ jobs:
 
           PROMPT=$(printf '%s\n\nVersion: %s\nCommits:\n%s' "$BASE_PROMPT" "$VERSION" "$COMMITS")
 
-          RESPONSE=$(curl -s https://openrouter.ai/api/v1/chat/completions \
+          RESPONSE=$(curl -sf https://openrouter.ai/api/v1/chat/completions \
             -H "Authorization: Bearer ${OPENROUTER_API_KEY}" \
             -H "Content-Type: application/json" \
+            -H "HTTP-Referer: https://github.com/${GITHUB_REPOSITORY}" \
+            -H "X-Title: Lebah" \
             -d "$(jq -n \
               --arg model "$MODEL" \
               --arg prompt "$PROMPT" \
               '{model: $model, messages: [{role: "user", content: $prompt}]}'
-            )")
+            )") || { echo "curl failed with exit code $?"; cat release_notes.txt 2>/dev/null; exit 1; }
 
           BODY=$(echo "$RESPONSE" | jq -r '.choices[0].message.content // "See assets below for downloads."')
 
