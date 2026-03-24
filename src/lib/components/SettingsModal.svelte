@@ -16,7 +16,9 @@
     const vars = $projectConfig.env_vars;
     const disabled = new Set($projectConfig.disabled_env_var_keys ?? []);
     if (vars && Object.keys(vars).length > 0) {
-      return Object.entries(vars).map(([key, value]) => ({ key, value, enabled: !disabled.has(key) }));
+      return Object.entries(vars)
+        .map(([key, value]) => ({ key, value, enabled: !disabled.has(key) }))
+        .sort((a, b) => a.key.localeCompare(b.key));
     }
     return [{ key: "IS_SANDBOX", value: "0", enabled: true }];
   })();
