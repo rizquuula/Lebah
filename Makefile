@@ -45,7 +45,7 @@ build:
 	cargo tauri build
 
 run: build
-	RUST_LOG=info "$${CARGO_TARGET_DIR:-src-tauri/target}/release/lebah"
+	"$${CARGO_TARGET_DIR:-src-tauri/target}/release/lebah"
 
 test:
 	@echo "Running Rust checks..."
