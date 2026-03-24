@@ -29,7 +29,18 @@ Manage AI coding sessions visually — create tasks, drag them through workflow 
 
 ## Screenshots
 
-> _Coming soon_
+<table>
+  <tr>
+    <td><img src="assets/dashboard.png" width="260"/></td>
+    <td><img src="assets/task-create.png" width="260"/></td>
+    <td><img src="assets/task-view.png" width="260"/></td>
+  </tr>
+  <tr>
+    <td><img src="assets/terminal-chat.png" width="260"/></td>
+    <td><img src="assets/settings-general.png" width="260"/></td>
+    <td><img src="assets/settings-env-variable.png" width="260"/></td>
+  </tr>
+</table>
 
 ## Requirements
 
