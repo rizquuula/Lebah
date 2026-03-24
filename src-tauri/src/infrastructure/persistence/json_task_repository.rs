@@ -34,6 +34,10 @@ struct TaskRecord {
     model: Option<String>,
     #[serde(default)]
     agent_name: Option<String>,
+    #[serde(default)]
+    lines_added: Option<i32>,
+    #[serde(default)]
+    lines_removed: Option<i32>,
 }
 
 impl TaskRecord {
@@ -54,6 +58,8 @@ impl TaskRecord {
             has_run: task.has_run(),
             model: task.agent_config().model.clone(),
             agent_name: task.agent_config().agent_name.clone(),
+            lines_added: task.lines_added(),
+            lines_removed: task.lines_removed(),
         }
     }
 
@@ -85,6 +91,8 @@ impl TaskRecord {
             created_at,
             completed_at,
             self.has_run,
+            self.lines_added,
+            self.lines_removed,
         ))
     }
 }

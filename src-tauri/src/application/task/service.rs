@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use crate::application::errors::ApplicationError;
 use crate::application::event_bus::{DomainEvent, DomainEventBus};
-use crate::application::ports::WorktreePort;
+use crate::application::ports::{GitPort, WorktreePort};
 use crate::application::task::commands::*;
 use crate::domain::errors::DomainError;
 use crate::domain::project::value_objects::ProjectId;
@@ -17,6 +17,7 @@ pub struct TaskApplicationService {
     task_repo: Arc<dyn TaskRepository>,
     output_repo: Arc<dyn OutputRepository>,
     worktree_port: Arc<dyn WorktreePort>,
+    git_port: Arc<dyn GitPort>,
     event_bus: Arc<dyn DomainEventBus>,
     current_project: Arc<std::sync::Mutex<Option<String>>>,
 }
@@ -26,6 +27,7 @@ impl TaskApplicationService {
         task_repo: Arc<dyn TaskRepository>,
         output_repo: Arc<dyn OutputRepository>,
         worktree_port: Arc<dyn WorktreePort>,
+        git_port: Arc<dyn GitPort>,
         event_bus: Arc<dyn DomainEventBus>,
         current_project: Arc<std::sync::Mutex<Option<String>>>,
     ) -> Self {
@@ -33,6 +35,7 @@ impl TaskApplicationService {
             task_repo,
             output_repo,
             worktree_port,
+            git_port,
             event_bus,
             current_project,
         }
@@ -113,6 +116,8 @@ impl TaskApplicationService {
             *task.created_at(),
             completed_at,
             task.has_run(),
+            task.lines_added(),
+            task.lines_removed(),
         );
         self.task_repo.save(&project_id, &new_task)?;
         Ok(())
@@ -153,11 +158,31 @@ impl TaskApplicationService {
     }
 
     pub fn move_task(&self, cmd: MoveTaskCommand) -> Result<(), ApplicationError> {
-        let (project_id, _) = self.current_project_id()?;
+        let (project_id, path) = self.current_project_id()?;
         let task_id = TaskId::from_string(cmd.id);
         let mut task = self.task_repo.find_by_id(&project_id, &task_id)?;
+        let from_column = task.column().clone();
         let column = TaskColumn::from_str(&cmd.column)?;
-        let event = task.move_to_column(column, cmd.sort_order)?;
+        let event = task.move_to_column(column.clone(), cmd.sort_order)?;
+
+        // Compute line changes when moving out of Review (into Merge/Completed)
+        if from_column == TaskColumn::Review
+            && (column == TaskColumn::Merge || column == TaskColumn::Completed)
+        {
+            if let Some(wt) = task.worktree().cloned() {
+                let project_path =
+                    crate::domain::project::value_objects::ProjectPath::new(path);
+                match self.git_port.get_diff_stat(&project_path, &wt) {
+                    Ok((added, removed)) => {
+                        task.set_line_changes(added, removed);
+                    }
+                    Err(e) => {
+                        log::warn!("[task] Failed to get diff stat for {}: {}", task_id.0, e);
+                    }
+                }
+            }
+        }
+
         self.task_repo.save(&project_id, &task)?;
         self.event_bus.publish(DomainEvent::Task(event));
         Ok(())
@@ -200,6 +225,8 @@ impl TaskApplicationService {
             *new_task.created_at(),
             None,
             false,
+            None,
+            None,
         );
 
         self.task_repo.save(&project_id, &new_task)?;

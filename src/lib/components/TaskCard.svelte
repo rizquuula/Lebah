@@ -252,6 +252,12 @@
 
   <div class="meta">
     <span class="uuid" title={task.id}>{task.model || "sonnet"}</span>
+    {#if task.lines_added != null && task.lines_removed != null}
+      <span class="line-changes">
+        <span class="lines-added">+{task.lines_added}</span>
+        <span class="lines-removed">-{task.lines_removed}</span>
+      </span>
+    {/if}
     <span class="status" style="color: {borderColor}">{task.status}</span>
   </div>
 </div>
@@ -435,4 +441,12 @@
   }
   .uuid { font-family: "JetBrains Mono", "Fira Code", monospace; letter-spacing: 0.3px; }
   .status { font-weight: 600; text-transform: uppercase; font-size: 10px; letter-spacing: 0.5px; }
+  .line-changes {
+    font-family: "JetBrains Mono", "Fira Code", monospace;
+    font-size: 10px;
+    display: flex;
+    gap: 4px;
+  }
+  .lines-added { color: #a6e3a1; }
+  .lines-removed { color: #f38ba8; }
 </style>

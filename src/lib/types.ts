@@ -30,6 +30,8 @@ export interface Task {
   worktree: string | null;
   has_run: boolean;
   model: string | null;
+  lines_added: number | null;
+  lines_removed: number | null;
 }
 
 export interface GitStatus {

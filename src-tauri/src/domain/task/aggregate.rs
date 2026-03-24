@@ -22,6 +22,8 @@ pub struct Task {
     created_at: DateTime<Utc>,
     completed_at: Option<DateTime<Utc>>,
     has_run: bool,
+    lines_added: Option<i32>,
+    lines_removed: Option<i32>,
 }
 
 impl Task {
@@ -45,6 +47,8 @@ impl Task {
             created_at: Utc::now(),
             completed_at: None,
             has_run: false,
+            lines_added: None,
+            lines_removed: None,
         }
     }
 
@@ -62,6 +66,8 @@ impl Task {
         created_at: DateTime<Utc>,
         completed_at: Option<DateTime<Utc>>,
         has_run: bool,
+        lines_added: Option<i32>,
+        lines_removed: Option<i32>,
     ) -> Self {
         Task {
             id,
@@ -75,6 +81,8 @@ impl Task {
             created_at,
             completed_at,
             has_run,
+            lines_added,
+            lines_removed,
         }
     }
 
@@ -149,6 +157,11 @@ impl Task {
         self.execution_flags = flags;
     }
 
+    pub fn set_line_changes(&mut self, added: i32, removed: i32) {
+        self.lines_added = Some(added);
+        self.lines_removed = Some(removed);
+    }
+
     // --- Read-only accessors ---
 
     pub fn id(&self) -> &TaskId { &self.id }
@@ -162,4 +175,6 @@ impl Task {
     pub fn created_at(&self) -> &DateTime<Utc> { &self.created_at }
     pub fn completed_at(&self) -> Option<&DateTime<Utc>> { self.completed_at.as_ref() }
     pub fn has_run(&self) -> bool { self.has_run }
+    pub fn lines_added(&self) -> Option<i32> { self.lines_added }
+    pub fn lines_removed(&self) -> Option<i32> { self.lines_removed }
 }
