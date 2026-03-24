@@ -1,6 +1,7 @@
 <script lang="ts">
   import { invoke } from "@tauri-apps/api/core";
   import { createTask, updateTask } from "../stores/tasks";
+  import { TaskColumn } from "../types";
   import type { Task } from "../types";
 
   export let task: Task | null = null;
@@ -14,6 +15,9 @@
   let model = task?.model ?? "sonnet";
   let generatingWorktree = false;
   let pendingSave = false;
+
+  // Allow editing worktree only for new tasks or tasks in Todo column
+  $: canEditWorktree = !task || task.column === TaskColumn.Todo;
 
   async function generateWorktreeName() {
     worktreeError = "";
@@ -47,6 +51,7 @@
         await updateTask({
           ...task,
           description: description.trim(),
+          worktree: canEditWorktree ? worktreeVal : task.worktree,
           model: modelVal,
         });
       } else {
@@ -98,9 +103,7 @@
       </select>
 
       <label class="field-label" for="task-worktree">Worktree Name</label>
-      {#if task}
-        <div class="text-input readonly-field">{task.worktree ?? "—"}</div>
-      {:else}
+      {#if canEditWorktree}
         <div class="worktree-row">
           <input
             id="task-worktree"
@@ -126,6 +129,8 @@
         {#if worktreeError}
           <div class="field-error">{worktreeError}</div>
         {/if}
+      {:else}
+        <div class="text-input readonly-field">{worktree ?? "—"}</div>
       {/if}
 
       <div class="actions">
@@ -346,46 +351,5 @@
     opacity: 0.5;
     cursor: not-allowed;
     transform: none;
-  }
-  .worktree-row {
-    display: flex;
-    gap: 8px;
-    align-items: center;
-  }
-  .worktree-row .text-input {
-    flex: 1;
-  }
-  .btn-generate {
-    flex-shrink: 0;
-    width: 42px;
-    height: 42px;
-    padding: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: rgba(203, 166, 247, 0.15);
-    color: #cba6f7;
-    border: 1px solid rgba(203, 166, 247, 0.25);
-    border-radius: 10px;
-    cursor: pointer;
-    transition: background 0.15s, box-shadow 0.15s, transform 0.1s;
-  }
-  .btn-generate:hover:not(:disabled) {
-    background: rgba(203, 166, 247, 0.28);
-    box-shadow: 0 0 14px rgba(203, 166, 247, 0.15);
-    transform: translateY(-1px);
-  }
-  .btn-generate:active:not(:disabled) {
-    transform: translateY(0);
-  }
-  .btn-generate:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-  }
-  @keyframes spin {
-    to { transform: rotate(360deg); }
-  }
-  .spin {
-    animation: spin 0.8s linear infinite;
   }
 </style>
