@@ -253,11 +253,15 @@
   }
   .version {
     font-size: 11px;
-    font-weight: 500;
-    opacity: 0.6;
+    font-weight: 600;
     margin-left: 6px;
     vertical-align: middle;
     letter-spacing: 0;
+    background: linear-gradient(135deg, #f59e0b, #f97316);
+    color: #1a1a2e;
+    padding: 1px 6px;
+    border-radius: 4px;
+    opacity: 1;
   }
   .subtitle {
     font-size: 13px;
