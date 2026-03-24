@@ -1,7 +1,7 @@
 use crate::domain::task::value_objects::{TaskId, TaskColumn, WorktreeRef};
 use crate::domain::project::value_objects::ProjectId;
 
-#[allow(dead_code)]
+#[allow(dead_code, clippy::enum_variant_names)]
 #[derive(Debug, Clone)]
 pub enum TaskDomainEvent {
     TaskCreated {

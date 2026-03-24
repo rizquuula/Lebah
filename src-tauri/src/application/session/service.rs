@@ -249,7 +249,7 @@ impl SessionApplicationService {
         // Wire exit
         std::thread::spawn(move || {
             log::debug!("[session] Exit watcher thread started for task {}", task_id_c3.0);
-            for success in handle.exit_rx {
+            if let Some(success) = handle.exit_rx.into_iter().next() {
                 if success {
                     log::info!("[session] Task {} exited with success=true", task_id_c3.0);
                 } else {
@@ -260,7 +260,6 @@ impl SessionApplicationService {
                     success,
                     project_path: pp3.clone(),
                 }));
-                break;
             }
         });
     }

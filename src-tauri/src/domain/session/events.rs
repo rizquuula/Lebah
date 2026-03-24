@@ -1,6 +1,6 @@
 use crate::domain::task::value_objects::TaskId;
 
-#[allow(dead_code)]
+#[allow(dead_code, clippy::enum_variant_names)]
 #[derive(Debug, Clone)]
 pub enum SessionDomainEvent {
     SessionStarted {

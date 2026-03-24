@@ -105,7 +105,7 @@ impl WorktreeRef {
 }
 
 /// Configuration for the AI agent to use for this task
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct AgentConfig {
     /// Name of the registered agent to use (None = use default)
     pub agent_name: Option<String>,
@@ -115,15 +115,6 @@ pub struct AgentConfig {
     pub model: Option<String>,
 }
 
-impl Default for AgentConfig {
-    fn default() -> Self {
-        Self {
-            agent_name: None,
-            agent_path: None,
-            model: None,
-        }
-    }
-}
 
 /// Execution permission flags
 #[derive(Debug, Clone, Serialize, Deserialize)]
