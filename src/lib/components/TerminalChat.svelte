@@ -42,15 +42,24 @@
     }
   }
 
+  let userScrolledUp = false;
+
+  function handleScroll() {
+    if (!chatEl) return;
+    const distFromBottom = chatEl.scrollHeight - chatEl.scrollTop - chatEl.clientHeight;
+    userScrolledUp = distFromBottom > 40;
+  }
+
   function scrollToBottom() {
+    if (userScrolledUp) return;
     setTimeout(() => { if (chatEl) chatEl.scrollTop = chatEl.scrollHeight; }, 0);
   }
 
-  // Auto-scroll whenever entries change
+  // Auto-scroll whenever entries change (only if user hasn't scrolled up)
   $: entries, scrollToBottom();
 </script>
 
-<div class="chat" bind:this={chatEl}>
+<div class="chat" bind:this={chatEl} on:scroll={handleScroll}>
   {#if entries.length <= 1}
     <div class="placeholder">
       <span class="cursor-blink">_</span> Waiting for output...
