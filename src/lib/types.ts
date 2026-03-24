@@ -66,7 +66,7 @@ export interface ProjectConfig {
 
 export const DEFAULT_REVIEW_TEMPLATE = "Help me to check for test, lint and build error if we not yet do it. Do git commit in the worktree, no need for reading changed files to commit, just use knowledge in session and commit all changes.";
 export const DEFAULT_MERGE_TEMPLATE = "Pull from main branch in the local repository and check for conflict. Fix the conflict gracefully and run build after conflict resolution. Then merge this worktree to the main local branch. Make comprehensive tasks first before executing.";
-export const DEFAULT_INPROGRESS_TEMPLATE = "Help me do this task:\n\n <TASK_DESCRIPTION> \n\nMake comprehensive tasks first before executing.";
+export const DEFAULT_INPROGRESS_TEMPLATE = "Help me do this task:\n\n <TASK_DESCRIPTION> \n\nUse all best practices, no need to ask me. Make comprehensive tasks first before executing.";
 
 export interface UsageInfo {
   input_tokens: number;
