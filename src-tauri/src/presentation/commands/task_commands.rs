@@ -52,6 +52,7 @@ pub fn update_task(
         status: task.status,
         use_plan: task.use_plan,
         yolo: task.yolo,
+        auto: task.auto,
         sort_order: task.sort_order,
         agent_path: task.claude_path,
         model: task.model,

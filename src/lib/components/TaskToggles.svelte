@@ -1,9 +1,12 @@
 <script lang="ts">
   export let usePlan: boolean;
   export let yolo: boolean;
+  export let auto: boolean = false;
   export let showPlan: boolean = true;
+  export let showAuto: boolean = true;
   export let onTogglePlan: () => void;
   export let onToggleYolo: () => void;
+  export let onToggleAuto: () => void = () => {};
 </script>
 
 <div class="toggles">
@@ -23,6 +26,15 @@
     <input type="checkbox" checked={yolo} on:change={onToggleYolo} class="sr-only" />
     <span class="toggle-label">Yolo</span>
   </label>
+  {#if showAuto}
+  <label class="toggle" title="Auto-advance through columns on success">
+    <div class="toggle-track" class:active={auto} class:auto={auto}>
+      <div class="toggle-thumb"></div>
+    </div>
+    <input type="checkbox" checked={auto} on:change={onToggleAuto} class="sr-only" />
+    <span class="toggle-label">Auto</span>
+  </label>
+  {/if}
 </div>
 
 <style>
@@ -81,6 +93,14 @@
   .toggle-track.yolo .toggle-thumb {
     background: #f97316;
     box-shadow: 0 0 6px rgba(249, 115, 22, 0.4);
+  }
+  .toggle-track.auto {
+    background: rgba(148, 226, 213, 0.25);
+    border-color: rgba(148, 226, 213, 0.4);
+  }
+  .toggle-track.auto .toggle-thumb {
+    background: #94e2d5;
+    box-shadow: 0 0 6px rgba(148, 226, 213, 0.4);
   }
   .toggle-label { user-select: none; }
 </style>

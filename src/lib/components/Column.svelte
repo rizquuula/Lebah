@@ -27,6 +27,12 @@
     showTemplatePopover = !showTemplatePopover;
   }
 
+  function resetTemplate() {
+    if (column === TaskColumn.InProgress) editingTemplate = DEFAULT_INPROGRESS_TEMPLATE;
+    else if (column === TaskColumn.Review) editingTemplate = DEFAULT_REVIEW_TEMPLATE;
+    else editingTemplate = DEFAULT_MERGE_TEMPLATE;
+  }
+
   async function saveTemplate() {
     const updated = { ...$projectConfig };
     if (column === TaskColumn.InProgress) updated.inprogress_template = editingTemplate;
@@ -76,6 +82,7 @@
             <textarea bind:value={editingTemplate} rows="4"></textarea>
             <div class="template-actions">
               <button class="btn-tpl-cancel" on:click={() => (showTemplatePopover = false)}>Cancel</button>
+              <button class="btn-tpl-reset" on:click={resetTemplate} title="Reset to default">Reset</button>
               <button class="btn-tpl-save" on:click={saveTemplate}>Save</button>
             </div>
           </div>
@@ -213,6 +220,19 @@
   }
   .btn-tpl-cancel:hover {
     background: rgba(82, 82, 91, 0.8);
+  }
+  .btn-tpl-reset {
+    background: rgba(82, 82, 91, 0.5);
+    color: rgba(205, 214, 244, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 6px;
+    padding: 4px 10px;
+    font-size: 11px;
+    cursor: pointer;
+  }
+  .btn-tpl-reset:hover {
+    background: rgba(82, 82, 91, 0.8);
+    color: rgba(205, 214, 244, 0.8);
   }
   .btn-tpl-save {
     background: color-mix(in srgb, var(--col-color) 20%, transparent);

@@ -11,6 +11,7 @@ pub struct TaskDto {
     pub status: String,
     pub use_plan: bool,
     pub yolo: bool,
+    pub auto: bool,
     pub sort_order: i32,
     pub created_at: String,
     pub completed_at: Option<String>,
@@ -18,6 +19,8 @@ pub struct TaskDto {
     pub worktree: Option<String>,
     pub has_run: bool,
     pub model: Option<String>,
+    pub lines_added: Option<i32>,
+    pub lines_removed: Option<i32>,
 }
 
 impl From<Task> for TaskDto {
@@ -29,6 +32,7 @@ impl From<Task> for TaskDto {
             status: t.status().as_str().to_string(),
             use_plan: t.execution_flags().use_plan,
             yolo: t.execution_flags().yolo,
+            auto: t.execution_flags().auto,
             sort_order: t.sort_order(),
             created_at: t.created_at().to_rfc3339(),
             completed_at: t.completed_at().map(|dt| dt.to_rfc3339()),
@@ -36,6 +40,8 @@ impl From<Task> for TaskDto {
             worktree: t.worktree().map(|w| w.0.clone()),
             has_run: t.has_run(),
             model: t.agent_config().model.clone(),
+            lines_added: t.lines_added(),
+            lines_removed: t.lines_removed(),
         }
     }
 }
@@ -49,6 +55,7 @@ pub struct UpdateTaskInput {
     pub status: String,
     pub use_plan: bool,
     pub yolo: bool,
+    pub auto: bool,
     pub sort_order: i32,
     pub claude_path: Option<String>,
     pub worktree: Option<String>,

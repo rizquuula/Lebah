@@ -8,6 +8,7 @@
 
   export let task: Task;
   export let onClose: () => void;
+  export let readonly: boolean = false;
 
   let selectedModel = task.model ?? "sonnet";
   let entries: ChatEntry[] = [{ kind: "user", text: task.description }];
@@ -149,7 +150,6 @@
     const text = inputValue.trim();
     if (!text) return;
     inputValue = "";
-    entries = [...entries, { kind: "user", text }];
     try {
       await sendInputWithListener(task.id, text, selectedModel, task.yolo);
     } catch (err) {
@@ -195,6 +195,7 @@
 
     <TerminalChat {entries} />
 
+    {#if !readonly}
     <div class="input-bar">
       <span class="prompt">›</span>
       <input
@@ -218,6 +219,7 @@
         </svg>
       </button>
     </div>
+    {/if}
   </div>
 </div>
 

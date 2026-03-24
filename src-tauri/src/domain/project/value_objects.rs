@@ -54,13 +54,13 @@ impl Default for ProjectConfig {
     fn default() -> Self {
         Self {
             review_template: Some(
-                "Help me to check for test, lint and build error if you not yet do it. Then do commit in the worktree.".to_string(),
+                "Help me to check for test, lint and build error if we not yet do it. Do git commit in the worktree, no need for reading changed files to commit, just use knowledge in session and commit all changes.".to_string(),
             ),
             merge_template: Some(
-                "Pull from main branch and check for conflict. Fix the conflict. Then merge this worktree to main.".to_string(),
+                "Pull from main branch in the local repository and check for conflict. Fix the conflict gracefully and run build after conflict resolution. Then merge this worktree to the main local branch. Make comprehensive tasks first before executing.".to_string(),
             ),
             inprogress_template: Some(
-                "Help me do this task: <TASK_DESCRIPTION>. Make comprehensive tasks first before executing.".to_string(),
+                "Help me do this task:\n\n <TASK_DESCRIPTION> \n\nMake comprehensive tasks first before executing.".to_string(),
             ),
         }
     }

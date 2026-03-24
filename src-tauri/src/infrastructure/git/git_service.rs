@@ -4,6 +4,7 @@ use crate::application::errors::ApplicationError;
 use crate::application::ports::GitPort;
 use crate::domain::git::value_objects::GitStatus;
 use crate::domain::project::value_objects::ProjectPath;
+use crate::domain::task::value_objects::WorktreeRef;
 
 pub struct GitInfraService;
 
@@ -66,5 +67,56 @@ impl GitPort for GitInfraService {
         };
 
         Ok(GitStatus { branch, ahead, behind, changed_files })
+    }
+
+    fn get_diff_stat(
+        &self,
+        project_path: &ProjectPath,
+        worktree: &WorktreeRef,
+    ) -> Result<(i32, i32), ApplicationError> {
+        let wt_path = std::path::Path::new(project_path.as_str())
+            .join(".claude")
+            .join("worktrees")
+            .join(worktree.as_str());
+
+        let wt_dir = if wt_path.is_dir() {
+            wt_path.to_str().unwrap_or("").to_string()
+        } else {
+            // Fallback to project root if worktree path doesn't exist
+            project_path.as_str().to_string()
+        };
+
+        // Get the main branch name
+        let main_branch = Command::new("git")
+            .args(["rev-parse", "--verify", "--quiet", "main"])
+            .current_dir(&wt_dir)
+            .output()
+            .ok()
+            .and_then(|o| if o.status.success() { Some("main") } else { None })
+            .unwrap_or("master");
+
+        let output = Command::new("git")
+            .args(["diff", "--numstat", &format!("{}...HEAD", main_branch)])
+            .current_dir(&wt_dir)
+            .output()
+            .map_err(|e| ApplicationError::Git(format!("Failed to run git diff: {}", e)))?;
+
+        if !output.status.success() {
+            return Err(ApplicationError::Git(
+                String::from_utf8_lossy(&output.stderr).to_string(),
+            ));
+        }
+
+        let text = String::from_utf8_lossy(&output.stdout);
+        let (mut added, mut removed) = (0i32, 0i32);
+        for line in text.lines() {
+            let parts: Vec<&str> = line.split_whitespace().collect();
+            if parts.len() >= 2 {
+                added += parts[0].parse::<i32>().unwrap_or(0);
+                removed += parts[1].parse::<i32>().unwrap_or(0);
+            }
+        }
+
+        Ok((added, removed))
     }
 }

@@ -89,6 +89,7 @@ pub fn run() {
                 Arc::clone(&task_repo) as Arc<dyn crate::domain::repositories::TaskRepository>,
                 Arc::clone(&output_repo) as Arc<dyn crate::domain::repositories::OutputRepository>,
                 Arc::clone(&worktree_port) as Arc<dyn crate::application::ports::WorktreePort>,
+                Arc::clone(&git_port) as Arc<dyn crate::application::ports::GitPort>,
                 Arc::clone(&event_bus),
                 Arc::clone(&current_project),
             ));

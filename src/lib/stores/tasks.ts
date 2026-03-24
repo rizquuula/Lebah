@@ -1,7 +1,7 @@
 import { writable, get } from "svelte/store";
 import { invoke } from "@tauri-apps/api/core";
 import { emit, listen } from "@tauri-apps/api/event";
-import { TaskColumn, TaskStatus, DEFAULT_MERGE_TEMPLATE, type Task } from "../types";
+import { TaskColumn, TaskStatus, type Task, DEFAULT_REVIEW_TEMPLATE, DEFAULT_MERGE_TEMPLATE } from "../types";
 import { projectConfig } from "./config";
 
 export const tasks = writable<Task[]>([]);
@@ -60,21 +60,26 @@ async function startNextWaitingMerge(): Promise<void> {
   }
 }
 
-async function autoRunMergeTask(id: string): Promise<void> {
+async function handleAutoAdvance(id: string, taskColumn: TaskColumn): Promise<void> {
   const task = get(tasks).find((t) => t.id === id);
-  if (!task) return;
-  const template = get(projectConfig).merge_template ?? DEFAULT_MERGE_TEMPLATE;
-  if (isAnyMergeRunning()) {
-    await queueMergeTask({
-      id: task.id, description: task.description, usePlan: task.use_plan,
-      yolo: task.yolo, claudePath: task.claude_path, worktree: task.worktree,
-      model: task.model, hasRun: task.has_run, template,
-    });
-  } else if (task.has_run) {
-    await sendInputWithListener(id, template, task.model, task.yolo);
-  } else {
-    await runClaudeSession(id, task.description, task.use_plan, task.yolo, task.claude_path, task.worktree, task.model);
+  if (!task || !task.auto) return;
+
+  const cfg = get(projectConfig);
+
+  if (taskColumn === TaskColumn.InProgress) {
+    await moveTask(id, TaskColumn.Review, 0);
+    const tpl = cfg.review_template ?? DEFAULT_REVIEW_TEMPLATE;
+    await sendInputWithListener(id, tpl, task.model, task.yolo);
+  } else if (taskColumn === TaskColumn.Review) {
+    // moveTask to Merge already done by caller
+    const tpl = cfg.merge_template ?? DEFAULT_MERGE_TEMPLATE;
+    if (isAnyMergeRunning()) {
+      await queueMergeTask({ id, description: task.description, usePlan: task.use_plan, yolo: task.yolo, claudePath: task.claude_path, worktree: task.worktree, model: task.model, hasRun: task.has_run, template: tpl });
+    } else {
+      await sendInputWithListener(id, tpl, task.model, task.yolo);
+    }
   }
+  // Merge → Completed already handled, no further action needed
 }
 
 export async function loadTasks() {
@@ -155,11 +160,12 @@ export async function runClaudeSession(
         if (status === TaskStatus.Success && taskColumn) {
           if (taskColumn === TaskColumn.Review) {
             await moveTask(id, TaskColumn.Merge, 0);
-            await autoRunMergeTask(id);
+
           } else if (taskColumn === TaskColumn.Merge) {
             await moveTask(id, TaskColumn.Completed, 0);
             await startNextWaitingMerge();
           }
+          await handleAutoAdvance(id, taskColumn);
         }
       }
     } catch {}
@@ -182,6 +188,7 @@ export async function getOutputBuffer(id: string): Promise<string[]> {
 
 export async function stopClaudeSession(id: string): Promise<void> {
   await invoke("stop_claude_session", { id });
+  runningSessions.delete(id);
   await loadTasks();
 }
 
@@ -200,9 +207,6 @@ export async function sendInputWithListener(
     all.map((t) => (t.id === id ? { ...t, status: TaskStatus.Running } : t)),
   );
 
-  // Emit synthetic user message so TerminalModal shows the sent text
-  await emit(`claude-output-${id}`, JSON.stringify({ type: "user_input", text: input }));
-
   const unlisten = await listen<string>(`claude-output-${id}`, async (event) => {
     try {
       const msg = JSON.parse(event.payload);
@@ -219,11 +223,12 @@ export async function sendInputWithListener(
         if (status === TaskStatus.Success && taskColumn) {
           if (taskColumn === TaskColumn.Review) {
             await moveTask(id, TaskColumn.Merge, 0);
-            await autoRunMergeTask(id);
+
           } else if (taskColumn === TaskColumn.Merge) {
             await moveTask(id, TaskColumn.Completed, 0);
             await startNextWaitingMerge();
           }
+          await handleAutoAdvance(id, taskColumn);
         }
       }
     } catch {}

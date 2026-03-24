@@ -5,6 +5,12 @@ use crate::domain::task::value_objects::{TaskId, WorktreeRef};
 
 pub trait GitPort: Send + Sync + 'static {
     fn get_status(&self, project_path: &ProjectPath) -> Result<GitStatus, ApplicationError>;
+    /// Returns (lines_added, lines_removed) for a worktree branch vs main.
+    fn get_diff_stat(
+        &self,
+        project_path: &ProjectPath,
+        worktree: &WorktreeRef,
+    ) -> Result<(i32, i32), ApplicationError>;
 }
 
 pub trait WorktreePort: Send + Sync + 'static {
