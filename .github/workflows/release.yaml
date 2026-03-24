@@ -36,7 +36,8 @@ jobs:
           VERSION="${GITHUB_REF_NAME#v}"
 
           # Check if OpenRouter API key is available
-          if [ -n "${OPENROUTER_API_KEY}" ]; then
+          echo "API_KEY_LENGTH=${#OPENROUTER_API_KEY}"
+          if [ "${#OPENROUTER_API_KEY}" -gt 0 ]; then
             echo "Using OpenRouter AI for release notes..."
             MODEL="${OPENROUTER_MODEL:-google/gemini-flash-1.5}"
             BASE_PROMPT="${RELEASE_NOTES_PROMPT:-You are writing release notes for a desktop app. Based on these git commits, write concise and user-friendly release notes in markdown. Group changes into sections like ## What's New, ## Fixes, ## Improvements where relevant. Keep it brief and focused on user impact. Do not add any preamble or closing remarks.}"
