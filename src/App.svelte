@@ -190,7 +190,7 @@
     background: rgba(24, 24, 27, 0.95);
     border-bottom: 1px solid rgba(137, 180, 250, 0.1);
     position: relative;
-    overflow: hidden;
+    overflow: visible;
   }
   .header-glow {
     position: absolute;
