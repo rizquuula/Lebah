@@ -6,8 +6,6 @@ pub enum DomainError {
     TaskNotFound(String),
     #[error("No project selected")]
     NoProjectSelected,
-    #[error("Invalid column transition from {from} to {to}")]
-    InvalidColumnTransition { from: String, to: String },
     #[error("Task is already running")]
     TaskAlreadyRunning,
     #[error("Task is not running")]

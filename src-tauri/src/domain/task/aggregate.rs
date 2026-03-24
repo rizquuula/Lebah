@@ -93,12 +93,6 @@ impl Task {
         column: TaskColumn,
         sort_order: i32,
     ) -> Result<TaskDomainEvent, DomainError> {
-        if self.status == TaskStatus::Running && column == TaskColumn::Completed {
-            return Err(DomainError::InvalidColumnTransition {
-                from: self.column.as_str().to_string(),
-                to: column.as_str().to_string(),
-            });
-        }
         let from = self.column.clone();
         if column == TaskColumn::Completed && self.completed_at.is_none() {
             self.completed_at = Some(Utc::now());
