@@ -91,6 +91,7 @@ impl TaskApplicationService {
         task.update_execution_flags(ExecutionFlags {
             use_plan: cmd.use_plan,
             yolo: cmd.yolo,
+            auto: cmd.auto,
         });
         // For direct status/column updates (e.g. from frontend), bypass aggregate invariants
         // by reconstituting with new values

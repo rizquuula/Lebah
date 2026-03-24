@@ -20,6 +20,8 @@ struct TaskRecord {
     status: String,
     use_plan: bool,
     yolo: bool,
+    #[serde(default)]
+    auto: bool,
     sort_order: i32,
     created_at: String,
     #[serde(default)]
@@ -45,6 +47,7 @@ impl TaskRecord {
             status: task.status().as_str().to_string(),
             use_plan: task.execution_flags().use_plan,
             yolo: task.execution_flags().yolo,
+            auto: task.execution_flags().auto,
             sort_order: task.sort_order(),
             created_at: task.created_at().to_rfc3339(),
             completed_at: task.completed_at().map(|dt| dt.to_rfc3339()),
@@ -79,6 +82,7 @@ impl TaskRecord {
             ExecutionFlags {
                 use_plan: self.use_plan,
                 yolo: self.yolo,
+                auto: self.auto,
             },
             self.worktree.map(WorktreeRef::new),
             self.sort_order,

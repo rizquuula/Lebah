@@ -15,6 +15,7 @@ pub struct UpdateTaskCommand {
     pub status: String,
     pub use_plan: bool,
     pub yolo: bool,
+    pub auto: bool,
     pub sort_order: i32,
     pub agent_path: Option<String>,
     pub model: Option<String>,

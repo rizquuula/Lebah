@@ -132,6 +132,8 @@ pub struct ExecutionFlags {
     pub use_plan: bool,
     /// Skip permission checks (yolo/sandbox mode)
     pub yolo: bool,
+    /// Auto-advance through columns on success
+    pub auto: bool,
 }
 
 impl Default for ExecutionFlags {
@@ -139,6 +141,7 @@ impl Default for ExecutionFlags {
         Self {
             use_plan: false,
             yolo: true,
+            auto: false,
         }
     }
 }

@@ -1,7 +1,8 @@
 import { writable, get } from "svelte/store";
 import { invoke } from "@tauri-apps/api/core";
 import { emit, listen } from "@tauri-apps/api/event";
-import { TaskColumn, TaskStatus, type Task } from "../types";
+import { TaskColumn, TaskStatus, type Task, DEFAULT_REVIEW_TEMPLATE, DEFAULT_MERGE_TEMPLATE } from "../types";
+import { projectConfig } from "./config";
 
 export const tasks = writable<Task[]>([]);
 
@@ -57,6 +58,28 @@ async function startNextWaitingMerge(): Promise<void> {
   } else {
     await runClaudeSession(job.id, job.description, job.usePlan, job.yolo, job.claudePath, job.worktree, job.model);
   }
+}
+
+async function handleAutoAdvance(id: string, taskColumn: TaskColumn): Promise<void> {
+  const task = get(tasks).find((t) => t.id === id);
+  if (!task || !task.auto) return;
+
+  const cfg = get(projectConfig);
+
+  if (taskColumn === TaskColumn.InProgress) {
+    await moveTask(id, TaskColumn.Review, 0);
+    const tpl = cfg.review_template ?? DEFAULT_REVIEW_TEMPLATE;
+    await sendInputWithListener(id, tpl, task.model, task.yolo);
+  } else if (taskColumn === TaskColumn.Review) {
+    // moveTask to Merge already done by caller
+    const tpl = cfg.merge_template ?? DEFAULT_MERGE_TEMPLATE;
+    if (isAnyMergeRunning()) {
+      await queueMergeTask({ id, description: task.description, usePlan: task.use_plan, yolo: task.yolo, claudePath: task.claude_path, worktree: task.worktree, model: task.model, hasRun: task.has_run, template: tpl });
+    } else {
+      await sendInputWithListener(id, tpl, task.model, task.yolo);
+    }
+  }
+  // Merge → Completed already handled, no further action needed
 }
 
 export async function loadTasks() {
@@ -140,6 +163,7 @@ export async function runClaudeSession(
             await moveTask(id, TaskColumn.Completed, 0);
             await startNextWaitingMerge();
           }
+          await handleAutoAdvance(id, taskColumn);
         }
       }
     } catch {}
@@ -202,6 +226,7 @@ export async function sendInputWithListener(
             await moveTask(id, TaskColumn.Completed, 0);
             await startNextWaitingMerge();
           }
+          await handleAutoAdvance(id, taskColumn);
         }
       }
     } catch {}

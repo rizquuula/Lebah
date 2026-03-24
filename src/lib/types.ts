@@ -23,6 +23,7 @@ export interface Task {
   status: TaskStatus;
   use_plan: boolean;
   yolo: boolean;
+  auto: boolean;
   sort_order: number;
   created_at: string;
   completed_at: string | null;
