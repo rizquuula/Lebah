@@ -33,21 +33,7 @@
   <header>
     <div class="logo-group">
       <div class="logo-icon">
-        <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
-          <path d="M12 2L2 7l10 5 10-5-10-5z" fill="url(#g1)" opacity="0.9"/>
-          <path d="M2 17l10 5 10-5" stroke="url(#g2)" stroke-width="1.5" fill="none" opacity="0.7"/>
-          <path d="M2 12l10 5 10-5" stroke="url(#g2)" stroke-width="1.5" fill="none" opacity="0.85"/>
-          <defs>
-            <linearGradient id="g1" x1="2" y1="2" x2="22" y2="12">
-              <stop offset="0%" stop-color="#89b4fa"/>
-              <stop offset="100%" stop-color="#b4befe"/>
-            </linearGradient>
-            <linearGradient id="g2" x1="2" y1="12" x2="22" y2="22">
-              <stop offset="0%" stop-color="#89b4fa"/>
-              <stop offset="100%" stop-color="#cba6f7"/>
-            </linearGradient>
-          </defs>
-        </svg>
+        <img src="/assets/lebah-logo.png" alt="Lebah" />
       </div>
       <h1>Lebah</h1>
       <span class="subtitle">Claude Code Orchestrator</span>
@@ -174,6 +160,11 @@
   .logo-icon {
     display: flex;
     align-items: center;
+  }
+  .logo-icon img {
+    width: 28px;
+    height: 28px;
+    object-fit: contain;
   }
   h1 {
     margin: 0;
