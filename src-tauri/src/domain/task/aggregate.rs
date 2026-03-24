@@ -94,14 +94,16 @@ impl Task {
         sort_order: i32,
     ) -> Result<TaskDomainEvent, DomainError> {
         let from = self.column.clone();
-        if column == TaskColumn::Completed && self.completed_at.is_none() {
-            self.completed_at = Some(Utc::now());
+        if column == TaskColumn::Completed {
+            if self.completed_at.is_none() {
+                self.completed_at = Some(Utc::now());
+            }
+            if self.status == TaskStatus::Running {
+                self.status = TaskStatus::Success;
+            }
         }
         self.column = column.clone();
         self.sort_order = sort_order;
-        if self.column == TaskColumn::Completed && self.completed_at.is_none() {
-            self.completed_at = Some(Utc::now());
-        }
         Ok(TaskDomainEvent::TaskMoved {
             task_id: self.id.clone(),
             from,
