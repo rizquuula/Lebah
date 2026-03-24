@@ -8,6 +8,11 @@ pub fn check_path_exists(path: String) -> bool {
 }
 
 #[tauri::command]
+pub fn get_app_version(app_handle: tauri::AppHandle) -> String {
+    app_handle.package_info().version.to_string()
+}
+
+#[tauri::command]
 pub async fn generate_worktree_name(
     description: String,
     model: Option<String>,
