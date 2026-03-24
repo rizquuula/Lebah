@@ -21,6 +21,15 @@ pub trait WorktreePort: Send + Sync + 'static {
         project_path: &ProjectPath,
         worktree: &WorktreeRef,
     ) -> Result<(), ApplicationError>;
+
+    /// Symlink each path in `links` from the project root into the worktree directory.
+    /// Skips entries where the source does not exist or the symlink already exists.
+    fn apply_links(
+        &self,
+        project_path: &ProjectPath,
+        worktree: &WorktreeRef,
+        links: &[String],
+    ) -> Result<(), ApplicationError>;
 }
 
 pub trait SessionManagerPort: Send + Sync + 'static {

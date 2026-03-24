@@ -2,6 +2,7 @@ use std::collections::HashMap;
 
 use tauri::State;
 
+use crate::application::ports::WorktreePort;
 use crate::application::session::commands::*;
 use crate::domain::agent::runner::PermissionMode;
 use crate::domain::project::value_objects::ProjectPath;
@@ -56,6 +57,24 @@ pub fn run_claude_session(
 
     let effective_claude_path = claude_path.or_else(|| load_claude_path(&services));
     let env_vars = load_env_vars(&services);
+
+    // Auto-apply worktree links before starting the session
+    if let Some(ref wt_name) = worktree {
+        if let Ok(config) = services.project_service.get_project_config() {
+            let links = config.worktree_links.unwrap_or_default();
+            if !links.is_empty() {
+                if let Ok(Some(ref proj)) = services.project_service.get_project() {
+                    if let Err(e) = services.worktree_port.apply_links(
+                        &ProjectPath::new(proj.clone()),
+                        &WorktreeRef::new(wt_name.clone()),
+                        &links,
+                    ) {
+                        log::warn!("[cmd] apply_links failed for worktree {}: {}", wt_name, e);
+                    }
+                }
+            }
+        }
+    }
 
     log::info!("[cmd] run_claude_session: id={} plan={} yolo={} model={:?}", id, use_plan, yolo, model);
 

@@ -19,6 +19,7 @@ const NULL_CONFIG = {
   default_auto: null,
   env_vars: null,
   disabled_env_var_keys: null,
+  worktree_links: null,
 };
 
 describe("config store", () => {
@@ -55,5 +56,30 @@ describe("config store", () => {
 
     expect(mockInvoke).toHaveBeenCalledWith("set_project_config", { config: cfg });
     expect(get(projectConfig).merge_template).toBe("merge!");
+  });
+
+  it("loadProjectConfig preserves worktree_links from backend", async () => {
+    const cfg = { ...NULL_CONFIG, worktree_links: ["node_modules", ".env"] };
+    mockInvoke.mockResolvedValueOnce(cfg);
+
+    const { loadProjectConfig, projectConfig } = await import("./config");
+    await loadProjectConfig();
+
+    expect(get(projectConfig).worktree_links).toEqual(["node_modules", ".env"]);
+  });
+
+  it("saveProjectConfig passes worktree_links to backend", async () => {
+    mockInvoke.mockResolvedValue(undefined);
+    const cfg = { ...NULL_CONFIG, worktree_links: ["target", ".env"] };
+
+    const { saveProjectConfig, projectConfig } = await import("./config");
+    await saveProjectConfig(cfg);
+
+    expect(mockInvoke).toHaveBeenCalledWith("set_project_config", { config: cfg });
+    expect(get(projectConfig).worktree_links).toEqual(["target", ".env"]);
+  });
+
+  it("NULL_CONFIG has worktree_links as null", () => {
+    expect(NULL_CONFIG.worktree_links).toBeNull();
   });
 });

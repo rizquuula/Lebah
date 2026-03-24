@@ -130,6 +130,7 @@ pub fn run() {
                 session_service,
                 project_service,
                 git_service,
+                worktree_port: Arc::clone(&worktree_port) as Arc<dyn crate::application::ports::WorktreePort>,
             });
 
             Ok(())
@@ -155,6 +156,7 @@ pub fn run() {
             reset_task_session,
             get_project_config,
             set_project_config,
+            apply_worktree_links,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

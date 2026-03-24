@@ -1,8 +1,10 @@
 use tauri::State;
 
 use crate::application::project::commands::*;
+use crate::application::ports::WorktreePort;
 use crate::domain::git::value_objects::GitStatus;
 use crate::domain::project::value_objects::{ProjectConfig, ProjectPath};
+use crate::domain::task::value_objects::WorktreeRef;
 use crate::infrastructure::AppServices;
 
 #[tauri::command]
@@ -65,5 +67,39 @@ pub fn set_project_config(
     services
         .project_service
         .set_project_config(UpdateProjectConfigCommand { config })
+        .map_err(|e| e.to_string())
+}
+
+/// Explicitly apply worktree links for a given worktree.
+/// Called automatically by run_claude_session, but also exposed so the frontend
+/// can trigger a re-link after editing the worktree_links config.
+#[tauri::command]
+pub fn apply_worktree_links(
+    worktree: String,
+    services: State<'_, AppServices>,
+) -> Result<(), String> {
+    let project_path = services
+        .project_service
+        .get_project()
+        .map_err(|e| e.to_string())?
+        .ok_or_else(|| "No project path set".to_string())?;
+
+    let config = services
+        .project_service
+        .get_project_config()
+        .map_err(|e| e.to_string())?;
+
+    let links = config.worktree_links.unwrap_or_default();
+    if links.is_empty() {
+        return Ok(());
+    }
+
+    services
+        .worktree_port
+        .apply_links(
+            &ProjectPath::new(project_path),
+            &WorktreeRef::new(worktree),
+            &links,
+        )
         .map_err(|e| e.to_string())
 }
