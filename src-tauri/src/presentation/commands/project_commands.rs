@@ -1,7 +1,6 @@
 use tauri::State;
 
 use crate::application::project::commands::*;
-use crate::application::ports::WorktreePort;
 use crate::domain::git::value_objects::GitStatus;
 use crate::domain::project::value_objects::{ProjectConfig, ProjectPath};
 use crate::domain::task::value_objects::WorktreeRef;

@@ -2,7 +2,6 @@ use std::collections::HashMap;
 
 use tauri::State;
 
-use crate::application::ports::WorktreePort;
 use crate::application::session::commands::*;
 use crate::domain::agent::runner::PermissionMode;
 use crate::domain::project::value_objects::ProjectPath;
