@@ -244,7 +244,15 @@
                 <line x1="9" y1="9" x2="15" y2="15"/>
               </svg>
             </button>
-            <span class="cancel-label">Cancel</span>
+            {#if task.column === TaskColumn.InProgress}
+              <button class="btn-icon reset-fresh" title="Fresh reset" disabled={isResetting}
+                on:click={() => (showConfirmReset = true)}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="1 4 1 10 7 10"/>
+                  <path d="M3.51 15a9 9 0 1 0 .49-4.7"/>
+                </svg>
+              </button>
+            {/if}
           </div>
         {/if}
       </div>
@@ -468,12 +476,12 @@
     top: calc(100% + 4px);
     right: 0;
     display: flex;
-    align-items: center;
-    gap: 6px;
+    flex-direction: column;
+    gap: 2px;
     background: rgba(30, 30, 35, 0.95);
     border: 1px solid rgba(249, 115, 22, 0.3);
     border-radius: 8px;
-    padding: 4px 8px 4px 4px;
+    padding: 4px 4px;
     white-space: nowrap;
     opacity: 0;
     pointer-events: none;
@@ -492,11 +500,10 @@
     pointer-events: auto;
     transform: translateY(0);
   }
-  .cancel-label {
-    font-size: 11px;
-    color: #f97316;
-    font-weight: 500;
-    user-select: none;
+  .btn-icon.reset-fresh:hover:not(:disabled) {
+    background: rgba(147, 197, 253, 0.2);
+    border-color: rgba(147, 197, 253, 0.3);
+    color: #93c5fd;
   }
   .bottom-row {
     margin-top: 8px;
