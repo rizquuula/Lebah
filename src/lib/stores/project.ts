@@ -13,6 +13,14 @@ export async function openProject(path: string): Promise<void> {
   await refreshGitStatus();
 }
 
+export async function switchProject(path: string): Promise<void> {
+  await openProject(path);
+}
+
+export async function getRecentProjects(): Promise<string[]> {
+  return await invoke<string[]>("get_recent_projects", { maxCount: 10 });
+}
+
 export async function refreshGitStatus(): Promise<void> {
   try {
     const status = await invoke<GitStatus>("get_git_status");

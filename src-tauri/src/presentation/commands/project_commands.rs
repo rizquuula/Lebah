@@ -19,6 +19,14 @@ pub fn get_project_path(services: State<'_, AppServices>) -> Result<Option<Strin
 }
 
 #[tauri::command]
+pub fn get_recent_projects(max_count: usize, services: State<'_, AppServices>) -> Result<Vec<String>, String> {
+    services
+        .project_service
+        .get_recent_projects(GetRecentProjectsCommand { max_count })
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
 pub fn get_git_status(services: State<'_, AppServices>) -> Result<GitStatus, String> {
     let path = services
         .project_service

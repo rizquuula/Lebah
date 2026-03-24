@@ -94,4 +94,6 @@ impl Default for ProjectConfig {
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct GlobalConfig {
     pub last_project: Option<String>,
+    #[serde(default)]
+    pub recent_projects: Vec<String>,
 }

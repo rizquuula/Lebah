@@ -145,6 +145,7 @@ pub fn run() {
             send_input,
             set_project_path,
             get_project_path,
+            get_recent_projects,
             get_git_status,
             git_push,
             get_output_buffer,
