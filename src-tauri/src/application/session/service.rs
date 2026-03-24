@@ -4,7 +4,7 @@ use crate::application::errors::ApplicationError;
 use crate::application::event_bus::{DomainEvent, DomainEventBus};
 use crate::application::ports::SessionManagerPort;
 use crate::application::session::commands::*;
-use crate::application::task::commands::{MarkTaskStartedCommand, MarkTaskStoppedCommand};
+use crate::application::task::commands::{MarkTaskCompletedCommand, MarkTaskStartedCommand, MarkTaskStoppedCommand};
 use crate::application::task::service::TaskApplicationService;
 use crate::domain::agent::runner::{AgentHandle, AgentRunConfig, AgentRunner, PermissionMode};
 use crate::domain::repositories::OutputRepository;
@@ -81,6 +81,14 @@ impl SessionApplicationService {
 
         let handle = runner.start(run_config).map_err(|e| {
             log::error!("[session] Failed to start session for task {}: {}", task_id.0, e);
+            let project_path_str = project_path.as_ref().map(|p| p.0.clone()).unwrap_or_default();
+            let _ = self.task_service.mark_task_completed(
+                MarkTaskCompletedCommand {
+                    id: task_id.0.clone(),
+                    success: false,
+                },
+                &project_path_str,
+            );
             e
         })?;
         log::info!("[session] Session started successfully for task {}", task_id.0);
