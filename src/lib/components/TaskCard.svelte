@@ -128,7 +128,7 @@
     try {
       if (task.status === TaskStatus.Running) await stopClaudeSession(task.id);
       await updateTask({ ...task, status: TaskStatus.Canceled, column: TaskColumn.Completed });
-      await moveTask(task.id, "Completed", 0);
+      await moveTask(task.id, TaskColumn.Completed, 0);
     } catch (e) { setError(`Failed to cancel task: ${e}`); }
     finally { isCanceling = false; }
   }
@@ -197,9 +197,6 @@
         </svg>
       </button>
     {:else if task.column === TaskColumn.Completed}
-      <button class="btn-icon play" title="Run" disabled={isPlaying || isResetting} on:click={handlePlay}>
-        <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor"><path d="M2 1.5l9 4.5-9 4.5V1.5z"/></svg>
-      </button>
       <button class="btn-icon terminal-btn" class:active={showTerminal} title="View chat history"
         on:click={() => (showTerminal = !showTerminal)}>
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
