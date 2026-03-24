@@ -1,10 +1,15 @@
 <script lang="ts">
-  import { projectConfig, saveProjectConfig } from "../stores/config";
+  import { onMount } from "svelte";
+  import { projectConfig, loadProjectConfig, saveProjectConfig } from "../stores/config";
   import type { ProjectConfig } from "../types";
 
   export let onClose: () => void;
 
   let activeTab: "general" | "env" = "general";
+
+  onMount(async () => {
+    await loadProjectConfig();
+  });
 
   let claudePath = $projectConfig.claude_path ?? "";
   let worktreeModel = $projectConfig.worktree_model ?? "haiku";
