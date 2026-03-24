@@ -9,7 +9,6 @@
   export let columnColor: string = "#89b4fa";
 
   let description = task?.description ?? "";
-  let claudePath = task?.claude_path ?? "";
   let worktree = task?.worktree ?? "";
   let worktreeError = "";
   let model = task?.model ?? "sonnet";
@@ -23,7 +22,7 @@
       const name = await invoke<string>("generate_worktree_name", {
         description: description.trim(),
         model: model || null,
-        claudePath: claudePath.trim() || null,
+        claudePath: null,
       });
       worktree = name.trim();
       if (pendingSave) {
@@ -39,7 +38,6 @@
   }
 
   async function saveTask() {
-    const pathVal = claudePath.trim() || null;
     const worktreeVal = worktree.trim().replace(/\//g, '-') || null;
     const modelVal = model.trim() || null;
     worktreeError = "";
@@ -49,11 +47,10 @@
         await updateTask({
           ...task,
           description: description.trim(),
-          claude_path: pathVal,
           model: modelVal,
         });
       } else {
-        await createTask(description.trim(), pathVal, worktreeVal, modelVal);
+        await createTask(description.trim(), null, worktreeVal, modelVal);
       }
       onClose();
     } catch (e) {
@@ -99,15 +96,6 @@
         <option value="opus">opus</option>
         <option value="haiku">haiku</option>
       </select>
-
-      <label class="field-label" for="task-claude-path">Claude Code Path</label>
-      <input
-        id="task-claude-path"
-        type="text"
-        bind:value={claudePath}
-        placeholder="claude (default)"
-        class="text-input"
-      />
 
       <label class="field-label" for="task-worktree">Worktree Name</label>
       {#if task}

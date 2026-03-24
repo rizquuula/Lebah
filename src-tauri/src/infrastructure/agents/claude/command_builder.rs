@@ -27,6 +27,9 @@ impl ClaudeCommandBuilder {
             cmd.current_dir(project.as_str());
         }
 
+        // Apply user env vars before permission mode so Sandbox IS_SANDBOX=1 takes precedence
+        cmd.envs(&config.env_vars);
+
         match config.permission_mode {
             PermissionMode::Plan => {
                 cmd.arg("--permission-mode").arg("plan");

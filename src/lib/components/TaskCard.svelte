@@ -62,7 +62,7 @@
         const template = getTemplate();
         if (template) {
           if (task.column === TaskColumn.Merge && isAnyMergeRunning()) {
-            await queueMergeTask({ id: task.id, description: task.description, usePlan: task.use_plan, yolo: task.yolo, claudePath: task.claude_path, worktree: task.worktree, model: task.model, hasRun: task.has_run, template });
+            await queueMergeTask({ id: task.id, description: task.description, usePlan: task.use_plan, yolo: task.yolo, worktree: task.worktree, model: task.model, hasRun: task.has_run, template });
           } else {
             try { await sendInputWithListener(task.id, template, task.model, task.yolo); }
             catch { showTerminal = true; }
@@ -74,9 +74,9 @@
         const template = getTemplate();
         const description = task.column === TaskColumn.InProgress && template ? `${task.description}\n${template}` : task.description;
         if (task.column === TaskColumn.Merge && isAnyMergeRunning()) {
-          await queueMergeTask({ id: task.id, description: task.description, usePlan: task.use_plan, yolo: task.yolo, claudePath: task.claude_path, worktree: task.worktree, model: task.model, hasRun: task.has_run, template });
+          await queueMergeTask({ id: task.id, description: task.description, usePlan: task.use_plan, yolo: task.yolo, worktree: task.worktree, model: task.model, hasRun: task.has_run, template });
         } else {
-          try { await runClaudeSession(task.id, description, task.use_plan, task.yolo, task.claude_path, task.worktree, task.model); }
+          try { await runClaudeSession(task.id, description, task.use_plan, task.yolo, task.worktree, task.model); }
           catch { showTerminal = true; }
         }
       }
@@ -107,7 +107,7 @@
     isResetting = true;
     try {
       const t = await resetTaskSession(task.id);
-      await runClaudeSession(t.id, t.description, t.use_plan, t.yolo, t.claude_path, t.worktree, t.model);
+      await runClaudeSession(t.id, t.description, t.use_plan, t.yolo, t.worktree, t.model);
     } catch { showTerminal = true; }
     finally { isResetting = false; }
   }

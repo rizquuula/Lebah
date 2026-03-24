@@ -77,6 +77,7 @@ impl SessionApplicationService {
             extra_args: Vec::new(),
             is_follow_up: false,
             agent_binary: cmd.agent_path,
+            env_vars: cmd.env_vars,
         };
 
         let handle = runner.start(run_config).map_err(|e| {
@@ -157,6 +158,7 @@ impl SessionApplicationService {
             extra_args: Vec::new(),
             is_follow_up: true,
             agent_binary: None,
+            env_vars: cmd.env_vars,
         };
 
         let handle = runner.send_follow_up(run_config).map_err(|e| {

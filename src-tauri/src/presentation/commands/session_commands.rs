@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use tauri::State;
 
 use crate::application::session::commands::*;
@@ -5,6 +7,23 @@ use crate::domain::agent::runner::PermissionMode;
 use crate::domain::project::value_objects::ProjectPath;
 use crate::domain::task::value_objects::WorktreeRef;
 use crate::infrastructure::AppServices;
+
+fn load_env_vars(services: &AppServices) -> HashMap<String, String> {
+    services
+        .project_service
+        .get_project_config()
+        .ok()
+        .and_then(|c| c.env_vars)
+        .unwrap_or_default()
+}
+
+fn load_claude_path(services: &AppServices) -> Option<String> {
+    services
+        .project_service
+        .get_project_config()
+        .ok()
+        .and_then(|c| c.claude_path)
+}
 
 #[allow(clippy::too_many_arguments)]
 #[tauri::command]
@@ -28,17 +47,21 @@ pub fn run_claude_session(
         PermissionMode::Full
     };
 
+    let effective_claude_path = claude_path.or_else(|| load_claude_path(&services));
+    let env_vars = load_env_vars(&services);
+
     log::info!("[cmd] run_claude_session: id={} plan={} yolo={} model={:?}", id, use_plan, yolo, model);
 
     let cmd = StartSessionCommand {
         task_id: id.clone(),
         description,
         permission_mode,
-        agent_path: claude_path,
+        agent_path: effective_claude_path,
         worktree: worktree.map(WorktreeRef::new),
         project_path: project_path.map(ProjectPath::new),
         model,
         agent_name: None,
+        env_vars,
     };
 
     services.session_service.start_session(cmd).map_err(|e| {
@@ -71,6 +94,7 @@ pub fn send_input(
     services: State<'_, AppServices>,
 ) -> Result<(), String> {
     log::info!("[cmd] send_input: id={} input_len={} model={:?} yolo={}", id, input.len(), model, yolo);
+    let env_vars = load_env_vars(&services);
     services
         .session_service
         .send_input(SendInputCommand {
@@ -78,6 +102,7 @@ pub fn send_input(
             input,
             model,
             yolo,
+            env_vars,
         })
         .map_err(|e| {
             log::error!("[cmd] send_input failed: {}", e);

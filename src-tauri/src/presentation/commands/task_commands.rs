@@ -22,6 +22,16 @@ pub fn create_task(
     model: Option<String>,
     services: State<'_, AppServices>,
 ) -> Result<TaskDto, String> {
+    let defaults = ExecutionFlags::default();
+    let flags = match services.project_service.get_project_config() {
+        Ok(cfg) => ExecutionFlags {
+            use_plan: cfg.default_use_plan.unwrap_or(defaults.use_plan),
+            yolo: cfg.default_yolo.unwrap_or(defaults.yolo),
+            auto: cfg.default_auto.unwrap_or(defaults.auto),
+        },
+        Err(_) => defaults,
+    };
+
     let cmd = CreateTaskCommand {
         description,
         agent_config: AgentConfig {
@@ -29,7 +39,7 @@ pub fn create_task(
             agent_path: claude_path,
             model,
         },
-        execution_flags: ExecutionFlags::default(),
+        execution_flags: flags,
         worktree: worktree.map(WorktreeRef::new),
         sort_order: 0,
     };

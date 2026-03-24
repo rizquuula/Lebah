@@ -19,7 +19,6 @@ interface MergeJob {
   description: string;
   usePlan: boolean;
   yolo: boolean;
-  claudePath: string | null;
   worktree: string | null;
   model: string | null;
   hasRun: boolean;
@@ -56,7 +55,7 @@ async function startNextWaitingMerge(): Promise<void> {
   if (job.hasRun && job.template) {
     await sendInputWithListener(job.id, job.template, job.model, job.yolo);
   } else {
-    await runClaudeSession(job.id, job.description, job.usePlan, job.yolo, job.claudePath, job.worktree, job.model);
+    await runClaudeSession(job.id, job.description, job.usePlan, job.yolo, job.worktree, job.model);
   }
 }
 
@@ -74,7 +73,7 @@ async function handleAutoAdvance(id: string, taskColumn: TaskColumn): Promise<vo
     // moveTask to Merge already done by caller
     const tpl = cfg.merge_template ?? DEFAULT_MERGE_TEMPLATE;
     if (get(tasks).some((t) => t.column === TaskColumn.Merge && t.status === TaskStatus.Running && t.id !== id)) {
-      await queueMergeTask({ id, description: task.description, usePlan: task.use_plan, yolo: task.yolo, claudePath: task.claude_path, worktree: task.worktree, model: task.model, hasRun: task.has_run, template: tpl });
+      await queueMergeTask({ id, description: task.description, usePlan: task.use_plan, yolo: task.yolo, worktree: task.worktree, model: task.model, hasRun: task.has_run, template: tpl });
     } else {
       await sendInputWithListener(id, tpl, task.model, task.yolo);
     }
@@ -138,7 +137,6 @@ export async function runClaudeSession(
   description: string,
   usePlan: boolean,
   yolo: boolean,
-  claudePath: string | null = null,
   worktree: string | null = null,
   model: string | null = null,
 ): Promise<void> {
@@ -172,7 +170,7 @@ export async function runClaudeSession(
   });
 
   try {
-    await invoke("run_claude_session", { id, description, usePlan, yolo, claudePath, worktree, model });
+    await invoke("run_claude_session", { id, description, usePlan, yolo, claudePath: null, worktree, model });
     await loadTasks();
   } catch {
     unlisten();

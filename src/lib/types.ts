@@ -62,6 +62,12 @@ export interface ProjectConfig {
   review_template: string | null;
   merge_template: string | null;
   inprogress_template: string | null;
+  claude_path: string | null;
+  worktree_model: string | null;
+  default_use_plan: boolean | null;
+  default_yolo: boolean | null;
+  default_auto: boolean | null;
+  env_vars: Record<string, string> | null;
 }
 
 export const DEFAULT_REVIEW_TEMPLATE = "Help me to check for test, lint and build error if we not yet do it. Do git commit in the worktree, no need for reading changed files to commit, just use knowledge in session and commit all changes.";

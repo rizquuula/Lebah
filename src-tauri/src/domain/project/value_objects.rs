@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
@@ -48,10 +50,24 @@ pub struct ProjectConfig {
     pub review_template: Option<String>,
     pub merge_template: Option<String>,
     pub inprogress_template: Option<String>,
+    #[serde(default)]
+    pub claude_path: Option<String>,
+    #[serde(default)]
+    pub worktree_model: Option<String>,
+    #[serde(default)]
+    pub default_use_plan: Option<bool>,
+    #[serde(default)]
+    pub default_yolo: Option<bool>,
+    #[serde(default)]
+    pub default_auto: Option<bool>,
+    #[serde(default)]
+    pub env_vars: Option<HashMap<String, String>>,
 }
 
 impl Default for ProjectConfig {
     fn default() -> Self {
+        let mut env_vars = HashMap::new();
+        env_vars.insert("IS_SANDBOX".to_string(), "0".to_string());
         Self {
             review_template: Some(
                 "Help me to check for test, lint and build error if we not yet do it. Do git commit in the worktree, no need for reading changed files to commit, just use knowledge in session and commit all changes.".to_string(),
@@ -62,6 +78,12 @@ impl Default for ProjectConfig {
             inprogress_template: Some(
                 "Help me do this task:\n\n <TASK_DESCRIPTION> \n\nMake comprehensive tasks first before executing.".to_string(),
             ),
+            claude_path: None,
+            worktree_model: Some("haiku".to_string()),
+            default_use_plan: Some(false),
+            default_yolo: Some(true),
+            default_auto: Some(false),
+            env_vars: Some(env_vars),
         }
     }
 }

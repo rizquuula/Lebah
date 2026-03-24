@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::sync::mpsc;
 use thiserror::Error;
 
@@ -55,6 +56,8 @@ pub struct AgentRunConfig {
     pub is_follow_up: bool,
     /// Path override for the agent binary
     pub agent_binary: Option<String>,
+    /// Environment variables to pass to the agent process
+    pub env_vars: HashMap<String, String>,
 }
 
 /// Handles for interacting with a running agent process.

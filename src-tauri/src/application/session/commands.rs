@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use crate::domain::agent::runner::PermissionMode;
 use crate::domain::project::value_objects::ProjectPath;
 use crate::domain::task::value_objects::WorktreeRef;
@@ -11,6 +13,7 @@ pub struct StartSessionCommand {
     pub project_path: Option<ProjectPath>,
     pub model: Option<String>,
     pub agent_name: Option<String>,
+    pub env_vars: HashMap<String, String>,
 }
 
 pub struct StopSessionCommand {
@@ -22,4 +25,5 @@ pub struct SendInputCommand {
     pub input: String,
     pub model: Option<String>,
     pub yolo: bool,
+    pub env_vars: HashMap<String, String>,
 }

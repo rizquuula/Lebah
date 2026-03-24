@@ -1,4 +1,6 @@
-use tauri::Emitter;
+use tauri::{Emitter, State};
+
+use crate::infrastructure::AppServices;
 
 #[tauri::command]
 pub fn check_path_exists(path: String) -> bool {
@@ -11,8 +13,20 @@ pub async fn generate_worktree_name(
     model: Option<String>,
     claude_path: Option<String>,
     app_handle: tauri::AppHandle,
+    services: State<'_, AppServices>,
 ) -> Result<String, String> {
-    let claude = claude_path.unwrap_or_else(|| "claude".to_string());
+    let config = services.project_service.get_project_config().ok();
+
+    let claude = claude_path
+        .or_else(|| config.as_ref().and_then(|c| c.claude_path.clone()))
+        .unwrap_or_else(|| "claude".to_string());
+
+    let effective_model = model
+        .or_else(|| config.as_ref().and_then(|c| c.worktree_model.clone()));
+
+    let env_vars = config
+        .and_then(|c| c.env_vars)
+        .unwrap_or_default();
 
     let prompt = format!(
         "Based on this task\n\n{}\n\nplease generate a worktree name, with format\n\n<fix/feat/chore>-<worktree name max 2 word separated by dash>-<5 random string character>\n\nRespond with ONLY the worktree name, nothing else. No explanation, no punctuation, just the name.",
@@ -24,10 +38,11 @@ pub async fn generate_worktree_name(
         .arg("--verbose")
         .arg("--print").arg(&prompt);
 
-    if let Some(ref m) = model {
+    if let Some(ref m) = effective_model {
         cmd.arg("--model").arg(m);
     }
 
+    cmd.envs(&env_vars);
     cmd.stdout(std::process::Stdio::piped())
         .stderr(std::process::Stdio::piped());
 
