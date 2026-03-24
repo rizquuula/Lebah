@@ -73,7 +73,7 @@ async function handleAutoAdvance(id: string, taskColumn: TaskColumn): Promise<vo
   } else if (taskColumn === TaskColumn.Review) {
     // moveTask to Merge already done by caller
     const tpl = cfg.merge_template ?? DEFAULT_MERGE_TEMPLATE;
-    if (isAnyMergeRunning()) {
+    if (get(tasks).some((t) => t.column === TaskColumn.Merge && t.status === TaskStatus.Running && t.id !== id)) {
       await queueMergeTask({ id, description: task.description, usePlan: task.use_plan, yolo: task.yolo, claudePath: task.claude_path, worktree: task.worktree, model: task.model, hasRun: task.has_run, template: tpl });
     } else {
       await sendInputWithListener(id, tpl, task.model, task.yolo);
