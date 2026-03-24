@@ -174,3 +174,94 @@ impl Task {
     pub fn lines_added(&self) -> Option<i32> { self.lines_added }
     pub fn lines_removed(&self) -> Option<i32> { self.lines_removed }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::domain::task::value_objects::{AgentConfig, ExecutionFlags, TaskColumn, TaskStatus};
+
+    fn make_task() -> Task {
+        Task::create(
+            "test task".to_string(),
+            AgentConfig::default(),
+            ExecutionFlags::default(),
+            None,
+            0,
+        )
+    }
+
+    #[test]
+    fn create_sets_defaults() {
+        let t = make_task();
+        assert_eq!(t.description(), "test task");
+        assert_eq!(t.column(), &TaskColumn::Todo);
+        assert_eq!(t.status(), &TaskStatus::Idle);
+        assert!(!t.has_run());
+        assert!(t.completed_at().is_none());
+    }
+
+    #[test]
+    fn mark_started_sets_running() {
+        let mut t = make_task();
+        t.mark_started().unwrap();
+        assert_eq!(t.status(), &TaskStatus::Running);
+        assert!(t.has_run());
+    }
+
+    #[test]
+    fn mark_started_twice_returns_error() {
+        let mut t = make_task();
+        t.mark_started().unwrap();
+        assert!(t.mark_started().is_err());
+    }
+
+    #[test]
+    fn mark_completed_success() {
+        let mut t = make_task();
+        t.mark_started().unwrap();
+        t.mark_completed(true);
+        assert_eq!(t.status(), &TaskStatus::Success);
+    }
+
+    #[test]
+    fn mark_completed_failure() {
+        let mut t = make_task();
+        t.mark_started().unwrap();
+        t.mark_completed(false);
+        assert_eq!(t.status(), &TaskStatus::Failed);
+    }
+
+    #[test]
+    fn mark_stopped_resets_to_idle() {
+        let mut t = make_task();
+        t.mark_started().unwrap();
+        t.mark_stopped();
+        assert_eq!(t.status(), &TaskStatus::Idle);
+    }
+
+    #[test]
+    fn move_to_completed_sets_completed_at() {
+        let mut t = make_task();
+        assert!(t.completed_at().is_none());
+        t.move_to_column(TaskColumn::Completed, 1).unwrap();
+        assert!(t.completed_at().is_some());
+        assert_eq!(t.column(), &TaskColumn::Completed);
+    }
+
+    #[test]
+    fn move_to_completed_does_not_overwrite_completed_at() {
+        let mut t = make_task();
+        t.move_to_column(TaskColumn::Completed, 1).unwrap();
+        let first = *t.completed_at().unwrap();
+        t.move_to_column(TaskColumn::Completed, 2).unwrap();
+        assert_eq!(*t.completed_at().unwrap(), first);
+    }
+
+    #[test]
+    fn set_line_changes() {
+        let mut t = make_task();
+        t.set_line_changes(10, 5);
+        assert_eq!(t.lines_added(), Some(10));
+        assert_eq!(t.lines_removed(), Some(5));
+    }
+}

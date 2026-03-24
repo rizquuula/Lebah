@@ -47,3 +47,43 @@ impl Session {
     pub fn state(&self) -> &SessionState { &self.state }
     pub fn agent_name(&self) -> &str { &self.agent_name }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::domain::task::value_objects::TaskId;
+
+    fn make_session() -> Session {
+        Session::new(TaskId::new(), "claude".to_string())
+    }
+
+    #[test]
+    fn new_session_is_idle() {
+        let s = make_session();
+        assert!(matches!(s.state(), SessionState::Idle));
+        assert_eq!(s.agent_name(), "claude");
+    }
+
+    #[test]
+    fn start_transitions_to_running() {
+        let mut s = make_session();
+        s.start();
+        assert!(matches!(s.state(), SessionState::Running { .. }));
+    }
+
+    #[test]
+    fn complete_success() {
+        let mut s = make_session();
+        s.start();
+        s.complete(true);
+        assert!(matches!(s.state(), SessionState::Completed { success: true }));
+    }
+
+    #[test]
+    fn fail_with_reason() {
+        let mut s = make_session();
+        s.start();
+        s.fail("conflict".to_string());
+        assert!(matches!(s.state(), SessionState::Failed { reason } if reason == "conflict"));
+    }
+}
