@@ -33,7 +33,7 @@
   <header>
     <div class="logo-group">
       <div class="logo-icon">
-        <img src="/assets/lebah-logo.png" alt="Lebah" />
+        <img src="/lebah-logo.png" alt="Lebah" />
       </div>
       <h1>Lebah</h1>
       <span class="subtitle">Claude Code Orchestrator</span>
