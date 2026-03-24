@@ -12,6 +12,7 @@ export const projectConfig = writable<ProjectConfig>({
   default_yolo: null,
   default_auto: null,
   env_vars: null,
+  disabled_env_var_keys: null,
 });
 
 export async function loadProjectConfig(): Promise<void> {
@@ -19,7 +20,7 @@ export async function loadProjectConfig(): Promise<void> {
     const config = await invoke<ProjectConfig>("get_project_config");
     projectConfig.set(config);
   } catch {
-    projectConfig.set({ review_template: null, merge_template: null, inprogress_template: null, claude_path: null, worktree_model: null, default_use_plan: null, default_yolo: null, default_auto: null, env_vars: null });
+    projectConfig.set({ review_template: null, merge_template: null, inprogress_template: null, claude_path: null, worktree_model: null, default_use_plan: null, default_yolo: null, default_auto: null, env_vars: null, disabled_env_var_keys: null });
   }
 }
 

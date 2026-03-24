@@ -21,6 +21,10 @@ Manage AI coding sessions visually — create tasks, drag them through workflow 
 - **Git status** — See current branch, ahead/behind counts, and changed file count (auto-refreshes every 30s)
 - **Custom Claude path** — Override the Claude CLI binary per task
 - **Project templates** — Configure per-project prompt templates for each workflow stage
+- **Environment variables** — Configure per-project environment variables passed to Claude sessions (with enable/disable toggle)
+- **Settings modal** — Centralized settings with General and Environment Variables tabs
+- **Worktree name display** — Tasks show their associated worktree name
+- **Auto-generated worktree names** — AI-powered worktree name generation when creating tasks
 - **Persistent state** — All tasks and settings saved in a local SQLite database
 
 ## Screenshots
@@ -74,6 +78,7 @@ make clean-soft   # clear only caches (Vite, Cargo incremental) for faster rebui
 | **Yolo mode** | Passes `--dangerously-skip-permissions`; skips all permission prompts |
 | **Auto mode** | Automatically advances the task through columns on session success |
 | **Claude path** | Override which `claude` binary to use for this task |
+| **Model override** | Override the Claude model for this task |
 | **Claude command** | Append extra CLI arguments (e.g. `--model claude-opus-4-6`) |
 | **Model** | Override the Claude model for this task |
 
@@ -97,6 +102,15 @@ When **Auto** mode is enabled on a task, successful session completion triggers 
 
 Templates are configurable per project via the project settings panel.
 
+### Environment Variables
+
+Environment variables can be configured per project in the Settings modal:
+
+- Add, edit, or remove environment variables
+- Toggle variables on/off using the eye icon (disabled variables are preserved but not passed to sessions)
+- Variables are sorted alphabetically by key name
+- Default includes `IS_SANDBOX=0`
+
 ## Tech Stack
 
 | Layer | Technology |
@@ -107,6 +121,22 @@ Templates are configurable per project via the project settings panel.
 | Frontend framework | [Svelte 5](https://svelte.dev/) + TypeScript |
 | Styling | [Tailwind CSS v4](https://tailwindcss.com/) |
 | Drag & drop | [svelte-dnd-action](https://github.com/babakfp/svelte-dnd-action) |
+
+## Settings
+
+The app includes a comprehensive settings modal accessible via the gear icon in the header:
+
+### General Tab
+- **Claude Code Path** — Override the default `claude` binary path
+- **Worktree Generator Model** — Choose which Claude model (haiku/sonnet/opus) to use for generating worktree names
+- **Default Plan Mode** — Enable plan mode by default for new tasks
+- **Default Yolo Mode** — Enable yolo mode by default for new tasks
+- **Default Auto Mode** — Enable auto-advance by default for new tasks
+
+### Environment Variables Tab
+- Configure per-project environment variables passed to Claude sessions
+- Each variable has a key, value, and enabled state
+- Disabled variables are preserved but not passed to sessions
 
 ## Project Structure
 

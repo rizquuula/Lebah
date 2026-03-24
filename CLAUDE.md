@@ -92,6 +92,8 @@ src-tauri/src/
 - Tasks flow through columns: To-Do → In Progress → Review → Merge → Completed
 - Claude sessions are spawned as child processes, output streamed via Tauri events
 - Task status reflected by card border color: green=success, yellow=running, red=failed, orange=warning, blue=waiting (merge queue)
+- Task session failures due to conflicts are marked as Failed status
+- Session stderr output is logged at error level
 - Plan mode passes `--permission-mode plan` to the CLI
 - Yolo mode passes `--dangerously-skip-permissions` with `IS_SANDBOX=true` env var
 - Backend follows Domain-Driven Design (DDD) with Clean Architecture layers: domain → application → infrastructure → presentation
@@ -111,6 +113,11 @@ Configurable per-project prompt templates stored via `get_project_config` / `set
 ### Model Selection
 Tasks support a `model` field to override the Claude model per task. The model can also be overridden when sending input via `send_input`.
 
+### Worktree Support
+- Tasks display their associated worktree name below the datetime on the card
+- Worktree names can be auto-generated using AI based on task description
+- Auto-generated worktree names are saved when the task is saved (if not manually set)
+
 ## Tauri Commands (IPC)
 | Command | Description |
 |---|---|
@@ -127,7 +134,24 @@ Tasks support a `model` field to override the Claude model per task. The model c
 | `set_project_path` | Set active project directory |
 | `get_project_path` | Retrieve current project directory |
 | `get_git_status` | Query git branch/ahead/behind/changed files |
-| `get_project_config` | Retrieve project configuration (column templates) |
+| `get_project_config` | Retrieve project configuration (templates, env vars, defaults) |
 | `set_project_config` | Save project configuration |
 | `check_path_exists` | Check if a file or directory path exists |
 | `generate_worktree_name` | Generate an AI-powered worktree name from a task description |
+
+## Settings & Configuration
+The app includes a settings modal with two tabs:
+
+### General Tab
+- **Claude Code Path** — Override the default `claude` binary path
+- **Worktree Generator Model** — Choose which Claude model to use for generating worktree names (haiku/sonnet/opus)
+- **Default Plan Mode** — Enable plan mode by default for new tasks
+- **Default Yolo Mode** — Enable yolo mode by default for new tasks
+- **Default Auto Mode** — Enable auto-advance by default for new tasks
+
+### Environment Variables Tab
+- Configure per-project environment variables that are passed to Claude sessions
+- Each variable has a key, value, and enabled state
+- Disabled variables are preserved but not passed to sessions (eye icon toggle)
+- Variables are sorted alphabetically by key name
+- Default includes `IS_SANDBOX=0`
