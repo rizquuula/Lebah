@@ -39,11 +39,12 @@ jobs:
 
           PROMPT=$(printf '%s\n\nVersion: %s\nCommits:\n%s' "$BASE_PROMPT" "$VERSION" "$COMMITS")
 
-          # Debug: Check if API key exists
+          # Debug: Check if API key exists (show first 5 chars for verification)
           if [ -z "${OPENROUTER_API_KEY}" ]; then
-            echo "::error::OPENROUTER_API_KEY is not set"
+            echo "::error::OPENROUTER_API_KEY is not set or empty"
             exit 1
           fi
+          echo "API Key prefix: $(echo ${OPENROUTER_API_KEY} | cut -c1-5)..."
 
           # Get commits
           if [ -z "${COMMITS}" ]; then
