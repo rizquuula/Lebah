@@ -39,8 +39,8 @@ jobs:
 
           PROMPT=$(printf '%s\n\nVersion: %s\nCommits:\n%s' "$BASE_PROMPT" "$VERSION" "$COMMITS")
 
-          echo "DEBUG: OPENROUTER_API_KEY is set: $([ -n "$OPENROUTER_API_KEY" ] && echo 'yes' || echo 'no')"
-          echo "DEBUG: MODEL = $MODEL"
+          echo "DEBUG: OPENROUTER_API_KEY is set: $([ -n \"${OPENROUTER_API_KEY}\" ] && echo 'yes' || echo 'no')"
+          echo "DEBUG: MODEL = ${MODEL}"
 
           curl_exit_code=0
           curl -s https://openrouter.ai/api/v1/chat/completions \
@@ -84,7 +84,7 @@ jobs:
       contents: write
     timeout-minutes: 60
     strategy:
-      fail-fast: false
+      fail-fast: true
       matrix:
         include:
           - name: Windows x64
