@@ -1,7 +1,8 @@
 import { writable, get } from "svelte/store";
 import { invoke } from "@tauri-apps/api/core";
 import { emit, listen } from "@tauri-apps/api/event";
-import { TaskColumn, TaskStatus, type Task } from "../types";
+import { TaskColumn, TaskStatus, DEFAULT_MERGE_TEMPLATE, type Task } from "../types";
+import { projectConfig } from "./config";
 
 export const tasks = writable<Task[]>([]);
 
@@ -56,6 +57,23 @@ async function startNextWaitingMerge(): Promise<void> {
     await sendInputWithListener(job.id, job.template, job.model, job.yolo);
   } else {
     await runClaudeSession(job.id, job.description, job.usePlan, job.yolo, job.claudePath, job.worktree, job.model);
+  }
+}
+
+async function autoRunMergeTask(id: string): Promise<void> {
+  const task = get(tasks).find((t) => t.id === id);
+  if (!task) return;
+  const template = get(projectConfig).merge_template ?? DEFAULT_MERGE_TEMPLATE;
+  if (isAnyMergeRunning()) {
+    await queueMergeTask({
+      id: task.id, description: task.description, usePlan: task.use_plan,
+      yolo: task.yolo, claudePath: task.claude_path, worktree: task.worktree,
+      model: task.model, hasRun: task.has_run, template,
+    });
+  } else if (task.has_run) {
+    await sendInputWithListener(id, template, task.model, task.yolo);
+  } else {
+    await runClaudeSession(id, task.description, task.use_plan, task.yolo, task.claude_path, task.worktree, task.model);
   }
 }
 
@@ -135,8 +153,10 @@ export async function runClaudeSession(
           return all.map((t) => (t.id === id ? { ...t, status } : t));
         });
         if (status === TaskStatus.Success && taskColumn) {
-          if (taskColumn === TaskColumn.Review) await moveTask(id, TaskColumn.Merge, 0);
-          else if (taskColumn === TaskColumn.Merge) {
+          if (taskColumn === TaskColumn.Review) {
+            await moveTask(id, TaskColumn.Merge, 0);
+            await autoRunMergeTask(id);
+          } else if (taskColumn === TaskColumn.Merge) {
             await moveTask(id, TaskColumn.Completed, 0);
             await startNextWaitingMerge();
           }
@@ -197,8 +217,10 @@ export async function sendInputWithListener(
           return all.map((t) => (t.id === id ? { ...t, status } : t));
         });
         if (status === TaskStatus.Success && taskColumn) {
-          if (taskColumn === TaskColumn.Review) await moveTask(id, TaskColumn.Merge, 0);
-          else if (taskColumn === TaskColumn.Merge) {
+          if (taskColumn === TaskColumn.Review) {
+            await moveTask(id, TaskColumn.Merge, 0);
+            await autoRunMergeTask(id);
+          } else if (taskColumn === TaskColumn.Merge) {
             await moveTask(id, TaskColumn.Completed, 0);
             await startNextWaitingMerge();
           }
