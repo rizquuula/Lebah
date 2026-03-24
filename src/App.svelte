@@ -7,17 +7,22 @@
   import RecentProjectDropdown from "./lib/components/RecentProjectDropdown.svelte";
   import ConfirmDialog from "./lib/components/ConfirmDialog.svelte";
   import { projectPath, gitStatus, openProject, loadProjectPath, refreshGitStatus } from "./lib/stores/project";
+  import { copyToClipboard } from "./lib/utils/clipboard";
   import { lastError, clearError } from "./lib/stores/errors";
   import { initializeConfigSubscription } from "./lib/stores/config";
+  import { appVersion, loadAppVersion } from "./lib/stores/version";
 
   let showSettings = false;
   let showPushDialog = false;
   let isPushing = false;
+  let pathCopied = false;
+  let copyTimeout: ReturnType<typeof setTimeout>;
 
   let gitPollInterval: ReturnType<typeof setInterval>;
 
   onMount(async () => {
     await loadProjectPath();
+    await loadAppVersion();
     initializeConfigSubscription();
     gitPollInterval = setInterval(() => {
       if ($projectPath) refreshGitStatus();
@@ -26,7 +31,18 @@
 
   onDestroy(() => {
     clearInterval(gitPollInterval);
+    clearTimeout(copyTimeout);
   });
+
+  async function handleCopyPath() {
+    if (!$projectPath) return;
+    const ok = await copyToClipboard($projectPath);
+    if (ok) {
+      pathCopied = true;
+      clearTimeout(copyTimeout);
+      copyTimeout = setTimeout(() => { pathCopied = false; }, 1500);
+    }
+  }
 
   async function handleOpenProject() {
     const selected = await open({ directory: true, multiple: false });
@@ -59,7 +75,7 @@
       <div class="logo-icon">
         <img src="/lebah-logo.png" alt="Lebah" />
       </div>
-      <h1>Lebah</h1>
+      <h1>Lebah{#if $appVersion}<span class="version">v{$appVersion}</span>{/if}</h1>
       <span class="subtitle">Claude Code Orchestrator</span>
     </div>
 
@@ -73,7 +89,14 @@
       </button>
 
       {#if $projectPath}
-        <span class="project-path" title={$projectPath}>{$projectPath}</span>
+        <span
+          class="project-path"
+          class:copied={pathCopied}
+          title={pathCopied ? 'Copied!' : 'Double-click to copy path'}
+          on:dblclick={handleCopyPath}
+          role="button"
+          tabindex="0"
+        >{pathCopied ? 'Copied!' : $projectPath}</span>
       {/if}
 
       {#if $gitStatus}
@@ -228,6 +251,14 @@
     filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.8));
     letter-spacing: 0.02em;
   }
+  .version {
+    font-size: 11px;
+    font-weight: 500;
+    opacity: 0.6;
+    margin-left: 6px;
+    vertical-align: middle;
+    letter-spacing: 0;
+  }
   .subtitle {
     font-size: 13px;
     color: rgba(108, 112, 134, 0.8);
@@ -278,6 +309,14 @@
     white-space: nowrap;
     direction: rtl;
     text-align: left;
+    cursor: copy;
+    user-select: none;
+    transition: color 0.15s, border-color 0.15s;
+  }
+  .project-path.copied {
+    color: rgba(166, 227, 161, 0.9);
+    border-color: rgba(166, 227, 161, 0.3);
+    direction: ltr;
   }
   .git-info {
     display: flex;

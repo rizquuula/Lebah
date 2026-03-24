@@ -11,7 +11,7 @@ Claude Code orchestration desktop app — a kanban board for managing Claude Cod
 
 ## Versioning
 
-Current app version: **0.1.0**
+Current app version: **0.1.1**
 
 Version is defined in two places (must be kept in sync):
 - `src-tauri/tauri.conf.json` — `"version"` field

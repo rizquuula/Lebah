@@ -289,7 +289,8 @@
     to { transform: rotate(360deg); }
   }
   .spin {
-    animation: spin 0.8s linear infinite;
+    animation: spin 2s steps(12, end) infinite;
+    will-change: transform;
   }
   .readonly-field {
     display: flex;
