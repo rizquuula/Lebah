@@ -223,6 +223,7 @@ impl SessionApplicationService {
         std::thread::spawn(move || {
             log::debug!("[session] Stderr reader thread started for task {}", task_id_c2.0);
             for line in handle.stderr_rx {
+                log::warn!("[session] stderr task={} {}", task_id_c2.0, line);
                 event_bus2.publish(DomainEvent::Session(SessionDomainEvent::SessionOutputReceived {
                     task_id: task_id_c2.clone(),
                     line,
@@ -239,7 +240,11 @@ impl SessionApplicationService {
         std::thread::spawn(move || {
             log::debug!("[session] Exit watcher thread started for task {}", task_id_c3.0);
             for success in handle.exit_rx {
-                log::info!("[session] Task {} exited with success={}", task_id_c3.0, success);
+                if success {
+                    log::info!("[session] Task {} exited with success=true", task_id_c3.0);
+                } else {
+                    log::error!("[session] Task {} exited with success=false", task_id_c3.0);
+                }
                 event_bus3.publish(DomainEvent::Session(SessionDomainEvent::SessionEnded {
                     task_id: task_id_c3.clone(),
                     success,
