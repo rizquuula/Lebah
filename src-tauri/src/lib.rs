@@ -146,6 +146,7 @@ pub fn run() {
             set_project_path,
             get_project_path,
             get_git_status,
+            git_push,
             get_output_buffer,
             check_path_exists,
             generate_worktree_name,

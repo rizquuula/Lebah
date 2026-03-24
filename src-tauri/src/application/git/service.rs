@@ -17,4 +17,8 @@ impl GitApplicationService {
     pub fn get_status(&self, project_path: &ProjectPath) -> Result<GitStatus, ApplicationError> {
         self.git_port.get_status(project_path)
     }
+
+    pub fn push(&self, project_path: &ProjectPath) -> Result<String, ApplicationError> {
+        self.git_port.push(project_path)
+    }
 }

@@ -11,6 +11,8 @@ pub trait GitPort: Send + Sync + 'static {
         project_path: &ProjectPath,
         worktree: &WorktreeRef,
     ) -> Result<(i32, i32), ApplicationError>;
+    /// Push the current branch to its upstream remote.
+    fn push(&self, project_path: &ProjectPath) -> Result<String, ApplicationError>;
 }
 
 pub trait WorktreePort: Send + Sync + 'static {

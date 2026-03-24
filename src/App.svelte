@@ -1,12 +1,16 @@
 <script lang="ts">
   import { onMount, onDestroy } from "svelte";
   import { open } from "@tauri-apps/plugin-dialog";
+  import { invoke } from "@tauri-apps/api/core";
   import Board from "./lib/components/Board.svelte";
   import SettingsModal from "./lib/components/SettingsModal.svelte";
+  import ConfirmDialog from "./lib/components/ConfirmDialog.svelte";
   import { projectPath, gitStatus, openProject, loadProjectPath, refreshGitStatus } from "./lib/stores/project";
   import { lastError, clearError } from "./lib/stores/errors";
 
   let showSettings = false;
+  let showPushDialog = false;
+  let isPushing = false;
 
   let gitPollInterval: ReturnType<typeof setInterval>;
 
@@ -25,6 +29,23 @@
     const selected = await open({ directory: true, multiple: false });
     if (selected && typeof selected === "string") {
       await openProject(selected);
+    }
+  }
+
+  async function handleGitPush() {
+    showPushDialog = true;
+  }
+
+  async function confirmPush() {
+    showPushDialog = false;
+    isPushing = true;
+    try {
+      await invoke<string>("git_push");
+      refreshGitStatus();
+    } catch (e) {
+      console.error("Push failed:", e);
+    } finally {
+      isPushing = false;
     }
   }
 </script>
@@ -67,6 +88,22 @@
           {#if $gitStatus.changed_files > 0}
             <span class="git-badge changes" title="{$gitStatus.changed_files} changed files">●{$gitStatus.changed_files}</span>
           {/if}
+          <button
+            class="btn-push"
+            on:click={handleGitPush}
+            disabled={isPushing}
+            title="Push to remote"
+          >
+            {#if isPushing}
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="spinner">
+                <path d="M21 12a9 9 0 11-6.219-8.56"/>
+              </svg>
+            {:else}
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/>
+              </svg>
+            {/if}
+          </button>
         </div>
       {/if}
 
@@ -88,6 +125,16 @@
   <Board />
   {#if showSettings}
     <SettingsModal onClose={() => showSettings = false} />
+  {/if}
+  {#if showPushDialog}
+    <ConfirmDialog
+      title="Push to Remote"
+      detail="Push the current branch to its upstream remote?"
+      confirmLabel="Push"
+      onConfirm={confirmPush}
+      onCancel={() => showPushDialog = false}
+      loading={isPushing}
+    />
   {/if}
 </main>
 
@@ -257,6 +304,37 @@
   .git-badge.changes {
     background: rgba(249, 226, 175, 0.15);
     color: #f9e2af;
+  }
+  .btn-push {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    background: rgba(137, 180, 250, 0.1);
+    color: #89b4fa;
+    border: 1px solid rgba(137, 180, 250, 0.15);
+    border-radius: 6px;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: all 0.15s ease;
+    font-family: inherit;
+  }
+  .btn-push:hover:not(:disabled) {
+    background: rgba(137, 180, 250, 0.2);
+    border-color: rgba(137, 180, 250, 0.35);
+    box-shadow: 0 0 10px rgba(137, 180, 250, 0.2);
+  }
+  .btn-push:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+  .btn-push .spinner {
+    animation: spin 1s linear infinite;
+  }
+  @keyframes spin {
+    to { transform: rotate(360deg); }
   }
   .btn-settings {
     display: flex;

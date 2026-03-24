@@ -119,4 +119,41 @@ impl GitPort for GitInfraService {
 
         Ok((added, removed))
     }
+
+    fn push(&self, project_path: &ProjectPath) -> Result<String, ApplicationError> {
+        let path = project_path.as_str();
+
+        // First, fetch to ensure we have the latest remote state
+        let fetch_output = Command::new("git")
+            .args(["fetch", "origin"])
+            .current_dir(path)
+            .output()
+            .map_err(|e| ApplicationError::Git(format!("Failed to run git fetch: {}", e)))?;
+
+        if !fetch_output.status.success() {
+            let stderr = String::from_utf8_lossy(&fetch_output.stderr).to_string();
+            return Err(ApplicationError::Git(format!(
+                "Git fetch failed: {}",
+                stderr.trim()
+            )));
+        }
+
+        // Then push to the upstream branch
+        let push_output = Command::new("git")
+            .args(["push", "-u", "origin", "@{upstream}"])
+            .current_dir(path)
+            .output()
+            .map_err(|e| ApplicationError::Git(format!("Failed to run git push: {}", e)))?;
+
+        if !push_output.status.success() {
+            let stderr = String::from_utf8_lossy(&push_output.stderr).to_string();
+            return Err(ApplicationError::Git(format!(
+                "Git push failed: {}",
+                stderr.trim()
+            )));
+        }
+
+        let stdout = String::from_utf8_lossy(&push_output.stdout).to_string();
+        Ok(stdout.trim().to_string())
+    }
 }

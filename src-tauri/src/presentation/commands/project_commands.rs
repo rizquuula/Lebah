@@ -37,6 +37,19 @@ pub fn get_project_config(services: State<'_, AppServices>) -> Result<ProjectCon
 }
 
 #[tauri::command]
+pub fn git_push(services: State<'_, AppServices>) -> Result<String, String> {
+    let path = services
+        .project_service
+        .get_project()
+        .map_err(|e| e.to_string())?
+        .ok_or_else(|| "No project path set".to_string())?;
+    services
+        .git_service
+        .push(&ProjectPath::new(path))
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
 pub fn set_project_config(
     config: ProjectConfig,
     services: State<'_, AppServices>,
