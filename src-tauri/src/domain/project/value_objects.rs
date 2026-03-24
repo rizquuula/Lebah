@@ -72,13 +72,13 @@ impl Default for ProjectConfig {
         env_vars.insert("IS_SANDBOX".to_string(), "0".to_string());
         Self {
             review_template: Some(
-                "Help me to check for test, lint and build error if we not yet do it. Do git commit in the worktree, no need for reading changed files to commit, just use knowledge in session and commit all changes.".to_string(),
+                "Help me to check for test, lint and build error just on the changed code in this session. \n\nDo git commit with additional description [working with Lebah] in the current worktree. No need for reading changed files to commit, just use knowledge in session and commit all changes.".to_string(),
             ),
             merge_template: Some(
-                "Pull from main branch in the local repository and check for conflict. Fix the conflict gracefully and run build after conflict resolution. Then merge this worktree to the main local branch. Make comprehensive tasks first before executing.".to_string(),
+                "Pull from main branch in the local repository and check for conflict. Fix the conflict comprehensively and gracefully. \n\nRun build after conflict resolution. Then merge this worktree to the main local branch. \n\nUse all best practices, no need to ask me for confirmation if you know the recommendation. \n\nMake comprehensive plan and tasks first before executing.\n\nDo not forget to add and update tests, we are on TDD".to_string(),
             ),
             inprogress_template: Some(
-                "Help me do this task:\n\n <TASK_DESCRIPTION> \n\nMake comprehensive tasks first before executing.".to_string(),
+                "Help me do this task:\n\n <TASK_DESCRIPTION> \n\nUse all best practices, no need to ask me for confirmation if you know the recommendation. \n\nMake comprehensive plan and tasks first before executing.\n\nDo not forget to add and update tests, we are on TDD".to_string(),
             ),
             claude_path: None,
             worktree_model: Some("haiku".to_string()),
