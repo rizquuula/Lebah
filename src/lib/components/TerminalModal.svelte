@@ -134,9 +134,15 @@
     });
     try {
       const buffered = await getOutputBuffer(task.id);
+      // Start with the task description as the initial user message
+      entries = [{ kind: "user", text: task.description }];
       if (buffered.length > 0) {
-        entries = [{ kind: "user", text: task.description }];
-        for (const raw of buffered) parseJsonLine(raw);
+        // Parse all buffered lines to reconstruct the chat history
+        for (const raw of buffered) {
+          parseJsonLine(raw);
+        }
+        // Force reactivity after loading buffer
+        entries = [...entries];
       }
     } catch (_) {}
     inputEl?.focus();
