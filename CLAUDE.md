@@ -9,6 +9,21 @@ Claude Code orchestration desktop app — a kanban board for managing Claude Cod
 - **Database**: SQLite (rusqlite with bundled feature)
 - **Drag-and-drop**: svelte-dnd-action
 
+## Versioning
+
+Current app version: **0.1.0**
+
+Version is defined in two places (must be kept in sync):
+- `src-tauri/tauri.conf.json` — `"version"` field
+- `src-tauri/Cargo.toml` — `version` field
+
+**To release a new version:**
+1. Update the version in both files above
+2. Commit the changes
+3. Push a tag: `git tag v<version> && git push --tags`
+
+The release workflow (`.github/workflows/release.yaml`) will automatically create a GitHub release with builds for all platforms when a `v*` tag is pushed. It also injects the tag version into both config files during the build.
+
 ## Development
 
 ```bash
