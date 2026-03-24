@@ -99,10 +99,6 @@ jobs:
             os: ubuntu-24.04-arm
             target: aarch64-unknown-linux-gnu
 
-          - name: Linux arm64
-            os: ubuntu-24.04-arm
-            target: aarch64-unknown-linux-gnu
-
           - name: macOS Silicon
             os: macos-latest
             target: aarch64-apple-darwin
@@ -175,3 +171,4 @@ jobs:
           releaseDraft: false
           prerelease: false
           args: --target ${{ matrix.target }}
+          includeRelease: true
