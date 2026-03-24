@@ -162,6 +162,7 @@ export async function getOutputBuffer(id: string): Promise<string[]> {
 
 export async function stopClaudeSession(id: string): Promise<void> {
   await invoke("stop_claude_session", { id });
+  runningSessions.delete(id);
   await loadTasks();
 }
 
