@@ -68,6 +68,7 @@ export interface ProjectConfig {
   default_yolo: boolean | null;
   default_auto: boolean | null;
   env_vars: Record<string, string> | null;
+  disabled_env_var_keys: string[] | null;
 }
 
 export const DEFAULT_REVIEW_TEMPLATE = "Help me to check for test, lint and build error if we not yet do it. Do git commit in the worktree, no need for reading changed files to commit, just use knowledge in session and commit all changes.";

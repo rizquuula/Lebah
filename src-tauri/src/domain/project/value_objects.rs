@@ -62,6 +62,8 @@ pub struct ProjectConfig {
     pub default_auto: Option<bool>,
     #[serde(default)]
     pub env_vars: Option<HashMap<String, String>>,
+    #[serde(default)]
+    pub disabled_env_var_keys: Option<Vec<String>>,
 }
 
 impl Default for ProjectConfig {
@@ -84,6 +86,7 @@ impl Default for ProjectConfig {
             default_yolo: Some(true),
             default_auto: Some(false),
             env_vars: Some(env_vars),
+            disabled_env_var_keys: None,
         }
     }
 }

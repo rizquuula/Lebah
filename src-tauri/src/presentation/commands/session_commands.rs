@@ -9,12 +9,19 @@ use crate::domain::task::value_objects::WorktreeRef;
 use crate::infrastructure::AppServices;
 
 fn load_env_vars(services: &AppServices) -> HashMap<String, String> {
-    services
-        .project_service
-        .get_project_config()
-        .ok()
+    let config = services.project_service.get_project_config().ok();
+    let disabled: std::collections::HashSet<String> = config
+        .as_ref()
+        .and_then(|c| c.disabled_env_var_keys.clone())
+        .unwrap_or_default()
+        .into_iter()
+        .collect();
+    config
         .and_then(|c| c.env_vars)
         .unwrap_or_default()
+        .into_iter()
+        .filter(|(k, _)| !disabled.contains(k))
+        .collect()
 }
 
 fn load_claude_path(services: &AppServices) -> Option<String> {

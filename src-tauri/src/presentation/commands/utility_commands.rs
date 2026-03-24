@@ -24,9 +24,18 @@ pub async fn generate_worktree_name(
     let effective_model = model
         .or_else(|| config.as_ref().and_then(|c| c.worktree_model.clone()));
 
-    let env_vars = config
+    let disabled: std::collections::HashSet<String> = config
+        .as_ref()
+        .and_then(|c| c.disabled_env_var_keys.clone())
+        .unwrap_or_default()
+        .into_iter()
+        .collect();
+    let env_vars: std::collections::HashMap<String, String> = config
         .and_then(|c| c.env_vars)
-        .unwrap_or_default();
+        .unwrap_or_default()
+        .into_iter()
+        .filter(|(k, _)| !disabled.contains(k))
+        .collect();
 
     let prompt = format!(
         "Based on this task\n\n{}\n\nplease generate a worktree name, with format\n\n<fix/feat/chore>-<worktree name max 2 word separated by dash>-<5 random string character>\n\nRespond with ONLY the worktree name, nothing else. No explanation, no punctuation, just the name.",

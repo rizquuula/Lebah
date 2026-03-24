@@ -12,16 +12,17 @@
   let defaultYolo = $projectConfig.default_yolo ?? true;
   let defaultAuto = $projectConfig.default_auto ?? false;
 
-  let envVars: { key: string; value: string }[] = (() => {
+  let envVars: { key: string; value: string; enabled: boolean }[] = (() => {
     const vars = $projectConfig.env_vars;
+    const disabled = new Set($projectConfig.disabled_env_var_keys ?? []);
     if (vars && Object.keys(vars).length > 0) {
-      return Object.entries(vars).map(([key, value]) => ({ key, value }));
+      return Object.entries(vars).map(([key, value]) => ({ key, value, enabled: !disabled.has(key) }));
     }
-    return [{ key: "IS_SANDBOX", value: "0" }];
+    return [{ key: "IS_SANDBOX", value: "0", enabled: true }];
   })();
 
   function addEnvVar() {
-    envVars = [...envVars, { key: "", value: "" }];
+    envVars = [...envVars, { key: "", value: "", enabled: true }];
   }
 
   function removeEnvVar(index: number) {
@@ -30,9 +31,13 @@
 
   async function handleSave() {
     const envMap: Record<string, string> = {};
-    for (const { key, value } of envVars) {
+    const disabledKeys: string[] = [];
+    for (const { key, value, enabled } of envVars) {
       const k = key.trim();
-      if (k) envMap[k] = value;
+      if (k) {
+        envMap[k] = value;
+        if (!enabled) disabledKeys.push(k);
+      }
     }
 
     const config: ProjectConfig = {
@@ -43,6 +48,7 @@
       default_yolo: defaultYolo,
       default_auto: defaultAuto,
       env_vars: envMap,
+      disabled_env_var_keys: disabledKeys.length > 0 ? disabledKeys : null,
     };
 
     await saveProjectConfig(config);
@@ -107,10 +113,24 @@
       {:else}
         <div class="env-list">
           {#each envVars as envVar, i}
-            <div class="env-row">
-              <input type="text" bind:value={envVar.key} placeholder="KEY" class="text-input env-key" />
+            <div class="env-row" class:env-row-disabled={!envVar.enabled}>
+              <input type="text" bind:value={envVar.key} placeholder="KEY" class="text-input env-key" class:input-disabled={!envVar.enabled} />
               <span class="env-eq">=</span>
-              <input type="text" bind:value={envVar.value} placeholder="value" class="text-input env-val" />
+              <input type="text" bind:value={envVar.value} placeholder="value" class="text-input env-val" class:input-disabled={!envVar.enabled} />
+              <button type="button" class="btn-eye" class:btn-eye-disabled={!envVar.enabled} on:click={() => { envVar.enabled = !envVar.enabled; envVars = envVars; }} title={envVar.enabled ? "Disable variable" : "Enable variable"}>
+                {#if envVar.enabled}
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                    <circle cx="12" cy="12" r="3"/>
+                  </svg>
+                {:else}
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/>
+                    <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/>
+                    <line x1="1" y1="1" x2="23" y2="23"/>
+                  </svg>
+                {/if}
+              </button>
               <button type="button" class="btn-remove" on:click={() => removeEnvVar(i)} title="Remove">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
                   <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
@@ -310,6 +330,32 @@
     flex-shrink: 0;
   }
   .env-val { flex: 1; font-family: monospace; }
+  .env-row-disabled .env-eq { opacity: 0.3; }
+  .input-disabled {
+    opacity: 0.4;
+    text-decoration: line-through;
+  }
+  .btn-eye {
+    flex-shrink: 0;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(137, 180, 250, 0.08);
+    color: rgba(137, 180, 250, 0.6);
+    border: 1px solid rgba(137, 180, 250, 0.12);
+    border-radius: 8px;
+    cursor: pointer;
+  }
+  .btn-eye:hover { background: rgba(137, 180, 250, 0.16); color: #89b4fa; }
+  .btn-eye-disabled {
+    background: rgba(82, 82, 91, 0.3);
+    color: rgba(205, 214, 244, 0.25);
+    border-color: rgba(255, 255, 255, 0.06);
+  }
+  .btn-eye-disabled:hover { background: rgba(82, 82, 91, 0.45); color: rgba(205, 214, 244, 0.5); }
   .btn-remove {
     flex-shrink: 0;
     width: 32px;
