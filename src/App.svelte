@@ -3,6 +3,7 @@
   import { open } from "@tauri-apps/plugin-dialog";
   import Board from "./lib/components/Board.svelte";
   import SettingsModal from "./lib/components/SettingsModal.svelte";
+  import RecentProjectDropdown from "./lib/components/RecentProjectDropdown.svelte";
   import { projectPath, gitStatus, openProject, loadProjectPath, refreshGitStatus } from "./lib/stores/project";
   import { lastError, clearError } from "./lib/stores/errors";
 
@@ -40,6 +41,7 @@
     </div>
 
     <div class="project-bar">
+      <RecentProjectDropdown />
       <button class="btn-open" on:click={handleOpenProject}>
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/>

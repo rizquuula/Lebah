@@ -6,6 +6,8 @@ use crate::domain::errors::DomainError;
 use crate::domain::project::value_objects::{ProjectConfig, ProjectId};
 use crate::domain::repositories::ProjectRepository;
 
+const MAX_RECENT_PROJECTS: usize = 10;
+
 pub struct ProjectApplicationService {
     project_repo: Arc<dyn ProjectRepository>,
     current_project: Arc<std::sync::Mutex<Option<String>>>,
@@ -25,6 +27,16 @@ impl ProjectApplicationService {
     pub fn set_project(&self, cmd: SetProjectCommand) -> Result<(), ApplicationError> {
         let mut config = self.project_repo.load_global_config();
         config.last_project = Some(cmd.path.clone());
+
+        // Add to recent projects, move to front if already exists
+        config.recent_projects.retain(|p| p != &cmd.path);
+        config.recent_projects.insert(0, cmd.path.clone());
+
+        // Limit to max recent projects
+        if config.recent_projects.len() > MAX_RECENT_PROJECTS {
+            config.recent_projects.truncate(MAX_RECENT_PROJECTS);
+        }
+
         self.project_repo.save_global_config(&config)?;
 
         *self.current_project.lock()
@@ -38,6 +50,11 @@ impl ProjectApplicationService {
             .lock()
             .map(|g| g.clone())
             .map_err(|e| ApplicationError::Persistence(e.to_string()))
+    }
+
+    pub fn get_recent_projects(&self, cmd: GetRecentProjectsCommand) -> Result<Vec<String>, ApplicationError> {
+        let config = self.project_repo.load_global_config();
+        Ok(config.recent_projects.into_iter().take(cmd.max_count).collect())
     }
 
     pub fn get_project_config(&self) -> Result<ProjectConfig, ApplicationError> {

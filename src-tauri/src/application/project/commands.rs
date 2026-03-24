@@ -7,3 +7,7 @@ pub struct SetProjectCommand {
 pub struct UpdateProjectConfigCommand {
     pub config: ProjectConfig,
 }
+
+pub struct GetRecentProjectsCommand {
+    pub max_count: usize,
+}
