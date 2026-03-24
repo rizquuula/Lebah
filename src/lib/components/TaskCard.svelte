@@ -254,9 +254,11 @@
       <TaskToggles
         usePlan={task.use_plan}
         yolo={task.yolo}
+        auto={task.auto}
         showPlan={task.column !== TaskColumn.Review && task.column !== TaskColumn.Merge}
         onTogglePlan={() => updateTask({ ...task, use_plan: !task.use_plan })}
         onToggleYolo={() => updateTask({ ...task, yolo: !task.yolo })}
+        onToggleAuto={() => updateTask({ ...task, auto: !task.auto })}
       />
     </div>
   {/if}
