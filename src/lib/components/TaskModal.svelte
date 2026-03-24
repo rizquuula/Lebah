@@ -14,6 +14,7 @@
   let worktreeError = "";
   let model = task?.model ?? "sonnet";
   let generatingWorktree = false;
+  let pendingSave = false;
 
   async function generateWorktreeName() {
     worktreeError = "";
@@ -25,26 +26,22 @@
         claudePath: claudePath.trim() || null,
       });
       worktree = name.trim();
+      if (pendingSave) {
+        pendingSave = false;
+        await saveTask();
+      }
     } catch (e) {
+      pendingSave = false;
       worktreeError = String(e);
     } finally {
       generatingWorktree = false;
     }
   }
 
-  async function handleSubmit() {
-    if (!description.trim()) return;
-
+  async function saveTask() {
     const pathVal = claudePath.trim() || null;
     const worktreeVal = worktree.trim().replace(/\//g, '-') || null;
     const modelVal = model.trim() || null;
-
-    if (!task) {
-      if (!worktreeVal) {
-        worktreeError = "Worktree name is required";
-        return;
-      }
-    }
     worktreeError = "";
 
     try {
@@ -62,6 +59,19 @@
     } catch (e) {
       worktreeError = String(e);
     }
+  }
+
+  async function handleSubmit() {
+    if (!description.trim()) return;
+
+    const worktreeVal = worktree.trim().replace(/\//g, '-') || null;
+
+    if (!task && !worktreeVal) {
+      pendingSave = true;
+      await generateWorktreeName();
+      return;
+    }
+    await saveTask();
   }
 </script>
 
@@ -132,7 +142,7 @@
 
       <div class="actions">
         <button type="button" class="btn-cancel" on:click={onClose}>Cancel</button>
-        <button type="submit" class="btn-save">
+        <button type="submit" class="btn-save" disabled={generatingWorktree}>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
             <polyline points="20 6 9 17 4 12"/>
           </svg>
@@ -343,6 +353,11 @@
   }
   .btn-save:active {
     transform: translateY(0);
+  }
+  .btn-save:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
   }
   .worktree-row {
     display: flex;
