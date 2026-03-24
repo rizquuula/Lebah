@@ -213,18 +213,20 @@
     align-items: center;
   }
   .logo-icon img {
-    width: 28px;
-    height: 28px;
+    width: 36px;
+    height: 36px;
     object-fit: contain;
   }
   h1 {
     margin: 0;
     font-size: 20px;
-    font-weight: 700;
-    background: linear-gradient(135deg, #89b4fa, #b4befe, #cba6f7);
+    font-weight: 800;
+    background: linear-gradient(135deg, #ffd700 0%, #ffb300 45%, #e8890c 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
+    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.8));
+    letter-spacing: 0.02em;
   }
   .subtitle {
     font-size: 13px;

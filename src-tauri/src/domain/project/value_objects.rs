@@ -97,3 +97,44 @@ pub struct GlobalConfig {
     #[serde(default)]
     pub recent_projects: Vec<String>,
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn project_id_is_deterministic() {
+        let a = ProjectId::from_path("/some/path");
+        let b = ProjectId::from_path("/some/path");
+        assert_eq!(a, b);
+    }
+
+    #[test]
+    fn project_id_differs_for_different_paths() {
+        let a = ProjectId::from_path("/path/a");
+        let b = ProjectId::from_path("/path/b");
+        assert_ne!(a, b);
+    }
+
+    #[test]
+    fn project_id_is_16_hex_chars() {
+        let id = ProjectId::from_path("/any/path");
+        assert_eq!(id.as_str().len(), 16);
+        assert!(id.as_str().chars().all(|c| c.is_ascii_hexdigit()));
+    }
+
+    #[test]
+    fn project_config_default_has_env_var() {
+        let cfg = ProjectConfig::default();
+        let vars = cfg.env_vars.as_ref().unwrap();
+        assert_eq!(vars.get("IS_SANDBOX").map(|s| s.as_str()), Some("0"));
+    }
+
+    #[test]
+    fn project_config_default_has_templates() {
+        let cfg = ProjectConfig::default();
+        assert!(cfg.review_template.is_some());
+        assert!(cfg.merge_template.is_some());
+        assert!(cfg.inprogress_template.is_some());
+    }
+}

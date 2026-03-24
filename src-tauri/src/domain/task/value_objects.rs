@@ -136,3 +136,49 @@ impl Default for ExecutionFlags {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn task_column_round_trips() {
+        for col in ["Todo", "InProgress", "Review", "Merge", "Completed"] {
+            let parsed = TaskColumn::from_str(col).unwrap();
+            assert_eq!(parsed.as_str(), col);
+        }
+    }
+
+    #[test]
+    fn task_column_invalid_returns_error() {
+        assert!(TaskColumn::from_str("Unknown").is_err());
+    }
+
+    #[test]
+    fn task_status_round_trips() {
+        for s in ["Idle", "Running", "Success", "Failed", "Warning", "Waiting", "Canceled"] {
+            let parsed = TaskStatus::from_str(s).unwrap();
+            assert_eq!(parsed.as_str(), s);
+        }
+    }
+
+    #[test]
+    fn task_status_invalid_returns_error() {
+        assert!(TaskStatus::from_str("Bogus").is_err());
+    }
+
+    #[test]
+    fn task_id_new_is_unique() {
+        let a = TaskId::new();
+        let b = TaskId::new();
+        assert_ne!(a, b);
+    }
+
+    #[test]
+    fn execution_flags_default() {
+        let f = ExecutionFlags::default();
+        assert!(!f.use_plan);
+        assert!(f.yolo);
+        assert!(!f.auto);
+    }
+}
