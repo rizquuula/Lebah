@@ -80,7 +80,7 @@ jobs:
       contents: write
     timeout-minutes: 60
     strategy:
-      fail-fast: true
+      fail-fast: false
       matrix:
         include:
           - name: Windows x64
