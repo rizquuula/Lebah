@@ -136,7 +136,12 @@
 
 <div class="card" class:running={isRunning} style="--border-color: {borderColor}; --glow-color: {glowColor}">
   <div class="card-border-top"></div>
-  <span class="timestamp">{displayDate}</span>
+  <div class="timestamp-block">
+    <span class="timestamp">{displayDate}</span>
+    {#if task.worktree}
+      <span class="worktree-name">{task.worktree.split('/').pop()}</span>
+    {/if}
+  </div>
   <div class="drag-handle" use:dragHandle title="Drag to move">
     <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
       <circle cx="9" cy="5" r="1.5"/><circle cx="15" cy="5" r="1.5"/>
@@ -322,15 +327,26 @@
     box-shadow: 0 0 18px rgba(234, 179, 8, 0.2);
     pointer-events: none;
   }
-  .timestamp {
+  .timestamp-block {
     position: absolute;
     top: 8px;
     left: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    user-select: none;
+  }
+  .timestamp {
     font-size: 10px;
     color: rgba(108, 112, 134, 0.6);
     font-family: "JetBrains Mono", "Fira Code", monospace;
     letter-spacing: 0.2px;
-    user-select: none;
+  }
+  .worktree-name {
+    font-size: 10px;
+    color: rgba(108, 112, 134, 0.6);
+    font-family: "JetBrains Mono", "Fira Code", monospace;
+    letter-spacing: 0.2px;
   }
   .drag-handle {
     position: absolute;
@@ -355,7 +371,7 @@
   .description {
     color: rgba(205, 214, 244, 0.9);
     font-size: 13px;
-    margin: 18px 0 10px;
+    margin: 30px 0 10px;
     user-select: none;
     display: -webkit-box;
     -webkit-line-clamp: 2;
