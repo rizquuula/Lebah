@@ -39,34 +39,50 @@ jobs:
 
           PROMPT=$(printf '%s\n\nVersion: %s\nCommits:\n%s' "$BASE_PROMPT" "$VERSION" "$COMMITS")
 
-          echo "DEBUG: OPENROUTER_API_KEY is set: $([ -n \"${OPENROUTER_API_KEY}\" ] && echo 'yes' || echo 'no')"
-          echo "DEBUG: MODEL = ${MODEL}"
+          # Debug: Check if API key exists
+          if [ -z "${OPENROUTER_API_KEY}" ]; then
+            echo "::error::OPENROUTER_API_KEY is not set"
+            exit 1
+          fi
 
-          curl_exit_code=0
-          curl -s https://openrouter.ai/api/v1/chat/completions \
+          # Get commits
+          if [ -z "${COMMITS}" ]; then
+            COMMITS="No commits found"
+          fi
+
+          # Build request body
+          REQUEST_BODY=$(jq -n \
+            --arg model "${MODEL}" \
+            --arg prompt "${PROMPT}" \
+            '{model: $model, messages: [{role: "user", content: $prompt}]}')
+
+          echo "Making request with model: ${MODEL}"
+
+          # Make API call and save response with status code
+          HTTP_STATUS=$(curl -s -w "\n%{http_code}" https://openrouter.ai/api/v1/chat/completions \
             -H "Authorization: Bearer ${OPENROUTER_API_KEY}" \
             -H "Content-Type: application/json" \
             -H "HTTP-Referer: https://github.com/${GITHUB_REPOSITORY}" \
             -H "X-Title: Lebah" \
-            -d "$(jq -n \
-              --arg model "$MODEL" \
-              --arg prompt "$PROMPT" \
-              '{model: $model, messages: [{role: "user", content: $prompt}]}'
-            )" > api_response.json || curl_exit_code=$?
+            -d "${REQUEST_BODY}")
 
-          echo "DEBUG: curl exit code = $curl_exit_code"
-          echo "DEBUG: API Response:"
-          cat api_response.json
+          # Extract status code and body
+          HTTP_CODE=$(echo "${HTTP_STATUS}" | tail -n1)
+          RESPONSE_BODY=$(echo "${HTTP_STATUS}" | sed '$d')
+
+          echo "HTTP Status: ${HTTP_CODE}"
+          echo "Response:"
+          echo "${RESPONSE_BODY}" | head -c 2000
           echo ""
 
-          RESPONSE=$(cat api_response.json)
-          if ! echo "$RESPONSE" | jq -e '.choices' > /dev/null 2>&1; then
-            ERROR_MSG=$(echo "$RESPONSE" | jq -r '.error.message // "Unknown error" // "Invalid JSON response"')
-            echo "::error::OpenRouter API failed (exit: $curl_exit_code): $ERROR_MSG"
+          # Check for errors
+          if [ "${HTTP_CODE}" != "200" ]; then
+            ERROR_MSG=$(echo "${RESPONSE_BODY}" | jq -r '.error.message // "Unknown error" // "Invalid response"')
+            echo "::error::OpenRouter API failed with HTTP ${HTTP_CODE}: ${ERROR_MSG}"
             exit 1
           fi
 
-          BODY=$(echo "$RESPONSE" | jq -r '.choices[0].message.content // "See assets below for downloads."')
+          BODY=$(echo "${RESPONSE_BODY}" | jq -r '.choices[0].message.content // "See assets below for downloads."')
 
           # Write to file to handle multiline safely
           echo "$BODY" > release_notes.txt
