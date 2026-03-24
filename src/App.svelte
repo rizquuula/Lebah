@@ -8,6 +8,7 @@
   import ConfirmDialog from "./lib/components/ConfirmDialog.svelte";
   import { projectPath, gitStatus, openProject, loadProjectPath, refreshGitStatus } from "./lib/stores/project";
   import { lastError, clearError } from "./lib/stores/errors";
+  import { initializeConfigSubscription } from "./lib/stores/config";
 
   let showSettings = false;
   let showPushDialog = false;
@@ -17,6 +18,7 @@
 
   onMount(async () => {
     await loadProjectPath();
+    initializeConfigSubscription();
     gitPollInterval = setInterval(() => {
       if ($projectPath) refreshGitStatus();
     }, 30000);
