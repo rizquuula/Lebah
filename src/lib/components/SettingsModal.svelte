@@ -325,7 +325,13 @@
     align-items: center;
     gap: 8px;
   }
-  .env-key { width: 180px; flex-shrink: 0; font-family: monospace; }
+  .env-key {
+    width: 180px;
+    flex-shrink: 0;
+    font-family: ui-monospace, SFMono-Regular, "SF Mono", Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    font-variant-ligatures: none;
+    -webkit-font-variant-ligatures: none;
+  }
   .env-eq {
     color: rgba(205, 214, 244, 0.35);
     font-size: 16px;
