@@ -72,7 +72,7 @@
         showConfirmReset = true;
       } else {
         const template = getTemplate();
-        const description = task.column === TaskColumn.InProgress && template ? `${task.description}\n${template}` : task.description;
+        const description = template ?? task.description;
         if (task.column === TaskColumn.Merge && isAnyMergeRunning()) {
           await queueMergeTask({ id: task.id, description: task.description, usePlan: task.use_plan, yolo: task.yolo, worktree: task.worktree, model: task.model, hasRun: task.has_run, template });
         } else {
