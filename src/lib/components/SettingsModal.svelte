@@ -1,11 +1,12 @@
 <script lang="ts">
   import { onMount } from "svelte";
+  import { invoke } from "@tauri-apps/api/core";
   import { projectConfig, loadProjectConfig, saveProjectConfig } from "../stores/config";
   import type { ProjectConfig } from "../types";
 
   export let onClose: () => void;
 
-  let activeTab: "general" | "env" = "general";
+  let activeTab: "general" | "env" | "links" = "general";
 
   onMount(async () => {
     await loadProjectConfig();
@@ -16,6 +17,16 @@
   let defaultUsePlan = $projectConfig.default_use_plan ?? false;
   let defaultYolo = $projectConfig.default_yolo ?? true;
   let defaultAuto = $projectConfig.default_auto ?? false;
+
+  let worktreeLinks: string[] = ($projectConfig.worktree_links ?? []).slice();
+
+  function addLink() {
+    worktreeLinks = [...worktreeLinks, ""];
+  }
+
+  function removeLink(index: number) {
+    worktreeLinks = worktreeLinks.filter((_, i) => i !== index);
+  }
 
   let envVars: { key: string; value: string; enabled: boolean }[] = (() => {
     const vars = $projectConfig.env_vars;
@@ -47,6 +58,8 @@
       }
     }
 
+    const filteredLinks = worktreeLinks.map(l => l.trim()).filter(l => l.length > 0);
+
     const config: ProjectConfig = {
       ...$projectConfig,
       claude_path: claudePath.trim() || null,
@@ -56,6 +69,7 @@
       default_auto: defaultAuto,
       env_vars: envMap,
       disabled_env_var_keys: disabledKeys.length > 0 ? disabledKeys : null,
+      worktree_links: filteredLinks.length > 0 ? filteredLinks : null,
     };
 
     await saveProjectConfig(config);
@@ -86,6 +100,7 @@
     <div class="tabs">
       <button class="tab" class:active={activeTab === "general"} on:click={() => activeTab = "general"}>General</button>
       <button class="tab" class:active={activeTab === "env"} on:click={() => activeTab = "env"}>Environment Variables</button>
+      <button class="tab" class:active={activeTab === "links"} on:click={() => activeTab = "links"}>Worktree Links</button>
     </div>
 
     <div class="tab-content">
@@ -117,7 +132,7 @@
             <span class="toggle-switch"></span>
           </label>
         </div>
-      {:else}
+      {:else if activeTab === "env"}
         <div class="env-list">
           {#each envVars as envVar, i}
             <div class="env-row" class:env-row-disabled={!envVar.enabled}>
@@ -147,6 +162,30 @@
           {/each}
         </div>
         <button type="button" class="btn-add" on:click={addEnvVar}>+ Add Variable</button>
+      {:else}
+        <p class="links-hint">
+          Paths listed here (relative to the project root) will be symlinked into each
+          worktree directory when a session starts. Use this to share dependencies like
+          <code>node_modules</code>, <code>.env</code>, or <code>target/</code> across worktrees.
+        </p>
+        <div class="links-list">
+          {#each worktreeLinks as link, i}
+            <div class="link-row">
+              <input
+                type="text"
+                bind:value={worktreeLinks[i]}
+                placeholder="e.g. node_modules"
+                class="text-input link-input"
+              />
+              <button type="button" class="btn-remove" on:click={() => removeLink(i)} title="Remove">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+                  <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                </svg>
+              </button>
+            </div>
+          {/each}
+        </div>
+        <button type="button" class="btn-add" on:click={addLink}>+ Add Path</button>
       {/if}
     </div>
 
@@ -399,6 +438,29 @@
   .btn-add:hover {
     background: rgba(137, 180, 250, 0.18);
     color: #89b4fa;
+  }
+  .links-hint {
+    font-size: 13px;
+    color: rgba(205, 214, 244, 0.45);
+    margin: 0 0 16px 0;
+    line-height: 1.5;
+  }
+  .links-hint code {
+    font-family: ui-monospace, SFMono-Regular, "SF Mono", Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    background: rgba(255, 255, 255, 0.07);
+    padding: 1px 5px;
+    border-radius: 4px;
+    font-size: 12px;
+  }
+  .links-list { display: flex; flex-direction: column; gap: 8px; }
+  .link-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .link-input {
+    flex: 1;
+    font-family: ui-monospace, SFMono-Regular, "SF Mono", Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
   }
   .actions {
     display: flex;

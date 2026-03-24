@@ -64,6 +64,10 @@ pub struct ProjectConfig {
     pub env_vars: Option<HashMap<String, String>>,
     #[serde(default)]
     pub disabled_env_var_keys: Option<Vec<String>>,
+    /// Relative paths (files or dirs) in the project root to symlink into worktrees.
+    /// E.g. ["node_modules", ".env", "target"]
+    #[serde(default)]
+    pub worktree_links: Option<Vec<String>>,
 }
 
 impl Default for ProjectConfig {
@@ -87,6 +91,7 @@ impl Default for ProjectConfig {
             default_auto: Some(false),
             env_vars: Some(env_vars),
             disabled_env_var_keys: None,
+            worktree_links: None,
         }
     }
 }
@@ -136,5 +141,27 @@ mod tests {
         assert!(cfg.review_template.is_some());
         assert!(cfg.merge_template.is_some());
         assert!(cfg.inprogress_template.is_some());
+    }
+
+    #[test]
+    fn project_config_default_worktree_links_is_none() {
+        let cfg = ProjectConfig::default();
+        assert!(cfg.worktree_links.is_none());
+    }
+
+    #[test]
+    fn project_config_worktree_links_round_trips() {
+        let mut cfg = ProjectConfig::default();
+        cfg.worktree_links = Some(vec!["node_modules".to_string(), ".env".to_string()]);
+        let json = serde_json::to_string(&cfg).unwrap();
+        let decoded: ProjectConfig = serde_json::from_str(&json).unwrap();
+        assert_eq!(decoded.worktree_links, Some(vec!["node_modules".to_string(), ".env".to_string()]));
+    }
+
+    #[test]
+    fn project_config_missing_worktree_links_deserializes_as_none() {
+        let json = r#"{"review_template":null,"merge_template":null,"inprogress_template":null}"#;
+        let cfg: ProjectConfig = serde_json::from_str(json).unwrap();
+        assert!(cfg.worktree_links.is_none());
     }
 }

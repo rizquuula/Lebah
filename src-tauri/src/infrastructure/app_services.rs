@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use crate::application::git::service::GitApplicationService;
+use crate::application::ports::WorktreePort;
 use crate::application::project::service::ProjectApplicationService;
 use crate::application::session::service::SessionApplicationService;
 use crate::application::task::service::TaskApplicationService;
@@ -12,4 +13,5 @@ pub struct AppServices {
     pub session_service: Arc<SessionApplicationService>,
     pub project_service: Arc<ProjectApplicationService>,
     pub git_service: Arc<GitApplicationService>,
+    pub worktree_port: Arc<dyn WorktreePort>,
 }
