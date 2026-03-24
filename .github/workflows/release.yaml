@@ -5,9 +5,67 @@ on:
     tags: ['v*']
 
 jobs:
+  release-notes:
+    name: Generate Release Notes
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      release_body: ${{ steps.generate.outputs.release_body }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Generate release notes via OpenRouter
+        id: generate
+        shell: bash
+        env:
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          OPENROUTER_MODEL: ${{ secrets.OPENROUTER_MODEL }}
+          RELEASE_NOTES_PROMPT: ${{ secrets.RELEASE_NOTES_PROMPT }}
+        run: |
+          # Get commits since previous tag (or last 50 if no previous tag)
+          PREV_TAG=$(git tag --sort=-version:refname | grep -v "^${GITHUB_REF_NAME}$" | head -1)
+          if [ -n "$PREV_TAG" ]; then
+            COMMITS=$(git log "${PREV_TAG}..HEAD" --pretty=format:"- %s" | head -50)
+          else
+            COMMITS=$(git log --pretty=format:"- %s" | head -50)
+          fi
+
+          VERSION="${GITHUB_REF_NAME#v}"
+          MODEL="${OPENROUTER_MODEL:-google/gemini-flash-1.5}"
+          BASE_PROMPT="${RELEASE_NOTES_PROMPT:-You are writing release notes for a desktop app. Based on these git commits, write concise and user-friendly release notes in markdown. Group changes into sections like ## What's New, ## Fixes, ## Improvements where relevant. Keep it brief and focused on user impact. Do not add any preamble or closing remarks.}"
+
+          PROMPT="${BASE_PROMPT}
+
+Version: ${VERSION}
+Commits:
+${COMMITS}"
+
+          RESPONSE=$(curl -s https://openrouter.ai/api/v1/chat/completions \
+            -H "Authorization: Bearer ${OPENROUTER_API_KEY}" \
+            -H "Content-Type: application/json" \
+            -d "$(jq -n \
+              --arg model "$MODEL" \
+              --arg prompt "$PROMPT" \
+              '{model: $model, messages: [{role: "user", content: $prompt}]}'
+            )")
+
+          BODY=$(echo "$RESPONSE" | jq -r '.choices[0].message.content // "See assets below for downloads."')
+
+          # Write to file to handle multiline safely
+          echo "$BODY" > release_notes.txt
+          {
+            echo 'release_body<<EOF'
+            cat release_notes.txt
+            echo 'EOF'
+          } >> "$GITHUB_OUTPUT"
+
   build:
     name: ${{ matrix.name }}
     runs-on: ${{ matrix.os }}
+    needs: release-notes
     permissions:
       contents: write
     timeout-minutes: 60
@@ -103,7 +161,7 @@ jobs:
         with:
           tagName: ${{ github.ref_name }}
           releaseName: "Lebah ${{ github.ref_name }}"
-          releaseBody: "See assets below for downloads."
+          releaseBody: ${{ needs.release-notes.outputs.release_body }}
           releaseDraft: false
           prerelease: false
           args: --target ${{ matrix.target }}
