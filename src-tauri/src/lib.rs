@@ -151,6 +151,7 @@ pub fn run() {
             get_output_buffer,
             check_path_exists,
             generate_worktree_name,
+            get_app_version,
             reset_task_session,
             get_project_config,
             set_project_config,
