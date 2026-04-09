@@ -18,6 +18,7 @@
     term: Terminal;
     fitAddon: FitAddon;
     unlisten: UnlistenFn | null;
+    container: HTMLDivElement;
   }
 
   interface ProjectTerminalState {
@@ -132,31 +133,47 @@
     for (const [, inst] of terminals) {
       inst.unlisten?.();
       inst.term.dispose();
+      inst.container.remove();
     }
     terminals.clear();
   });
 
-  async function createSession() {
-    detachActive();
+  function createTerminalContainer(): HTMLDivElement {
+    const div = document.createElement('div');
+    div.style.position = 'absolute';
+    div.style.inset = '0';
+    div.style.display = 'none';
+    containerEl.appendChild(div);
+    return div;
+  }
 
+  async function createSession() {
+    hideAllContainers();
+
+    // Measure terminal size using a temporary terminal
+    const measureDiv = createTerminalContainer();
+    measureDiv.style.display = '';
     const measureTerm = new Terminal(termConfig);
     const measureFit = new FitAddon();
     measureTerm.loadAddon(measureFit);
-    measureTerm.open(containerEl);
+    measureTerm.open(measureDiv);
     await new Promise(r => setTimeout(r, 50));
     measureFit.fit();
     const cols = measureTerm.cols;
     const rows = measureTerm.rows;
     measureTerm.dispose();
+    measureDiv.remove();
 
     try {
       const info: SessionInfo = await invoke('create_terminal_session', { cols, rows });
       addSession(info);
 
+      const container = createTerminalContainer();
+      container.style.display = '';
       const term = new Terminal(termConfig);
       const fitAddon = new FitAddon();
       term.loadAddon(fitAddon);
-      term.open(containerEl);
+      term.open(container);
       await new Promise(r => setTimeout(r, 50));
       fitAddon.fit();
 
@@ -168,31 +185,33 @@
         invoke('write_terminal', { sessionId: info.id, data }).catch(() => {});
       });
 
-      terminals.set(info.id, { term, fitAddon, unlisten });
+      terminals.set(info.id, { term, fitAddon, unlisten, container });
       setActiveSessionId(info.id);
     } catch (e: any) {
+      const errDiv = createTerminalContainer();
+      errDiv.style.display = '';
       const errTerm = new Terminal(termConfig);
-      errTerm.open(containerEl);
+      errTerm.open(errDiv);
       errTerm.writeln(`\r\n\x1b[31mFailed to start terminal: ${e}\x1b[0m`);
     }
   }
 
-  function detachActive() {
-    if (activeSessionId) {
-      const el = containerEl?.querySelector('.xterm');
-      if (el) el.remove();
+  function hideAllContainers() {
+    for (const [, inst] of terminals) {
+      inst.container.style.display = 'none';
     }
   }
 
   async function switchSession(sessionId: string) {
     if (sessionId === activeSessionId) return;
-    detachActive();
+    hideAllContainers();
 
     const inst = terminals.get(sessionId);
     if (inst) {
-      inst.term.open(containerEl);
+      inst.container.style.display = '';
       await new Promise(r => setTimeout(r, 50));
       inst.fitAddon.fit();
+      inst.term.focus();
       setActiveSessionId(sessionId);
       invoke('resize_terminal', {
         sessionId,
@@ -200,10 +219,12 @@
         rows: inst.term.rows,
       }).catch(() => {});
     } else {
+      const container = createTerminalContainer();
+      container.style.display = '';
       const term = new Terminal(termConfig);
       const fitAddon = new FitAddon();
       term.loadAddon(fitAddon);
-      term.open(containerEl);
+      term.open(container);
       await new Promise(r => setTimeout(r, 50));
       fitAddon.fit();
 
@@ -215,7 +236,7 @@
         invoke('write_terminal', { sessionId, data }).catch(() => {});
       });
 
-      terminals.set(sessionId, { term, fitAddon, unlisten });
+      terminals.set(sessionId, { term, fitAddon, unlisten, container });
       setActiveSessionId(sessionId);
     }
   }
@@ -224,11 +245,8 @@
     const inst = terminals.get(sessionId);
     if (inst) {
       inst.unlisten?.();
-      if (sessionId === activeSessionId) {
-        const el = containerEl?.querySelector('.xterm');
-        if (el) el.remove();
-      }
       inst.term.dispose();
+      inst.container.remove();
       terminals.delete(sessionId);
     }
 
@@ -247,11 +265,8 @@
   $effect(() => {
     const project = $projectPath;
     if (project && project !== currentProject) {
-      // Detach current terminal before switching
-      if (currentProject && activeSessionId) {
-        const el = containerEl?.querySelector('.xterm');
-        if (el) el.remove();
-      }
+      // Hide current terminal before switching
+      hideAllContainers();
       currentProject = project;
     }
   });
@@ -438,6 +453,7 @@
     flex: 1;
     padding: 4px;
     overflow: hidden;
+    position: relative;
   }
 
   .terminal-container :global(.xterm) {
