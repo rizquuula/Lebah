@@ -47,6 +47,9 @@ build:
 run: build
 	"$${CARGO_TARGET_DIR:-src-tauri/target}/release/lebah"
 
+run-released:
+	"$${CARGO_TARGET_DIR:-src-tauri/target}/release/lebah"
+
 test:
 	@echo "Running Rust checks..."
 	cd src-tauri && cargo check
