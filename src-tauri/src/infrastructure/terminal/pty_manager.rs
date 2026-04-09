@@ -20,10 +20,6 @@ impl PtyManager {
         }
     }
 
-    pub fn is_running(&self) -> bool {
-        self.child.is_some()
-    }
-
     pub fn spawn(&mut self, cwd: &str, cols: u16, rows: u16, app_handle: AppHandle) -> Result<(), String> {
         self.kill();
 
