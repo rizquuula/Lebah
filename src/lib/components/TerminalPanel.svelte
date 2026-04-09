@@ -280,6 +280,8 @@
       } else if (activeSessionId) {
         const inst = terminals.get(activeSessionId);
         if (inst) {
+          hideAllContainers();
+          inst.container.style.display = '';
           setTimeout(() => {
             inst.fitAddon.fit();
             inst.term.focus();
