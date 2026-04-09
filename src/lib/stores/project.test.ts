@@ -11,7 +11,7 @@ vi.mock("@tauri-apps/api/event", () => ({
 // tasks store is imported transitively; mock it to avoid full initialisation
 vi.mock("./tasks", () => ({ loadTasks: vi.fn().mockResolvedValue(undefined) }));
 
-import { projectPath, getRecentProjects, switchProject, openProject } from "./project";
+import { projectPath, getRecentProjects, switchProject, openProject, removeRecentProject } from "./project";
 
 beforeEach(() => {
   mockInvoke.mockReset();
@@ -46,5 +46,18 @@ describe("switchProject", () => {
     mockInvoke.mockResolvedValue(null);
     await switchProject("/switched/path");
     expect(get(projectPath)).toBe("/switched/path");
+  });
+});
+
+describe("removeRecentProject", () => {
+  it("calls remove_recent_project with the path", async () => {
+    mockInvoke.mockResolvedValue(undefined);
+    await removeRecentProject("/old/project");
+    expect(mockInvoke).toHaveBeenCalledWith("remove_recent_project", { path: "/old/project" });
+  });
+
+  it("propagates backend errors", async () => {
+    mockInvoke.mockRejectedValue(new Error("backend error"));
+    await expect(removeRecentProject("/some/path")).rejects.toThrow("backend error");
   });
 });

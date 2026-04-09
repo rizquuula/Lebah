@@ -52,6 +52,13 @@ impl ProjectApplicationService {
             .map_err(|e| ApplicationError::Persistence(e.to_string()))
     }
 
+    pub fn remove_recent_project(&self, cmd: RemoveRecentProjectCommand) -> Result<(), ApplicationError> {
+        let mut config = self.project_repo.load_global_config();
+        config.recent_projects.retain(|p| p != &cmd.path);
+        self.project_repo.save_global_config(&config)?;
+        Ok(())
+    }
+
     pub fn get_recent_projects(&self, cmd: GetRecentProjectsCommand) -> Result<Vec<String>, ApplicationError> {
         let config = self.project_repo.load_global_config();
         Ok(config.recent_projects.into_iter().take(cmd.max_count).collect())
@@ -74,5 +81,76 @@ impl ProjectApplicationService {
         let project_id = ProjectId::from_path(&path);
         self.project_repo.save_project_config(&project_id, &cmd.config)?;
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::sync::Mutex;
+    use crate::domain::project::value_objects::GlobalConfig;
+
+    struct InMemoryProjectRepo {
+        global_config: Mutex<GlobalConfig>,
+    }
+
+    impl InMemoryProjectRepo {
+        fn new(recent_projects: Vec<String>) -> Self {
+            Self {
+                global_config: Mutex::new(GlobalConfig {
+                    last_project: None,
+                    recent_projects,
+                }),
+            }
+        }
+    }
+
+    impl ProjectRepository for InMemoryProjectRepo {
+        fn load_global_config(&self) -> GlobalConfig {
+            self.global_config.lock().unwrap().clone()
+        }
+
+        fn save_global_config(&self, config: &GlobalConfig) -> Result<(), DomainError> {
+            *self.global_config.lock().unwrap() = config.clone();
+            Ok(())
+        }
+
+        fn load_project_config(&self, _project_id: &ProjectId) -> ProjectConfig {
+            ProjectConfig::default()
+        }
+
+        fn save_project_config(&self, _project_id: &ProjectId, _config: &ProjectConfig) -> Result<(), DomainError> {
+            Ok(())
+        }
+    }
+
+    fn make_service(recent_projects: Vec<String>) -> ProjectApplicationService {
+        let repo = Arc::new(InMemoryProjectRepo::new(recent_projects));
+        let current = Arc::new(Mutex::new(None));
+        ProjectApplicationService::new(repo, current)
+    }
+
+    #[test]
+    fn remove_recent_project_removes_matching_path() {
+        let svc = make_service(vec!["/a".into(), "/b".into(), "/c".into()]);
+        svc.remove_recent_project(RemoveRecentProjectCommand { path: "/b".into() }).unwrap();
+        let result = svc.get_recent_projects(GetRecentProjectsCommand { max_count: 10 }).unwrap();
+        assert_eq!(result, vec!["/a", "/c"]);
+    }
+
+    #[test]
+    fn remove_recent_project_nonexistent_path_is_noop() {
+        let svc = make_service(vec!["/a".into(), "/b".into()]);
+        svc.remove_recent_project(RemoveRecentProjectCommand { path: "/z".into() }).unwrap();
+        let result = svc.get_recent_projects(GetRecentProjectsCommand { max_count: 10 }).unwrap();
+        assert_eq!(result, vec!["/a", "/b"]);
+    }
+
+    #[test]
+    fn remove_recent_project_only_removes_exact_match() {
+        let svc = make_service(vec!["/a/b".into(), "/a".into(), "/a/bc".into()]);
+        svc.remove_recent_project(RemoveRecentProjectCommand { path: "/a".into() }).unwrap();
+        let result = svc.get_recent_projects(GetRecentProjectsCommand { max_count: 10 }).unwrap();
+        assert_eq!(result, vec!["/a/b", "/a/bc"]);
     }
 }

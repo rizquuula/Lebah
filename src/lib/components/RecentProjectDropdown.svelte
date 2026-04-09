@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount } from "svelte";
-  import { getRecentProjects, switchProject } from "../stores/project";
+  import { getRecentProjects, switchProject, removeRecentProject } from "../stores/project";
   import { projectPath } from "../stores/project";
   import { cycleNext, moveNext, movePrev, initialIndex } from "../utils/keyboard-nav";
 
@@ -32,6 +32,15 @@
     isOpen = false;
     selectedIndex = -1;
     keyNavActive = false;
+  }
+
+  async function handleRemoveProject(e: MouseEvent, path: string) {
+    e.stopPropagation();
+    await removeRecentProject(path);
+    recentProjects = recentProjects.filter((p) => p !== path);
+    if (selectedIndex >= recentProjects.length) {
+      selectedIndex = recentProjects.length - 1;
+    }
   }
 
   function toggleDropdown() {
@@ -67,8 +76,8 @@
   }
 
   async function handleKeydown(e: KeyboardEvent) {
-    // Ctrl+` — open/cycle through recent projects
-    if (e.ctrlKey && e.key === "`") {
+    // Alt+` — open/cycle through recent projects
+    if (e.altKey && e.key === "`") {
       e.preventDefault();
       if (!isOpen) {
         await loadRecentProjects();
@@ -105,8 +114,8 @@
   }
 
   async function handleKeyup(e: KeyboardEvent) {
-    // When Ctrl is released while keyboard nav is active, open selected project
-    if (e.key === "Control" && keyNavActive && isOpen) {
+    // When Alt is released while keyboard nav is active, open selected project
+    if (e.key === "Alt" && keyNavActive && isOpen) {
       if (selectedIndex >= 0 && recentProjects[selectedIndex]) {
         await handleSelectProject(recentProjects[selectedIndex]);
       } else {
@@ -126,14 +135,14 @@
     class:open={isOpen}
     on:click={toggleDropdown}
     type="button"
-    title="Recent projects (Ctrl+`)"
+    title="Recent projects (Alt+`)"
   >
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <circle cx="12" cy="12" r="10"/>
       <polyline points="12 6 12 12 16 14"/>
     </svg>
     Recent
-    <kbd class="shortcut-hint">Ctrl+`</kbd>
+    <kbd class="shortcut-hint">Alt+`</kbd>
     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="chevron" class:rotated={isOpen}>
       <polyline points="6 9 12 15 18 9"/>
     </svg>
@@ -142,17 +151,36 @@
   {#if isOpen && recentProjects.length > 0}
     <div class="dropdown-menu" bind:this={listRef}>
       {#each recentProjects as path, index}
-        <button
+        <div
           class="dropdown-item"
-          on:click={() => handleSelectProject(path)}
           class:active={path === currentProject}
           class:keyboard-selected={index === selectedIndex}
+          role="group"
         >
-          <span class="project-name" title={path}>{truncatePath(path)}</span>
-          {#if path === currentProject}
-            <span class="active-badge">Current</span>
-          {/if}
-        </button>
+          <button
+            class="item-select-btn"
+            on:click={() => handleSelectProject(path)}
+            type="button"
+            title={path}
+          >
+            <span class="project-name">{truncatePath(path)}</span>
+            {#if path === currentProject}
+              <span class="active-badge">Current</span>
+            {/if}
+          </button>
+          <button
+            class="remove-btn"
+            on:click={(e) => handleRemoveProject(e, path)}
+            type="button"
+            title="Remove from recent projects"
+            aria-label="Remove {path} from recent projects"
+          >
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18"/>
+              <line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+          </button>
+        </div>
       {/each}
     </div>
   {/if}
@@ -230,17 +258,7 @@
   .dropdown-item {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    width: 100%;
-    padding: 10px 14px;
-    background: transparent;
-    border: none;
     border-bottom: 1px solid rgba(255, 255, 255, 0.04);
-    color: rgba(205, 214, 244, 0.8);
-    cursor: pointer;
-    font-size: 12px;
-    font-family: inherit;
-    text-align: left;
     transition: background 0.15s, color 0.15s;
   }
 
@@ -250,25 +268,52 @@
 
   .dropdown-item:hover {
     background: rgba(137, 180, 250, 0.1);
-    color: #89b4fa;
   }
 
   .dropdown-item.active {
     background: rgba(166, 227, 161, 0.1);
-    color: #a6e3a1;
   }
 
   .dropdown-item.keyboard-selected {
     background: rgba(137, 180, 250, 0.2);
-    color: #89b4fa;
     outline: 1px solid rgba(137, 180, 250, 0.4);
     outline-offset: -1px;
   }
 
   .dropdown-item.active.keyboard-selected {
     background: rgba(166, 227, 161, 0.2);
-    color: #a6e3a1;
     outline-color: rgba(166, 227, 161, 0.4);
+  }
+
+  .item-select-btn {
+    display: flex;
+    align-items: center;
+    flex: 1;
+    min-width: 0;
+    padding: 10px 8px 10px 14px;
+    background: transparent;
+    border: none;
+    color: rgba(205, 214, 244, 0.8);
+    cursor: pointer;
+    font-size: 12px;
+    font-family: inherit;
+    text-align: left;
+  }
+
+  .dropdown-item:hover .item-select-btn {
+    color: #89b4fa;
+  }
+
+  .dropdown-item.active .item-select-btn {
+    color: #a6e3a1;
+  }
+
+  .dropdown-item.keyboard-selected .item-select-btn {
+    color: #89b4fa;
+  }
+
+  .dropdown-item.active.keyboard-selected .item-select-btn {
+    color: #a6e3a1;
   }
 
   .project-name {
@@ -277,6 +322,33 @@
     text-overflow: ellipsis;
     white-space: nowrap;
     flex: 1;
+  }
+
+  .remove-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    padding: 0;
+    background: transparent;
+    border: none;
+    border-radius: 3px;
+    color: rgba(205, 214, 244, 0.3);
+    cursor: pointer;
+    flex-shrink: 0;
+    margin-left: 6px;
+    opacity: 0;
+    transition: opacity 0.15s, background 0.15s, color 0.15s;
+  }
+
+  .dropdown-item:hover .remove-btn {
+    opacity: 1;
+  }
+
+  .remove-btn:hover {
+    background: rgba(243, 139, 168, 0.2);
+    color: #f38ba8;
   }
 
   .active-badge {

@@ -21,6 +21,10 @@ export async function getRecentProjects(): Promise<string[]> {
   return await invoke<string[]>("get_recent_projects", { maxCount: 10 });
 }
 
+export async function removeRecentProject(path: string): Promise<void> {
+  await invoke("remove_recent_project", { path });
+}
+
 export async function refreshGitStatus(): Promise<void> {
   try {
     const status = await invoke<GitStatus>("get_git_status");

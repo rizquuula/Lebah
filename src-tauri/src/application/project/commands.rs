@@ -11,3 +11,7 @@ pub struct UpdateProjectConfigCommand {
 pub struct GetRecentProjectsCommand {
     pub max_count: usize,
 }
+
+pub struct RemoveRecentProjectCommand {
+    pub path: String,
+}
