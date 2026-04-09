@@ -11,6 +11,7 @@ pub struct SessionInfo {
     pub id: String,
     pub name: String,
     pub project: String,
+    pub order: u32,
 }
 
 struct PtySession {
@@ -42,7 +43,8 @@ impl Drop for PtySession {
 pub struct PtySessionManager {
     sessions: HashMap<String, PtySession>,
     session_info: HashMap<String, SessionInfo>,
-    counter: u32,
+    project_counters: HashMap<String, u32>,
+    order_counter: u32,
 }
 
 impl PtySessionManager {
@@ -50,7 +52,8 @@ impl PtySessionManager {
         Self {
             sessions: HashMap::new(),
             session_info: HashMap::new(),
-            counter: 0,
+            project_counters: HashMap::new(),
+            order_counter: 0,
         }
     }
 
@@ -62,8 +65,11 @@ impl PtySessionManager {
         app_handle: AppHandle,
     ) -> Result<SessionInfo, String> {
         let id = Uuid::new_v4().to_string();
-        self.counter += 1;
-        let name = format!("Session {}", self.counter);
+        let project_counter = self.project_counters.entry(cwd.to_string()).or_insert(0);
+        *project_counter += 1;
+        let name = format!("Session {}", *project_counter);
+        self.order_counter += 1;
+        let order = self.order_counter;
 
         let pty_system = native_pty_system();
         let pair = pty_system
@@ -129,6 +135,7 @@ impl PtySessionManager {
             id: id.clone(),
             name: name.clone(),
             project: cwd.to_string(),
+            order,
         };
 
         self.sessions.insert(id.clone(), session);
@@ -170,14 +177,16 @@ impl PtySessionManager {
     }
 
     pub fn list_sessions(&self, project: Option<&str>) -> Vec<SessionInfo> {
-        self.session_info
+        let mut result: Vec<SessionInfo> = self.session_info
             .values()
             .filter(|info| match project {
                 Some(p) => info.project == p,
                 None => true,
             })
             .cloned()
-            .collect()
+            .collect();
+        result.sort_by_key(|s| s.order);
+        result
     }
 
     pub fn kill_all(&mut self) {
@@ -185,7 +194,8 @@ impl PtySessionManager {
         for id in ids {
             self.close_session(&id);
         }
-        self.counter = 0;
+        self.project_counters.clear();
+        self.order_counter = 0;
     }
 
     fn default_shell() -> String {
