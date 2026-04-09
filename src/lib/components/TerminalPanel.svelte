@@ -25,6 +25,7 @@
     sessions: SessionInfo[];
     activeSessionId: string | null;
     initialized: boolean;
+    terminals: Map<string, TerminalInstance>;
   }
 
   let { onClose, visible = false }: { onClose: () => void; visible?: boolean } = $props();
@@ -33,10 +34,8 @@
   let currentProject: string | null = $state(null);
   let resizeObserver: ResizeObserver | null = null;
 
-  // Per-project state
+  // Per-project state (includes per-project terminal instances)
   let projectStates: Map<string, ProjectTerminalState> = $state(new Map());
-  // All terminal instances (keyed by session id, shared across projects)
-  let terminals: Map<string, TerminalInstance> = new Map();
 
   // Reactive getters for current project
   let sessions: SessionInfo[] = $derived(
@@ -63,66 +62,74 @@
   function getProjectState(project: string): ProjectTerminalState {
     let state = projectStates.get(project);
     if (!state) {
-      state = { sessions: [], activeSessionId: null, initialized: false };
+      state = {
+        sessions: [],
+        activeSessionId: null,
+        initialized: false,
+        terminals: new Map(),
+      };
       projectStates.set(project, state);
     }
     return state;
   }
 
-  function setActiveSessionId(sessionId: string | null) {
-    if (!currentProject) return;
-    const state = getProjectState(currentProject);
-    state.activeSessionId = sessionId;
+  function setActiveSessionId(sessionId: string | null, project: string | null = currentProject) {
+    if (!project) return;
+    getProjectState(project).activeSessionId = sessionId;
     // Trigger reactivity
     projectStates = new Map(projectStates);
   }
 
-  function addSession(info: SessionInfo) {
-    if (!currentProject) return;
-    const state = getProjectState(currentProject);
+  function addSession(info: SessionInfo, project: string | null = currentProject) {
+    if (!project) return;
+    const state = getProjectState(project);
     state.sessions = [...state.sessions, info];
     projectStates = new Map(projectStates);
   }
 
-  function removeSession(sessionId: string) {
-    if (!currentProject) return;
-    const state = getProjectState(currentProject);
+  function removeSession(sessionId: string, project: string | null = currentProject) {
+    if (!project) return;
+    const state = getProjectState(project);
     state.sessions = state.sessions.filter(s => s.id !== sessionId);
     projectStates = new Map(projectStates);
   }
 
   async function initProjectIfNeeded() {
-    if (!currentProject) return;
-    const state = getProjectState(currentProject);
+    const project = currentProject;
+    if (!project) return;
+    const state = getProjectState(project);
     if (state.initialized) return;
     state.initialized = true;
 
     try {
       const existing: SessionInfo[] = await invoke('list_terminal_sessions');
-      state.sessions = existing;
+      // Backend filters by its own "current project" at invoke time. Trust only
+      // entries whose project field matches the project we started init for,
+      // in case the user already switched away during the await.
+      const mine = existing.filter(s => s.project === project);
+      state.sessions = mine;
       projectStates = new Map(projectStates);
-      if (existing.length > 0) {
-        await switchSession(existing[0].id);
+      if (mine.length > 0) {
+        await switchSession(mine[0].id, project);
       } else {
-        await createSession();
+        await createSession(project);
       }
     } catch {
-      await createSession();
+      await createSession(project);
     }
   }
 
   onMount(() => {
     resizeObserver = new ResizeObserver(() => {
-      if (activeSessionId) {
-        const inst = terminals.get(activeSessionId);
-        if (inst) {
-          inst.fitAddon.fit();
-          invoke('resize_terminal', {
-            sessionId: activeSessionId,
-            cols: inst.term.cols,
-            rows: inst.term.rows,
-          }).catch(() => {});
-        }
+      if (!currentProject || !activeSessionId) return;
+      const inst = getProjectState(currentProject).terminals.get(activeSessionId);
+      if (inst) {
+        inst.fitAddon.fit();
+        invoke('resize_terminal', {
+          sessionId: activeSessionId,
+          cols: inst.term.cols,
+          rows: inst.term.rows,
+        }).catch(() => {});
       }
     });
     resizeObserver.observe(containerEl);
@@ -130,12 +137,14 @@
 
   onDestroy(() => {
     resizeObserver?.disconnect();
-    for (const [, inst] of terminals) {
-      inst.unlisten?.();
-      inst.term.dispose();
-      inst.container.remove();
+    for (const [, state] of projectStates) {
+      for (const [, inst] of state.terminals) {
+        inst.unlisten?.();
+        inst.term.dispose();
+        inst.container.remove();
+      }
+      state.terminals.clear();
     }
-    terminals.clear();
   });
 
   function createTerminalContainer(): HTMLDivElement {
@@ -147,8 +156,9 @@
     return div;
   }
 
-  async function createSession() {
-    hideAllContainers();
+  async function createSession(project: string | null = currentProject) {
+    if (!project) return;
+    hideAllContainers(project);
 
     // Measure terminal size using a temporary terminal
     const measureDiv = createTerminalContainer();
@@ -166,10 +176,11 @@
 
     try {
       const info: SessionInfo = await invoke('create_terminal_session', { cols, rows });
-      addSession(info);
+      addSession(info, project);
 
       const container = createTerminalContainer();
-      container.style.display = '';
+      // Only show immediately if this project is still the current one.
+      container.style.display = project === currentProject ? '' : 'none';
       const term = new Terminal(termConfig);
       const fitAddon = new FitAddon();
       term.loadAddon(fitAddon);
@@ -185,8 +196,8 @@
         invoke('write_terminal', { sessionId: info.id, data }).catch(() => {});
       });
 
-      terminals.set(info.id, { term, fitAddon, unlisten, container });
-      setActiveSessionId(info.id);
+      getProjectState(project).terminals.set(info.id, { term, fitAddon, unlisten, container });
+      setActiveSessionId(info.id, project);
     } catch (e: any) {
       const errDiv = createTerminalContainer();
       errDiv.style.display = '';
@@ -196,31 +207,60 @@
     }
   }
 
-  function hideAllContainers() {
-    for (const [, inst] of terminals) {
+  function hideAllContainers(project: string | null = currentProject) {
+    if (!project) return;
+    const state = projectStates.get(project);
+    if (!state) return;
+    for (const [, inst] of state.terminals) {
       inst.container.style.display = 'none';
     }
   }
 
-  async function switchSession(sessionId: string) {
-    if (sessionId === activeSessionId) return;
-    hideAllContainers();
-
-    const inst = terminals.get(sessionId);
-    if (inst) {
-      inst.container.style.display = '';
-      await new Promise(r => setTimeout(r, 50));
+  function showActiveForCurrentProject() {
+    if (!currentProject) return;
+    const state = getProjectState(currentProject);
+    hideAllContainers(currentProject);
+    const sessionId = state.activeSessionId;
+    if (!sessionId) return;
+    const inst = state.terminals.get(sessionId);
+    if (!inst) return;
+    inst.container.style.display = '';
+    setTimeout(() => {
       inst.fitAddon.fit();
       inst.term.focus();
-      setActiveSessionId(sessionId);
       invoke('resize_terminal', {
         sessionId,
         cols: inst.term.cols,
         rows: inst.term.rows,
       }).catch(() => {});
+    }, 50);
+  }
+
+  async function switchSession(sessionId: string, project: string | null = currentProject) {
+    if (!project) return;
+    const state = getProjectState(project);
+    if (sessionId === state.activeSessionId && state.terminals.has(sessionId)) {
+      // Already active and mounted; just ensure it's visible if current.
+      if (project === currentProject) showActiveForCurrentProject();
+      return;
+    }
+    hideAllContainers(project);
+
+    const existing = state.terminals.get(sessionId);
+    if (existing) {
+      if (project === currentProject) existing.container.style.display = '';
+      await new Promise(r => setTimeout(r, 50));
+      existing.fitAddon.fit();
+      if (project === currentProject) existing.term.focus();
+      setActiveSessionId(sessionId, project);
+      invoke('resize_terminal', {
+        sessionId,
+        cols: existing.term.cols,
+        rows: existing.term.rows,
+      }).catch(() => {});
     } else {
       const container = createTerminalContainer();
-      container.style.display = '';
+      container.style.display = project === currentProject ? '' : 'none';
       const term = new Terminal(termConfig);
       const fitAddon = new FitAddon();
       term.loadAddon(fitAddon);
@@ -236,27 +276,31 @@
         invoke('write_terminal', { sessionId, data }).catch(() => {});
       });
 
-      terminals.set(sessionId, { term, fitAddon, unlisten, container });
-      setActiveSessionId(sessionId);
+      getProjectState(project).terminals.set(sessionId, { term, fitAddon, unlisten, container });
+      setActiveSessionId(sessionId, project);
     }
   }
 
   async function closeSession(sessionId: string) {
-    const inst = terminals.get(sessionId);
+    if (!currentProject) return;
+    const project = currentProject;
+    const state = getProjectState(project);
+    const inst = state.terminals.get(sessionId);
     if (inst) {
       inst.unlisten?.();
       inst.term.dispose();
       inst.container.remove();
-      terminals.delete(sessionId);
+      state.terminals.delete(sessionId);
     }
 
     await invoke('close_terminal_session', { sessionId }).catch(() => {});
-    removeSession(sessionId);
+    removeSession(sessionId, project);
 
-    if (sessionId === activeSessionId) {
-      setActiveSessionId(null);
-      if (sessions.length > 0) {
-        await switchSession(sessions[0].id);
+    if (sessionId === state.activeSessionId) {
+      setActiveSessionId(null, project);
+      const remaining = getProjectState(project).sessions;
+      if (remaining.length > 0) {
+        await switchSession(remaining[0].id, project);
       }
     }
   }
@@ -265,31 +309,28 @@
   $effect(() => {
     const project = $projectPath;
     if (project && project !== currentProject) {
-      // Hide current terminal before switching
-      hideAllContainers();
+      // Hide outgoing project's terminals, then switch.
+      hideAllContainers(currentProject);
       currentProject = project;
+      if (visible) {
+        const state = getProjectState(project);
+        if (!state.initialized) {
+          initProjectIfNeeded();
+        } else {
+          showActiveForCurrentProject();
+        }
+      }
     }
   });
 
   // Handle visibility and init
   $effect(() => {
-    if (visible && currentProject) {
-      const state = getProjectState(currentProject);
-      if (!state.initialized) {
-        initProjectIfNeeded();
-      } else if (activeSessionId) {
-        const inst = terminals.get(activeSessionId);
-        if (inst) {
-          hideAllContainers();
-          inst.container.style.display = '';
-          setTimeout(() => {
-            inst.fitAddon.fit();
-            inst.term.focus();
-          }, 50);
-        }
-      } else if (state.sessions.length > 0) {
-        switchSession(state.sessions[0].id);
-      }
+    if (!visible || !currentProject) return;
+    const state = getProjectState(currentProject);
+    if (!state.initialized) {
+      initProjectIfNeeded();
+    } else {
+      showActiveForCurrentProject();
     }
   });
 
