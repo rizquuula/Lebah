@@ -26,7 +26,7 @@ use infrastructure::persistence::json_task_repository::JsonTaskRepository;
 use infrastructure::persistence::path_resolver::PathResolver;
 use infrastructure::session::process_session_manager::ProcessSessionManager;
 use infrastructure::worktree::worktree_manager::WorktreeManager;
-use infrastructure::terminal::pty_manager::PtyManager;
+use infrastructure::terminal::pty_manager::PtySessionManager;
 use infrastructure::AppServices;
 
 use presentation::commands::project_commands::*;
@@ -127,7 +127,7 @@ pub fn run() {
             event_bus.subscribe(status_handler);
 
             // --- Terminal PTY manager ---
-            app.manage(Arc::new(Mutex::new(PtyManager::new())));
+            app.manage(Arc::new(Mutex::new(PtySessionManager::new())));
 
             // --- Manage composed AppServices ---
             app.manage(AppServices {
@@ -163,10 +163,11 @@ pub fn run() {
             get_project_config,
             set_project_config,
             apply_worktree_links,
-            spawn_terminal,
+            create_terminal_session,
+            list_terminal_sessions,
             write_terminal,
             resize_terminal,
-            close_terminal,
+            close_terminal_session,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

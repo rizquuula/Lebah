@@ -160,9 +160,7 @@
   {#if showSettings}
     <SettingsModal onClose={() => showSettings = false} />
   {/if}
-  {#if showTerminal}
-    <TerminalPanel onClose={() => showTerminal = false} />
-  {/if}
+  <TerminalPanel visible={showTerminal} onClose={() => showTerminal = false} />
   {#if showPushDialog}
     <ConfirmDialog
       title="Push to Remote"
