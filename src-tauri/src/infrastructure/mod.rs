@@ -4,6 +4,7 @@ pub mod event_handlers;
 pub mod git;
 pub mod persistence;
 pub mod session;
+pub mod terminal;
 pub mod worktree;
 
 pub use app_services::AppServices;
