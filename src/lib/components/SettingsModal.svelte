@@ -73,7 +73,6 @@
     };
 
     await saveProjectConfig(config);
-    onClose();
   }
 
   function handleKeydown(e: KeyboardEvent) {
