@@ -16,12 +16,13 @@ fn load_env_vars(services: &AppServices) -> HashMap<String, String> {
         .unwrap_or_default()
         .into_iter()
         .collect();
-    config
+    let vars = config
         .and_then(|c| c.env_vars)
         .unwrap_or_default()
         .into_iter()
         .filter(|(k, _)| !disabled.contains(k))
-        .collect()
+        .collect();
+    super::expand_env_values(vars)
 }
 
 fn load_claude_path(services: &AppServices) -> Option<String> {
