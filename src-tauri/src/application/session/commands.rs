@@ -14,6 +14,7 @@ pub struct StartSessionCommand {
     pub model: Option<String>,
     pub agent_name: Option<String>,
     pub env_vars: HashMap<String, String>,
+    pub worktree_links: Vec<String>,
 }
 
 pub struct StopSessionCommand {
