@@ -112,6 +112,7 @@ pub fn run() {
                 Arc::clone(&session_manager) as Arc<dyn crate::application::ports::SessionManagerPort>,
                 Arc::clone(&event_bus),
                 Arc::clone(&current_project),
+                Arc::clone(&worktree_port) as Arc<dyn crate::application::ports::WorktreePort>,
             ));
 
             // --- Event handlers ---

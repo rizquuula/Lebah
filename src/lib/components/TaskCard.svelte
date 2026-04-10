@@ -10,6 +10,7 @@
   import TaskToggles from "./TaskToggles.svelte";
   import { portal } from "../actions/portal";
   import { dragHandle } from "svelte-dnd-action";
+  import { CHAT_BUTTON_TITLE } from "../utils/task-card-constants";
 
   export let task: Task;
 
@@ -170,10 +171,10 @@
           <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor"><path d="M2 1.5l9 4.5-9 4.5V1.5z"/></svg>
         {/if}
       </button>
-      <button class="btn-icon terminal-btn" class:active={showTerminal} title="Terminal"
+      <button class="btn-icon chat-btn" class:active={showTerminal} title={CHAT_BUTTON_TITLE}
         on:click={() => (showTerminal = !showTerminal)}>
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-          <polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
         </svg>
       </button>
       {#if task.status === TaskStatus.Success}
@@ -195,17 +196,17 @@
           <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor"><path d="M2 1.5l9 4.5-9 4.5V1.5z"/></svg>
         {/if}
       </button>
-      <button class="btn-icon terminal-btn" class:active={showTerminal} title="Terminal"
+      <button class="btn-icon chat-btn" class:active={showTerminal} title={CHAT_BUTTON_TITLE}
         on:click={() => (showTerminal = !showTerminal)}>
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-          <polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
         </svg>
       </button>
     {:else if task.column === TaskColumn.Completed}
-      <button class="btn-icon terminal-btn" class:active={showTerminal} title="View chat history"
+      <button class="btn-icon chat-btn" class:active={showTerminal} title={CHAT_BUTTON_TITLE}
         on:click={() => (showTerminal = !showTerminal)}>
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-          <polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
         </svg>
       </button>
     {/if}
@@ -444,7 +445,7 @@
     border-color: rgba(137, 180, 250, 0.2);
   }
   .btn-icon.arrow-right:hover:not(:disabled) { background: rgba(137, 180, 250, 0.25); }
-  .btn-icon.terminal-btn.active {
+  .btn-icon.chat-btn.active {
     background: rgba(137, 180, 250, 0.2);
     color: #89b4fa;
     border-color: rgba(137, 180, 250, 0.25);
