@@ -75,7 +75,6 @@
 
     await saveProjectConfig(config);
     showNotification("Settings saved.");
-    onClose();
   }
 
   function handleKeydown(e: KeyboardEvent) {
