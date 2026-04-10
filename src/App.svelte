@@ -6,6 +6,7 @@
   import SettingsModal from "./lib/components/SettingsModal.svelte";
   import RecentProjectDropdown from "./lib/components/RecentProjectDropdown.svelte";
   import ConfirmDialog from "./lib/components/ConfirmDialog.svelte";
+  import Notification from "./lib/components/Notification.svelte";
   import TerminalPanel from "./lib/components/TerminalPanel.svelte";
   import { projectPath, gitStatus, openProject, loadProjectPath, refreshGitStatus } from "./lib/stores/project";
   import { copyToClipboard } from "./lib/utils/clipboard";
@@ -150,6 +151,7 @@
 
     <div class="header-glow"></div>
   </header>
+  <Notification />
   {#if $lastError}
     <button class="error-banner" on:click={clearError}>
       <span>{$lastError}</span>

@@ -2,6 +2,7 @@
   import { onMount } from "svelte";
   import { invoke } from "@tauri-apps/api/core";
   import { projectConfig, loadProjectConfig, saveProjectConfig } from "../stores/config";
+  import { showNotification } from "../stores/notifications";
   import type { ProjectConfig } from "../types";
 
   export let onClose: () => void;
@@ -73,6 +74,7 @@
     };
 
     await saveProjectConfig(config);
+    showNotification("Settings saved.");
   }
 
   function handleKeydown(e: KeyboardEvent) {

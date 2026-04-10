@@ -1,4 +1,4 @@
-.PHONY: help setup dev build run clean clean-soft setup-rust setup-node setup-tauri tree test
+.PHONY: help setup dev build run run-released clean clean-soft setup-rust setup-node setup-tauri tree test
 .DEFAULT_GOAL := help
 
 help:
@@ -9,8 +9,9 @@ help:
 	@echo "  tree    Show file tree for .ts/.svelte/.rs files with line counts"
 	@echo "  setup   Install dependencies (Tauri CLI, npm packages, cargo deps)"
 	@echo "  dev     Run in development mode"
-	@echo "  build   Build for production"
-	@echo "  run     Run the release build"
+	@echo "  build        Build for production (with bundles)"
+	@echo "  run          Build (no bundles) and run"
+	@echo "  run-released Run the existing release build without rebuilding"
 	@echo "  test    Run all checks (Rust tests, Svelte type check, Cargo check)"
 	@echo "  clean       Clean all build artifacts and dependencies"
 	@echo "  clean-soft  Clear caches only (Vite, Cargo incremental)"
@@ -44,7 +45,8 @@ dev:
 build:
 	cargo tauri build
 
-run: build
+run:
+	cargo tauri build --no-bundle
 	"$${CARGO_TARGET_DIR:-src-tauri/target}/release/lebah"
 
 run-released:
