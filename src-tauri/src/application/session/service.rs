@@ -2,15 +2,15 @@ use std::sync::Arc;
 
 use crate::application::errors::ApplicationError;
 use crate::application::event_bus::{DomainEvent, DomainEventBus};
-use crate::application::ports::SessionManagerPort;
+use crate::application::ports::{SessionManagerPort, WorktreePort};
 use crate::application::session::commands::*;
 use crate::application::task::commands::{MarkTaskCompletedCommand, MarkTaskStartedCommand, MarkTaskStoppedCommand};
 use crate::application::task::service::TaskApplicationService;
 use crate::domain::agent::runner::{AgentHandle, AgentRunConfig, AgentRunner, PermissionMode};
 use crate::domain::repositories::OutputRepository;
-use crate::domain::project::value_objects::ProjectId;
+use crate::domain::project::value_objects::{ProjectId, ProjectPath};
 use crate::domain::session::events::SessionDomainEvent;
-use crate::domain::task::value_objects::TaskId;
+use crate::domain::task::value_objects::{TaskId, WorktreeRef};
 use crate::infrastructure::agents::registry::AgentRegistry;
 
 pub struct SessionApplicationService {
@@ -20,6 +20,7 @@ pub struct SessionApplicationService {
     session_manager: Arc<dyn SessionManagerPort>,
     event_bus: Arc<dyn DomainEventBus>,
     current_project: Arc<std::sync::Mutex<Option<String>>>,
+    worktree_port: Arc<dyn WorktreePort>,
 }
 
 impl SessionApplicationService {
@@ -30,6 +31,7 @@ impl SessionApplicationService {
         session_manager: Arc<dyn SessionManagerPort>,
         event_bus: Arc<dyn DomainEventBus>,
         current_project: Arc<std::sync::Mutex<Option<String>>>,
+        worktree_port: Arc<dyn WorktreePort>,
     ) -> Self {
         Self {
             agent_registry,
@@ -38,6 +40,7 @@ impl SessionApplicationService {
             session_manager,
             event_bus,
             current_project,
+            worktree_port,
         }
     }
 
@@ -60,6 +63,10 @@ impl SessionApplicationService {
 
         let task_id = TaskId::from_string(cmd.task_id.clone());
         let project_path = cmd.project_path.clone();
+
+        // Capture before cmd is consumed by run_config
+        let worktree_name = cmd.worktree.as_ref().map(|w| w.as_str().to_string());
+        let worktree_links = cmd.worktree_links.clone();
 
         // Mark task as started
         let _ = self.task_service.clear_output(&cmd.task_id);
@@ -93,6 +100,47 @@ impl SessionApplicationService {
             e
         })?;
         log::info!("[session] Session started successfully for task {}", task_id.0);
+
+        // Apply worktree links in background after Claude CLI creates the worktree dir.
+        // This must happen after runner.start() because the Claude CLI itself runs
+        // `git worktree add` to create the directory, which doesn't exist yet at
+        // command dispatch time.
+        if let (Some(wt_name), links) = (worktree_name, worktree_links) {
+            if !links.is_empty() {
+                if let Some(ref proj) = project_path {
+                    let proj_str = proj.as_str().to_string();
+                    let worktree_port = Arc::clone(&self.worktree_port);
+                    std::thread::spawn(move || {
+                        let wt_path = std::path::Path::new(&proj_str)
+                            .join(".claude")
+                            .join("worktrees")
+                            .join(&wt_name);
+                        let deadline = std::time::Instant::now()
+                            + std::time::Duration::from_secs(30);
+                        loop {
+                            if wt_path.is_dir() {
+                                break;
+                            }
+                            if std::time::Instant::now() > deadline {
+                                log::warn!(
+                                    "[session] Timed out waiting for worktree dir: {:?}",
+                                    wt_path
+                                );
+                                return;
+                            }
+                            std::thread::sleep(std::time::Duration::from_millis(500));
+                        }
+                        if let Err(e) = worktree_port.apply_links(
+                            &ProjectPath::new(proj_str),
+                            &WorktreeRef::new(wt_name),
+                            &links,
+                        ) {
+                            log::warn!("[session] apply_links failed: {}", e);
+                        }
+                    });
+                }
+            }
+        }
         let agent_name = runner.name().to_string();
 
         self.event_bus.publish(DomainEvent::Session(SessionDomainEvent::SessionStarted {
