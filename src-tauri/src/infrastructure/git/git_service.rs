@@ -170,3 +170,69 @@ impl GitPort for GitInfraService {
         Ok(stdout.trim().to_string())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn service() -> GitInfraService {
+        GitInfraService::new()
+    }
+
+    #[test]
+    fn push_fails_on_non_git_directory() {
+        let tmp = std::env::temp_dir();
+        let path = ProjectPath::new(tmp.to_string_lossy().to_string());
+        let result = service().push(&path);
+        assert!(result.is_err());
+        let err_msg = result.unwrap_err().to_string();
+        assert!(
+            err_msg.contains("fetch failed") || err_msg.contains("Failed"),
+            "unexpected error: {}",
+            err_msg
+        );
+    }
+
+    #[test]
+    fn push_fails_on_nonexistent_path() {
+        let path = ProjectPath::new("/tmp/nonexistent-lebah-test-dir".to_string());
+        let result = service().push(&path);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn get_status_fails_on_non_git_directory() {
+        let tmp = std::env::temp_dir();
+        let path = ProjectPath::new(tmp.to_string_lossy().to_string());
+        let result = service().get_status(&path);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn push_fails_on_repo_without_remote() {
+        let tmp = tempfile::tempdir().expect("create temp dir");
+        let dir = tmp.path();
+
+        // Init a git repo with no remote
+        std::process::Command::new("git")
+            .args(["init"])
+            .current_dir(dir)
+            .output()
+            .expect("git init");
+        std::process::Command::new("git")
+            .args(["commit", "--allow-empty", "-m", "init"])
+            .current_dir(dir)
+            .output()
+            .expect("git commit");
+
+        let path = ProjectPath::new(dir.to_string_lossy().to_string());
+        let result = service().push(&path);
+        assert!(result.is_err());
+        let err_msg = result.unwrap_err().to_string();
+        assert!(
+            err_msg.contains("fetch failed") || err_msg.contains("push failed"),
+            "unexpected error: {}",
+            err_msg
+        );
+    }
+}

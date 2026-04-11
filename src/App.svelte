@@ -10,7 +10,8 @@
   import TerminalPanel from "./lib/components/TerminalPanel.svelte";
   import { projectPath, gitStatus, openProject, loadProjectPath, refreshGitStatus } from "./lib/stores/project";
   import { copyToClipboard } from "./lib/utils/clipboard";
-  import { lastError, clearError } from "./lib/stores/errors";
+  import { lastError, clearError, setError } from "./lib/stores/errors";
+  import { showNotification } from "./lib/stores/notifications";
   import { initializeConfigSubscription } from "./lib/stores/config";
   import { appVersion, loadAppVersion } from "./lib/stores/version";
 
@@ -64,8 +65,10 @@
     try {
       await invoke<string>("git_push");
       refreshGitStatus();
+      showNotification("Pushed to remote successfully");
     } catch (e) {
-      console.error("Push failed:", e);
+      const msg = typeof e === "string" ? e : (e as Error)?.message ?? "Unknown error";
+      setError(`Push failed: ${msg}`);
     } finally {
       isPushing = false;
     }
