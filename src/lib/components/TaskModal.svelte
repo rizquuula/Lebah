@@ -12,7 +12,7 @@
   let description = task?.description ?? "";
   let worktree = task?.worktree ?? "";
   let worktreeError = "";
-  let model = task?.model ?? "sonnet";
+  let model = task?.model ?? "opus";
   let agentName = task?.agent_name ?? "claude";
   let generatingWorktree = false;
   let pendingSave = false;
