@@ -19,18 +19,52 @@
 
   $: borderColor = STATUS_COLORS[task.status];
 
-  function parseJsonLine(raw: string): void {
+  function fmtToolInput(name: string, rawJson: string): string {
+    if (!rawJson) return "";
+    try {
+      const p = JSON.parse(rawJson);
+      switch (name) {
+        case "Read": return p.file_path ?? "";
+        case "Write": return p.file_path ?? "";
+        case "Edit": {
+          const file = p.file_path ?? "";
+          const old = p.old_string ? p.old_string.slice(0, 60).replace(/\n/g, "↵") : "";
+          return old ? `${file} · ${old}` : file;
+        }
+        case "Glob": return p.path ? `${p.pattern} in ${p.path}` : p.pattern ?? "";
+        case "Grep": {
+          let s = p.pattern ?? "";
+          if (p.path) s += ` in ${p.path}`;
+          if (p.glob) s += ` (${p.glob})`;
+          return s;
+        }
+        case "Bash": return p.command?.slice(0, 120) ?? "";
+        case "Agent": return p.description ?? p.prompt?.slice(0, 80) ?? "";
+        case "WebFetch": return p.url ?? "";
+        case "WebSearch": return p.query ?? "";
+        default: {
+          const vals = Object.values(p).filter((v): v is string => typeof v === "string" && v.length < 200);
+          return vals[0] ?? "";
+        }
+      }
+    } catch {
+      return rawJson.slice(0, 100);
+    }
+  }
+
+  /** Parse a JSON line and append result(s) to `target`. Does NOT trigger Svelte reactivity. */
+  function parseLine(target: ChatEntry[], raw: string): void {
     if (!raw.trim()) return;
     try {
       const obj = JSON.parse(raw);
 
       if (obj.type === "user_input") {
-        entries = [...entries, { kind: "user", text: obj.text ?? "" }];
+        target.push({ kind: "user", text: obj.text ?? "" });
         return;
       }
 
       if (obj.type === "system" && obj.subtype === "init") {
-        entries = [...entries, { kind: "system", text: `Session started · ${obj.model ?? ""}` }];
+        target.push({ kind: "system", text: `Session started · ${obj.model ?? ""}` });
         return;
       }
 
@@ -38,55 +72,54 @@
         if (obj.message?.content) {
           for (const part of obj.message.content) {
             if (part.type === "text" && part.text) {
-              const last = entries[entries.length - 1];
+              const last = target[target.length - 1];
               if (last?.kind === "assistant") {
-                entries[entries.length - 1] = { kind: "assistant", text: last.text + part.text };
-                entries = entries;
+                target[target.length - 1] = { kind: "assistant", text: last.text + part.text };
               } else {
-                entries = [...entries, { kind: "assistant", text: part.text }];
+                target.push({ kind: "assistant", text: part.text });
               }
             } else if (part.type === "tool_use") {
-              entries = [...entries, { kind: "tool_use", name: part.name ?? "unknown", input: part.input ? JSON.stringify(part.input) : "" }];
+              const inputJson = part.input ? JSON.stringify(part.input) : "";
+              target.push({ kind: "tool_use", name: part.name ?? "unknown", input: fmtToolInput(part.name ?? "unknown", inputJson) });
             }
           }
           const u = obj.message.usage;
           if (u && u.output_tokens > 0) {
-            entries = [...entries, {
+            target.push({
               kind: "usage",
               input: u.input_tokens ?? 0,
               output: u.output_tokens ?? 0,
               cacheRead: u.cache_read_input_tokens ?? 0,
               cacheCreate: u.cache_creation_input_tokens ?? 0,
-            }];
+            });
           }
           return;
         }
         const delta = obj.content_block?.delta;
         if (delta?.type === "text_delta" && delta.text) {
-          const last = entries[entries.length - 1];
+          const last = target[target.length - 1];
           if (last?.kind === "assistant") {
-            entries[entries.length - 1] = { kind: "assistant", text: last.text + delta.text };
-            entries = entries;
+            target[target.length - 1] = { kind: "assistant", text: last.text + delta.text };
           } else {
-            entries = [...entries, { kind: "assistant", text: delta.text }];
+            target.push({ kind: "assistant", text: delta.text });
           }
           return;
         }
         if (delta?.type === "input_json_delta" && delta.partial_json) {
-          const last = entries[entries.length - 1];
+          const last = target[target.length - 1];
           if (last?.kind === "tool_use") {
-            entries[entries.length - 1] = { ...last, input: last.input + delta.partial_json };
-            entries = entries;
+            target[target.length - 1] = { ...last, input: last.input + delta.partial_json };
           }
           return;
         }
         const cb = obj.content_block;
         if (cb?.type === "tool_use") {
-          entries = [...entries, { kind: "tool_use", name: cb.name ?? "unknown", input: cb.input ? JSON.stringify(cb.input) : "" }];
+          const inputJson = cb.input ? JSON.stringify(cb.input) : "";
+          target.push({ kind: "tool_use", name: cb.name ?? "unknown", input: fmtToolInput(cb.name ?? "unknown", inputJson) });
           return;
         }
         if (cb?.type === "text" && cb.text) {
-          entries = [...entries, { kind: "assistant", text: cb.text }];
+          target.push({ kind: "assistant", text: cb.text });
           return;
         }
         return;
@@ -98,7 +131,7 @@
           for (const part of contents) {
             const tr = part.tool_use_result ?? obj.tool_use_result;
             if (tr?.type === "create" && tr.filePath?.endsWith(".md") && tr.content) {
-              entries = [...entries, { kind: "file_output", path: tr.filePath, content: tr.content }];
+              target.push({ kind: "file_output", path: tr.filePath, content: tr.content });
             }
           }
         }
@@ -112,38 +145,35 @@
           cache_read_input_tokens: obj.usage?.cache_read_input_tokens ?? 0,
           cache_creation_input_tokens: obj.usage?.cache_creation_input_tokens ?? 0,
         };
-        entries = [...entries, {
+        target.push({
           kind: "result",
           success: !obj.is_error,
           cost: obj.total_cost_usd ?? 0,
           duration_ms: obj.duration_ms ?? 0,
           usage,
-        }];
+        });
         return;
       }
     } catch {
-      // Non-JSON line (stderr etc.) — show as system note
       if (raw.trim()) {
-        entries = [...entries, { kind: "system", text: raw }];
+        target.push({ kind: "system", text: raw });
       }
     }
   }
 
   onMount(async () => {
     unlisten = await listen<string>(`claude-output-${task.id}`, (event) => {
-      parseJsonLine(event.payload);
+      parseLine(entries, event.payload);
+      entries = entries;
     });
     try {
       const buffered = await getOutputBuffer(task.id);
-      // Reset entries — the initial user_input comes from the backend output stream
-      entries = [];
       if (buffered.length > 0) {
-        // Parse all buffered lines to reconstruct the chat history
+        const batch: ChatEntry[] = [];
         for (const raw of buffered) {
-          parseJsonLine(raw);
+          parseLine(batch, raw);
         }
-        // Force reactivity after loading buffer
-        entries = [...entries];
+        entries = batch;
       }
     } catch (_) {}
     inputEl?.focus();
@@ -160,7 +190,8 @@
     try {
       await sendInputWithListener(task.id, text, null, null, selectedModel, task.yolo);
     } catch (err) {
-      entries = [...entries, { kind: "system", text: `Send failed: ${err}` }];
+      entries.push({ kind: "system", text: `Send failed: ${err}` });
+      entries = entries;
     }
   }
 

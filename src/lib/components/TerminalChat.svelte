@@ -3,43 +3,22 @@
 
   export let entries: ChatEntry[];
 
+  const RENDER_WINDOW = 150;
+
   let chatEl: HTMLDivElement;
+  let showAll = false;
+
+  $: hiddenCount = showAll ? 0 : Math.max(0, entries.length - RENDER_WINDOW);
+  $: visibleEntries = (showAll || entries.length <= RENDER_WINDOW)
+    ? entries
+    : entries.slice(-RENDER_WINDOW);
+
+  function loadAll() {
+    showAll = true;
+  }
 
   function fmt(n: number, decimals = 0): string {
     return n.toLocaleString(undefined, { maximumFractionDigits: decimals });
-  }
-
-  function formatToolInput(name: string, rawJson: string): string {
-    if (!rawJson) return "";
-    try {
-      const p = JSON.parse(rawJson);
-      switch (name) {
-        case "Read": return p.file_path ?? "";
-        case "Write": return p.file_path ?? "";
-        case "Edit": {
-          const file = p.file_path ?? "";
-          const old = p.old_string ? p.old_string.slice(0, 60).replace(/\n/g, "↵") : "";
-          return old ? `${file} · ${old}` : file;
-        }
-        case "Glob": return p.path ? `${p.pattern} in ${p.path}` : p.pattern ?? "";
-        case "Grep": {
-          let s = p.pattern ?? "";
-          if (p.path) s += ` in ${p.path}`;
-          if (p.glob) s += ` (${p.glob})`;
-          return s;
-        }
-        case "Bash": return p.command?.slice(0, 120) ?? "";
-        case "Agent": return p.description ?? p.prompt?.slice(0, 80) ?? "";
-        case "WebFetch": return p.url ?? "";
-        case "WebSearch": return p.query ?? "";
-        default: {
-          const vals = Object.values(p).filter((v): v is string => typeof v === "string" && v.length < 200);
-          return vals[0] ?? "";
-        }
-      }
-    } catch {
-      return rawJson.slice(0, 100);
-    }
   }
 
   let userScrolledUp = false;
@@ -65,7 +44,12 @@
       <span class="cursor-blink">_</span> Waiting for output...
     </div>
   {:else}
-    {#each entries as entry}
+    {#if hiddenCount > 0}
+      <button class="load-earlier" on:click={loadAll}>
+        Load {hiddenCount} earlier messages
+      </button>
+    {/if}
+    {#each visibleEntries as entry}
       {#if entry.kind === "user"}
         <div class="bubble user-bubble">{entry.text}</div>
       {:else if entry.kind === "assistant"}
@@ -76,8 +60,8 @@
             <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>
           </svg>
           {entry.name}
-          {#if formatToolInput(entry.name, entry.input)}
-            <span class="tool-input">{formatToolInput(entry.name, entry.input).slice(-50)}</span>
+          {#if entry.input}
+            <span class="tool-input">{entry.input.slice(-50)}</span>
           {/if}
         </div>
       {:else if entry.kind === "usage"}
@@ -248,6 +232,22 @@
   .file-content::-webkit-scrollbar-thumb {
     background: rgba(137, 180, 250, 0.15);
     border-radius: 2px;
+  }
+  .load-earlier {
+    align-self: center;
+    background: rgba(137, 180, 250, 0.08);
+    border: 1px solid rgba(137, 180, 250, 0.15);
+    border-radius: 8px;
+    color: rgba(137, 180, 250, 0.7);
+    font-size: 11px;
+    font-family: "JetBrains Mono", "Fira Code", monospace;
+    padding: 6px 14px;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+  .load-earlier:hover {
+    background: rgba(137, 180, 250, 0.15);
+    color: rgba(137, 180, 250, 0.9);
   }
   .system-line {
     align-self: center;
