@@ -20,7 +20,7 @@
   // Allow editing worktree only for new tasks or tasks in Todo column
   $: canEditWorktree = !task || task.column === TaskColumn.Todo;
   $: agentModelConfig = AGENT_MODELS[agentName] ?? AGENT_MODELS.claude;
-  $: supportsWorktree = agentName === "claude";
+
 
   async function generateWorktreeName() {
     worktreeError = "";
@@ -72,7 +72,7 @@
 
     const worktreeVal = worktree.trim().replace(/\//g, '-') || null;
 
-    if (!task && !worktreeVal && supportsWorktree) {
+    if (!task && !worktreeVal) {
       pendingSave = true;
       await generateWorktreeName();
       return;
@@ -116,7 +116,6 @@
         <input id="task-model" type="text" bind:value={model} placeholder="provider/model (e.g. kilo/anthropic/claude-opus-4.6)" class="text-input" />
       {/if}
 
-      {#if supportsWorktree}
       <label class="field-label" for="task-worktree">Worktree Name</label>
       {#if canEditWorktree}
         <div class="worktree-row">
@@ -146,7 +145,6 @@
         {/if}
       {:else}
         <div class="text-input readonly-field">{worktree ?? "—"}</div>
-      {/if}
       {/if}
 
       <div class="actions">

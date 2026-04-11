@@ -1,5 +1,5 @@
-use std::path::PathBuf;
 use crate::domain::project::value_objects::ProjectId;
+use std::path::PathBuf;
 
 pub struct PathResolver {
     base_dir: PathBuf,
@@ -34,6 +34,7 @@ impl PathResolver {
     }
 
     pub fn output_file(&self, project_id: &ProjectId, task_id_str: &str) -> PathBuf {
-        self.outputs_dir(project_id).join(format!("{}.jsonl", task_id_str))
+        self.outputs_dir(project_id)
+            .join(format!("{}.jsonl", task_id_str))
     }
 }

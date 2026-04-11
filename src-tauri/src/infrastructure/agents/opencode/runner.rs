@@ -28,10 +28,7 @@ impl OpencodeRunner {
         }
     }
 
-    fn spawn_and_wire(
-        &self,
-        config: AgentRunConfig,
-    ) -> Result<AgentHandle, AgentError> {
+    fn spawn_and_wire(&self, config: AgentRunConfig) -> Result<AgentHandle, AgentError> {
         let mut cmd = OpencodeCommandBuilder::build(&config);
 
         log::info!(
@@ -45,7 +42,8 @@ impl OpencodeRunner {
         let mut child = cmd.spawn().map_err(|e| {
             log::error!(
                 "[opencode] Failed to spawn process for task {}: {}",
-                config.task_id.0, e
+                config.task_id.0,
+                e
             );
             AgentError::SpawnFailed(format!("Failed to spawn opencode: {}", e))
         })?;
@@ -91,40 +89,40 @@ impl OpencodeRunner {
         // Exit monitor thread
         let task_id_str = config.task_id.0.clone();
         let sessions_arc = Arc::clone(&self.sessions);
-        std::thread::spawn(move || {
-            loop {
-                std::thread::sleep(std::time::Duration::from_secs(2));
-                let mut sessions = match sessions_arc.lock() {
-                    Ok(s) => s,
-                    Err(_) => break,
-                };
-                if let Some(child) = sessions.get_mut(&task_id_str) {
-                    match child.try_wait() {
-                        Ok(Some(status)) => {
-                            log::info!(
-                                "[opencode] Process exited for task {}: status={}",
-                                task_id_str, status
-                            );
-                            sessions.remove(&task_id_str);
-                            drop(sessions);
-                            let _ = exit_tx.send(status.success());
-                            break;
-                        }
-                        Ok(None) => {}
-                        Err(e) => {
-                            log::error!(
-                                "[opencode] Error polling process for task {}: {}",
-                                task_id_str, e
-                            );
-                            sessions.remove(&task_id_str);
-                            drop(sessions);
-                            let _ = exit_tx.send(false);
-                            break;
-                        }
+        std::thread::spawn(move || loop {
+            std::thread::sleep(std::time::Duration::from_secs(2));
+            let mut sessions = match sessions_arc.lock() {
+                Ok(s) => s,
+                Err(_) => break,
+            };
+            if let Some(child) = sessions.get_mut(&task_id_str) {
+                match child.try_wait() {
+                    Ok(Some(status)) => {
+                        log::info!(
+                            "[opencode] Process exited for task {}: status={}",
+                            task_id_str,
+                            status
+                        );
+                        sessions.remove(&task_id_str);
+                        drop(sessions);
+                        let _ = exit_tx.send(status.success());
+                        break;
                     }
-                } else {
-                    break;
+                    Ok(None) => {}
+                    Err(e) => {
+                        log::error!(
+                            "[opencode] Error polling process for task {}: {}",
+                            task_id_str,
+                            e
+                        );
+                        sessions.remove(&task_id_str);
+                        drop(sessions);
+                        let _ = exit_tx.send(false);
+                        break;
+                    }
                 }
+            } else {
+                break;
             }
         });
 
@@ -191,10 +189,7 @@ impl AgentRunner for OpencodeRunner {
         self.spawn_and_wire(config)
     }
 
-    fn send_follow_up(
-        &self,
-        mut config: AgentRunConfig,
-    ) -> Result<AgentHandle, AgentError> {
+    fn send_follow_up(&self, mut config: AgentRunConfig) -> Result<AgentHandle, AgentError> {
         log::info!(
             "[opencode] Sending follow-up for task {}, prompt_len={}",
             config.task_id.0,
@@ -232,10 +227,7 @@ impl AgentRunner for OpencodeRunner {
             .map_err(|e| AgentError::Internal(e.to_string()))?;
         if let Some(mut child) = sessions.remove(&task_id.0) {
             if let Err(e) = child.kill() {
-                log::warn!(
-                    "[opencode] Failed to kill process for {}: {}",
-                    task_id.0, e
-                );
+                log::warn!("[opencode] Failed to kill process for {}: {}", task_id.0, e);
             } else {
                 log::info!("[opencode] Process killed for {}", task_id.0);
             }
@@ -251,7 +243,8 @@ impl AgentRunner for OpencodeRunner {
     fn update_model(&self, task_id: &TaskId, model: &str) -> Result<(), AgentError> {
         log::info!(
             "[opencode] Updating model for task {} to '{}'",
-            task_id.0, model
+            task_id.0,
+            model
         );
         let mut configs = self
             .session_configs

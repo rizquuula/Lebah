@@ -9,11 +9,11 @@ use std::sync::{Arc, Mutex};
 use tauri::Manager;
 
 use application::event_bus::InProcessEventBus;
-use domain::repositories::ProjectRepository;
 use application::git::service::GitApplicationService;
 use application::project::service::ProjectApplicationService;
 use application::session::service::SessionApplicationService;
 use application::task::service::TaskApplicationService;
+use domain::repositories::ProjectRepository;
 use infrastructure::agents::claude::runner::ClaudeRunner;
 use infrastructure::agents::opencode::runner::OpencodeRunner;
 use infrastructure::agents::registry::AgentRegistry;
@@ -26,8 +26,8 @@ use infrastructure::persistence::json_project_repository::JsonProjectRepository;
 use infrastructure::persistence::json_task_repository::JsonTaskRepository;
 use infrastructure::persistence::path_resolver::PathResolver;
 use infrastructure::session::process_session_manager::ProcessSessionManager;
-use infrastructure::worktree::worktree_manager::WorktreeManager;
 use infrastructure::terminal::pty_manager::PtySessionManager;
+use infrastructure::worktree::worktree_manager::WorktreeManager;
 use infrastructure::AppServices;
 
 use presentation::commands::project_commands::*;
@@ -99,19 +99,21 @@ pub fn run() {
             ));
 
             let project_service = Arc::new(ProjectApplicationService::new(
-                Arc::clone(&project_repo) as Arc<dyn crate::domain::repositories::ProjectRepository>,
+                Arc::clone(&project_repo)
+                    as Arc<dyn crate::domain::repositories::ProjectRepository>,
                 Arc::clone(&current_project),
             ));
 
             let git_service = Arc::new(GitApplicationService::new(
-                Arc::clone(&git_port) as Arc<dyn crate::application::ports::GitPort>,
+                Arc::clone(&git_port) as Arc<dyn crate::application::ports::GitPort>
             ));
 
             let session_service = Arc::new(SessionApplicationService::new(
                 Arc::clone(&agent_registry),
                 Arc::clone(&task_service),
                 Arc::clone(&output_repo) as Arc<dyn crate::domain::repositories::OutputRepository>,
-                Arc::clone(&session_manager) as Arc<dyn crate::application::ports::SessionManagerPort>,
+                Arc::clone(&session_manager)
+                    as Arc<dyn crate::application::ports::SessionManagerPort>,
                 Arc::clone(&event_bus),
                 Arc::clone(&current_project),
                 Arc::clone(&worktree_port) as Arc<dyn crate::application::ports::WorktreePort>,
@@ -138,7 +140,8 @@ pub fn run() {
                 session_service,
                 project_service,
                 git_service,
-                worktree_port: Arc::clone(&worktree_port) as Arc<dyn crate::application::ports::WorktreePort>,
+                worktree_port: Arc::clone(&worktree_port)
+                    as Arc<dyn crate::application::ports::WorktreePort>,
             });
 
             Ok(())

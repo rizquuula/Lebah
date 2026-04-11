@@ -22,6 +22,4 @@ impl SessionManagerPort for ProcessSessionManager {
             .and_then(|b| b.get(&task_id.0).cloned())
             .unwrap_or_default()
     }
-
-
 }

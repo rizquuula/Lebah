@@ -25,7 +25,9 @@ impl EventHandler for SessionStatusHandler {
         {
             log::info!(
                 "[session_status] Session ended: task={} success={} project={}",
-                task_id, success, project_path
+                task_id,
+                success,
+                project_path
             );
             if let Err(e) = self.task_service.mark_task_completed(
                 MarkTaskCompletedCommand {
@@ -34,7 +36,11 @@ impl EventHandler for SessionStatusHandler {
                 },
                 project_path,
             ) {
-                log::error!("[session_status] Failed to mark task {} completed: {}", task_id.0, e);
+                log::error!(
+                    "[session_status] Failed to mark task {} completed: {}",
+                    task_id.0,
+                    e
+                );
             }
         }
     }

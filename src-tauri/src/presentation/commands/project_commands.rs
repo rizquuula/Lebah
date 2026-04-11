@@ -16,11 +16,17 @@ pub fn set_project_path(path: String, services: State<'_, AppServices>) -> Resul
 
 #[tauri::command]
 pub fn get_project_path(services: State<'_, AppServices>) -> Result<Option<String>, String> {
-    services.project_service.get_project().map_err(|e| e.to_string())
+    services
+        .project_service
+        .get_project()
+        .map_err(|e| e.to_string())
 }
 
 #[tauri::command]
-pub fn get_recent_projects(max_count: usize, services: State<'_, AppServices>) -> Result<Vec<String>, String> {
+pub fn get_recent_projects(
+    max_count: usize,
+    services: State<'_, AppServices>,
+) -> Result<Vec<String>, String> {
     services
         .project_service
         .get_recent_projects(GetRecentProjectsCommand { max_count })
@@ -50,7 +56,10 @@ pub fn get_git_status(services: State<'_, AppServices>) -> Result<GitStatus, Str
 
 #[tauri::command]
 pub fn get_project_config(services: State<'_, AppServices>) -> Result<ProjectConfig, String> {
-    services.project_service.get_project_config().map_err(|e| e.to_string())
+    services
+        .project_service
+        .get_project_config()
+        .map_err(|e| e.to_string())
 }
 
 #[tauri::command]

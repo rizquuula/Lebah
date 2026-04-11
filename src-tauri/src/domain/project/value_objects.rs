@@ -158,7 +158,10 @@ mod tests {
         cfg.worktree_links = Some(vec!["node_modules".to_string(), ".env".to_string()]);
         let json = serde_json::to_string(&cfg).unwrap();
         let decoded: ProjectConfig = serde_json::from_str(&json).unwrap();
-        assert_eq!(decoded.worktree_links, Some(vec!["node_modules".to_string(), ".env".to_string()]));
+        assert_eq!(
+            decoded.worktree_links,
+            Some(vec!["node_modules".to_string(), ".env".to_string()])
+        );
     }
 
     #[test]

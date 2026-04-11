@@ -7,10 +7,7 @@ pub struct ClaudeCommandBuilder;
 impl ClaudeCommandBuilder {
     /// Build a Command from an AgentRunConfig for the Claude CLI.
     pub fn build(config: &AgentRunConfig) -> Command {
-        let binary = config
-            .agent_binary
-            .as_deref()
-            .unwrap_or("claude");
+        let binary = config.agent_binary.as_deref().unwrap_or("claude");
 
         let mut cmd = Command::new(binary);
 
@@ -99,7 +96,9 @@ mod tests {
     }
 
     fn args(cmd: &std::process::Command) -> Vec<String> {
-        cmd.get_args().map(|a| a.to_string_lossy().into_owned()).collect()
+        cmd.get_args()
+            .map(|a| a.to_string_lossy().into_owned())
+            .collect()
     }
 
     #[test]
@@ -120,7 +119,10 @@ mod tests {
     fn includes_session_id() {
         let cmd = ClaudeCommandBuilder::build(&base_config());
         let a = args(&cmd);
-        let idx = a.iter().position(|s| s == "--session-id").expect("--session-id missing");
+        let idx = a
+            .iter()
+            .position(|s| s == "--session-id")
+            .expect("--session-id missing");
         assert_eq!(a[idx + 1], "test-id");
     }
 
@@ -138,7 +140,10 @@ mod tests {
         let mut cfg = base_config();
         cfg.permission_mode = PermissionMode::Plan;
         let a = args(&ClaudeCommandBuilder::build(&cfg));
-        let idx = a.iter().position(|s| s == "--permission-mode").expect("missing");
+        let idx = a
+            .iter()
+            .position(|s| s == "--permission-mode")
+            .expect("missing");
         assert_eq!(a[idx + 1], "plan");
     }
 
@@ -155,14 +160,20 @@ mod tests {
         let mut cfg = base_config();
         cfg.model = Some("claude-opus-4-6".to_string());
         let a = args(&ClaudeCommandBuilder::build(&cfg));
-        let idx = a.iter().position(|s| s == "--model").expect("--model missing");
+        let idx = a
+            .iter()
+            .position(|s| s == "--model")
+            .expect("--model missing");
         assert_eq!(a[idx + 1], "claude-opus-4-6");
     }
 
     #[test]
     fn output_format_stream_json_always_present() {
         let a = args(&ClaudeCommandBuilder::build(&base_config()));
-        let idx = a.iter().position(|s| s == "--output-format").expect("missing");
+        let idx = a
+            .iter()
+            .position(|s| s == "--output-format")
+            .expect("missing");
         assert_eq!(a[idx + 1], "stream-json");
     }
 

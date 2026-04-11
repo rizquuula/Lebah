@@ -1,6 +1,6 @@
+use crate::domain::errors::DomainError;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
-use crate::domain::errors::DomainError;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct TaskId(pub String);
@@ -115,7 +115,6 @@ pub struct AgentConfig {
     pub model: Option<String>,
 }
 
-
 /// Execution permission flags
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ExecutionFlags {
@@ -156,7 +155,9 @@ mod tests {
 
     #[test]
     fn task_status_round_trips() {
-        for s in ["Idle", "Running", "Success", "Failed", "Warning", "Waiting", "Canceled"] {
+        for s in [
+            "Idle", "Running", "Success", "Failed", "Warning", "Waiting", "Canceled",
+        ] {
             let parsed = TaskStatus::from_str(s).unwrap();
             assert_eq!(parsed.as_str(), s);
         }

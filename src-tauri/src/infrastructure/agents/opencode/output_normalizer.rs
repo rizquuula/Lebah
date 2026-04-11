@@ -74,7 +74,10 @@ pub fn spawn_normalizer(raw_rx: mpsc::Receiver<String>) -> mpsc::Receiver<String
                     let title = obj
                         .pointer("/part/state/title")
                         .and_then(|v| v.as_str())
-                        .or_else(|| obj.pointer("/part/state/input/description").and_then(|v| v.as_str()))
+                        .or_else(|| {
+                            obj.pointer("/part/state/input/description")
+                                .and_then(|v| v.as_str())
+                        })
                         .unwrap_or(tool_name);
 
                     // Emit tool_use
@@ -100,8 +103,10 @@ pub fn spawn_normalizer(raw_rx: mpsc::Receiver<String>) -> mpsc::Receiver<String
 
                     // Accumulate tokens and cost
                     if let Some(tokens) = obj.pointer("/part/tokens") {
-                        total_input_tokens += tokens.get("input").and_then(|v| v.as_i64()).unwrap_or(0);
-                        total_output_tokens += tokens.get("output").and_then(|v| v.as_i64()).unwrap_or(0);
+                        total_input_tokens +=
+                            tokens.get("input").and_then(|v| v.as_i64()).unwrap_or(0);
+                        total_output_tokens +=
+                            tokens.get("output").and_then(|v| v.as_i64()).unwrap_or(0);
                     }
                     total_cost += obj
                         .pointer("/part/cost")
@@ -176,7 +181,8 @@ mod tests {
         let (tx, rx) = mpsc::channel();
         let normalized = spawn_normalizer(rx);
 
-        tx.send(r#"{"type":"text","part":{"type":"text","text":"hello world"}}"#.to_string()).unwrap();
+        tx.send(r#"{"type":"text","part":{"type":"text","text":"hello world"}}"#.to_string())
+            .unwrap();
         drop(tx);
 
         // Skip the init event if first step isn't sent

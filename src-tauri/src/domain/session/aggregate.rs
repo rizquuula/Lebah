@@ -43,9 +43,15 @@ impl Session {
         self.state = SessionState::Failed { reason };
     }
 
-    pub fn task_id(&self) -> &TaskId { &self.task_id }
-    pub fn state(&self) -> &SessionState { &self.state }
-    pub fn agent_name(&self) -> &str { &self.agent_name }
+    pub fn task_id(&self) -> &TaskId {
+        &self.task_id
+    }
+    pub fn state(&self) -> &SessionState {
+        &self.state
+    }
+    pub fn agent_name(&self) -> &str {
+        &self.agent_name
+    }
 }
 
 #[cfg(test)]
@@ -76,7 +82,10 @@ mod tests {
         let mut s = make_session();
         s.start();
         s.complete(true);
-        assert!(matches!(s.state(), SessionState::Completed { success: true }));
+        assert!(matches!(
+            s.state(),
+            SessionState::Completed { success: true }
+        ));
     }
 
     #[test]

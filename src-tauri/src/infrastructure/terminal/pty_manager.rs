@@ -177,7 +177,8 @@ impl PtySessionManager {
     }
 
     pub fn list_sessions(&self, project: Option<&str>) -> Vec<SessionInfo> {
-        let mut result: Vec<SessionInfo> = self.session_info
+        let mut result: Vec<SessionInfo> = self
+            .session_info
             .values()
             .filter(|info| match project {
                 Some(p) => info.project == p,

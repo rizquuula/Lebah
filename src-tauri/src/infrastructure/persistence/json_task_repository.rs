@@ -118,7 +118,11 @@ impl JsonTaskRepository {
             .unwrap_or_default()
     }
 
-    fn save_records(&self, project_id: &ProjectId, records: &[TaskRecord]) -> Result<(), DomainError> {
+    fn save_records(
+        &self,
+        project_id: &ProjectId,
+        records: &[TaskRecord],
+    ) -> Result<(), DomainError> {
         let dir = self.resolver.project_dir(project_id);
         std::fs::create_dir_all(&dir).map_err(|e| DomainError::InvalidValue(e.to_string()))?;
         let json = serde_json::to_string_pretty(records)

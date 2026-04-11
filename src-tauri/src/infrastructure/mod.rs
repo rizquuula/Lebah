@@ -1,5 +1,5 @@
-pub mod app_services;
 pub mod agents;
+pub mod app_services;
 pub mod event_handlers;
 pub mod git;
 pub mod persistence;

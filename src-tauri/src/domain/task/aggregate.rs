@@ -160,19 +160,45 @@ impl Task {
 
     // --- Read-only accessors ---
 
-    pub fn id(&self) -> &TaskId { &self.id }
-    pub fn description(&self) -> &str { &self.description }
-    pub fn column(&self) -> &TaskColumn { &self.column }
-    pub fn status(&self) -> &TaskStatus { &self.status }
-    pub fn agent_config(&self) -> &AgentConfig { &self.agent_config }
-    pub fn execution_flags(&self) -> &ExecutionFlags { &self.execution_flags }
-    pub fn worktree(&self) -> Option<&WorktreeRef> { self.worktree.as_ref() }
-    pub fn sort_order(&self) -> i32 { self.sort_order }
-    pub fn created_at(&self) -> &DateTime<Utc> { &self.created_at }
-    pub fn completed_at(&self) -> Option<&DateTime<Utc>> { self.completed_at.as_ref() }
-    pub fn has_run(&self) -> bool { self.has_run }
-    pub fn lines_added(&self) -> Option<i32> { self.lines_added }
-    pub fn lines_removed(&self) -> Option<i32> { self.lines_removed }
+    pub fn id(&self) -> &TaskId {
+        &self.id
+    }
+    pub fn description(&self) -> &str {
+        &self.description
+    }
+    pub fn column(&self) -> &TaskColumn {
+        &self.column
+    }
+    pub fn status(&self) -> &TaskStatus {
+        &self.status
+    }
+    pub fn agent_config(&self) -> &AgentConfig {
+        &self.agent_config
+    }
+    pub fn execution_flags(&self) -> &ExecutionFlags {
+        &self.execution_flags
+    }
+    pub fn worktree(&self) -> Option<&WorktreeRef> {
+        self.worktree.as_ref()
+    }
+    pub fn sort_order(&self) -> i32 {
+        self.sort_order
+    }
+    pub fn created_at(&self) -> &DateTime<Utc> {
+        &self.created_at
+    }
+    pub fn completed_at(&self) -> Option<&DateTime<Utc>> {
+        self.completed_at.as_ref()
+    }
+    pub fn has_run(&self) -> bool {
+        self.has_run
+    }
+    pub fn lines_added(&self) -> Option<i32> {
+        self.lines_added
+    }
+    pub fn lines_removed(&self) -> Option<i32> {
+        self.lines_removed
+    }
 }
 
 #[cfg(test)]

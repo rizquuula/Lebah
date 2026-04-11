@@ -26,8 +26,7 @@ pub async fn generate_worktree_name(
         .or_else(|| config.as_ref().and_then(|c| c.claude_path.clone()))
         .unwrap_or_else(|| "claude".to_string());
 
-    let effective_model = model
-        .or_else(|| config.as_ref().and_then(|c| c.worktree_model.clone()));
+    let effective_model = model.or_else(|| config.as_ref().and_then(|c| c.worktree_model.clone()));
 
     let disabled: std::collections::HashSet<String> = config
         .as_ref()
@@ -50,9 +49,11 @@ pub async fn generate_worktree_name(
     );
 
     let mut cmd = tokio::process::Command::new(&claude);
-    cmd.arg("--output-format").arg("stream-json")
+    cmd.arg("--output-format")
+        .arg("stream-json")
         .arg("--verbose")
-        .arg("--print").arg(&prompt);
+        .arg("--print")
+        .arg(&prompt);
 
     if let Some(ref m) = effective_model {
         cmd.arg("--model").arg(m);
@@ -62,7 +63,9 @@ pub async fn generate_worktree_name(
     cmd.stdout(std::process::Stdio::piped())
         .stderr(std::process::Stdio::piped());
 
-    let mut child = cmd.spawn().map_err(|e| format!("Failed to run claude: {}", e))?;
+    let mut child = cmd
+        .spawn()
+        .map_err(|e| format!("Failed to run claude: {}", e))?;
 
     let stdout = child.stdout.take().ok_or("No stdout")?;
     let mut lines = tokio::io::BufReader::new(stdout).lines();
@@ -97,7 +100,13 @@ pub async fn generate_worktree_name(
         .trim()
         .to_lowercase()
         .chars()
-        .map(|c| if c.is_alphanumeric() || c == '-' { c } else { '-' })
+        .map(|c| {
+            if c.is_alphanumeric() || c == '-' {
+                c
+            } else {
+                '-'
+            }
+        })
         .collect::<String>()
         .split('-')
         .filter(|s| !s.is_empty())

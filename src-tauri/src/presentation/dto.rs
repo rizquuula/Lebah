@@ -65,4 +65,3 @@ pub struct UpdateTaskInput {
     pub model: Option<String>,
     pub agent_name: Option<String>,
 }
-

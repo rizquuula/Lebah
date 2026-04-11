@@ -25,7 +25,9 @@ impl GitPort for GitInfraService {
             .map_err(|e| ApplicationError::Git(format!("Failed to run git: {}", e)))?;
 
         let branch = if branch_output.status.success() {
-            String::from_utf8_lossy(&branch_output.stdout).trim().to_string()
+            String::from_utf8_lossy(&branch_output.stdout)
+                .trim()
+                .to_string()
         } else {
             return Err(ApplicationError::Git("Not a git repository".to_string()));
         };
@@ -66,7 +68,12 @@ impl GitPort for GitInfraService {
             0
         };
 
-        Ok(GitStatus { branch, ahead, behind, changed_files })
+        Ok(GitStatus {
+            branch,
+            ahead,
+            behind,
+            changed_files,
+        })
     }
 
     fn get_diff_stat(
@@ -92,7 +99,13 @@ impl GitPort for GitInfraService {
             .current_dir(&wt_dir)
             .output()
             .ok()
-            .and_then(|o| if o.status.success() { Some("main") } else { None })
+            .and_then(|o| {
+                if o.status.success() {
+                    Some("main")
+                } else {
+                    None
+                }
+            })
             .unwrap_or("master");
 
         let output = Command::new("git")

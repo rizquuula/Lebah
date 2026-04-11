@@ -61,7 +61,10 @@ pub fn run_agent_session(
     agent_name: Option<String>,
     services: State<'_, AppServices>,
 ) -> Result<(), String> {
-    let project_path = services.project_service.get_project().map_err(|e| e.to_string())?;
+    let project_path = services
+        .project_service
+        .get_project()
+        .map_err(|e| e.to_string())?;
 
     let permission_mode = if use_plan {
         PermissionMode::Plan
@@ -71,7 +74,8 @@ pub fn run_agent_session(
         PermissionMode::Full
     };
 
-    let effective_agent_path = claude_path.or_else(|| load_agent_path(&services, agent_name.as_deref()));
+    let effective_agent_path =
+        claude_path.or_else(|| load_agent_path(&services, agent_name.as_deref()));
     let env_vars = load_env_vars(&services);
 
     // Collect worktree links to be applied after Claude CLI creates the worktree dir
@@ -86,7 +90,14 @@ pub fn run_agent_session(
         Vec::new()
     };
 
-    log::info!("[cmd] run_agent_session: id={} agent={:?} plan={} yolo={} model={:?}", id, agent_name, use_plan, yolo, model);
+    log::info!(
+        "[cmd] run_agent_session: id={} agent={:?} plan={} yolo={} model={:?}",
+        id,
+        agent_name,
+        use_plan,
+        yolo,
+        model
+    );
 
     let cmd = StartSessionCommand {
         task_id: id.clone(),
@@ -108,21 +119,18 @@ pub fn run_agent_session(
 }
 
 #[tauri::command]
-pub fn list_agents(
-    services: State<'_, AppServices>,
-) -> Result<Vec<String>, String> {
+pub fn list_agents(services: State<'_, AppServices>) -> Result<Vec<String>, String> {
     Ok(services.session_service.list_agents())
 }
 
 #[tauri::command]
-pub fn stop_claude_session(
-    id: String,
-    services: State<'_, AppServices>,
-) -> Result<(), String> {
+pub fn stop_claude_session(id: String, services: State<'_, AppServices>) -> Result<(), String> {
     log::info!("[cmd] stop_claude_session: id={}", id);
     services
         .session_service
-        .stop_session(StopSessionCommand { task_id: id.clone() })
+        .stop_session(StopSessionCommand {
+            task_id: id.clone(),
+        })
         .map_err(|e| {
             log::error!("[cmd] stop_claude_session failed for {}: {}", id, e);
             e.to_string()
@@ -137,7 +145,13 @@ pub fn send_input(
     yolo: bool,
     services: State<'_, AppServices>,
 ) -> Result<(), String> {
-    log::info!("[cmd] send_input: id={} input_len={} model={:?} yolo={}", id, input.len(), model, yolo);
+    log::info!(
+        "[cmd] send_input: id={} input_len={} model={:?} yolo={}",
+        id,
+        input.len(),
+        model,
+        yolo
+    );
     let env_vars = load_env_vars(&services);
     services
         .session_service

@@ -52,7 +52,9 @@ impl TaskApplicationService {
     }
 
     pub fn get_tasks(&self) -> Result<Vec<Task>, ApplicationError> {
-        let guard = self.current_project.lock()
+        let guard = self
+            .current_project
+            .lock()
             .map_err(|e| ApplicationError::Persistence(e.to_string()))?;
         let Some(ref path) = *guard else {
             return Ok(Vec::new());
@@ -73,10 +75,11 @@ impl TaskApplicationService {
             cmd.sort_order,
         );
         self.task_repo.save(&project_id, &task)?;
-        self.event_bus.publish(DomainEvent::Task(TaskDomainEvent::TaskCreated {
-            task_id: task.id().clone(),
-            project_id,
-        }));
+        self.event_bus
+            .publish(DomainEvent::Task(TaskDomainEvent::TaskCreated {
+                task_id: task.id().clone(),
+                project_id,
+            }));
         Ok(task)
     }
 
@@ -100,7 +103,9 @@ impl TaskApplicationService {
         let column = TaskColumn::from_str(&cmd.column)?;
         let status = TaskStatus::from_str(&cmd.status)?;
         let completed_at = if column == TaskColumn::Completed {
-            task.completed_at().cloned().or_else(|| Some(chrono::Utc::now()))
+            task.completed_at()
+                .cloned()
+                .or_else(|| Some(chrono::Utc::now()))
         } else {
             task.completed_at().cloned()
         };
@@ -138,15 +143,20 @@ impl TaskApplicationService {
         self.task_repo.delete(&project_id, &task_id)?;
         log::info!("[task] Task {} deleted from repository", task_id.0);
 
-        self.event_bus.publish(DomainEvent::Task(TaskDomainEvent::TaskDeleted {
-            task_id: task_id.clone(),
-            project_id: project_id.clone(),
-            worktree: worktree.clone(),
-        }));
+        self.event_bus
+            .publish(DomainEvent::Task(TaskDomainEvent::TaskDeleted {
+                task_id: task_id.clone(),
+                project_id: project_id.clone(),
+                worktree: worktree.clone(),
+            }));
 
         // Clean up worktree
         if let Some(wt) = worktree {
-            log::info!("[task] Cleaning up worktree {} for task {}", wt.as_str(), task_id.0);
+            log::info!(
+                "[task] Cleaning up worktree {} for task {}",
+                wt.as_str(),
+                task_id.0
+            );
             let project_path = crate::domain::project::value_objects::ProjectPath::new(path);
             if let Err(e) = self.worktree_port.remove(&project_path, &wt) {
                 log::error!("[task] Failed to remove worktree for {}: {}", task_id.0, e);
@@ -170,8 +180,7 @@ impl TaskApplicationService {
             && (column == TaskColumn::Merge || column == TaskColumn::Completed)
         {
             if let Some(wt) = task.worktree().cloned() {
-                let project_path =
-                    crate::domain::project::value_objects::ProjectPath::new(path);
+                let project_path = crate::domain::project::value_objects::ProjectPath::new(path);
                 match self.git_port.get_diff_stat(&project_path, &wt) {
                     Ok((added, removed)) => {
                         task.set_line_changes(added, removed);
@@ -231,11 +240,12 @@ impl TaskApplicationService {
 
         self.task_repo.save(&project_id, &new_task)?;
 
-        self.event_bus.publish(DomainEvent::Task(TaskDomainEvent::TaskReset {
-            old_task_id,
-            new_task_id: new_task.id().clone(),
-            project_id,
-        }));
+        self.event_bus
+            .publish(DomainEvent::Task(TaskDomainEvent::TaskReset {
+                old_task_id,
+                new_task_id: new_task.id().clone(),
+                project_id,
+            }));
 
         Ok(new_task)
     }
@@ -258,7 +268,11 @@ impl TaskApplicationService {
     ) -> Result<(), ApplicationError> {
         let project_id = ProjectId::from_path(project_path);
         let task_id = TaskId::from_string(cmd.id);
-        log::info!("[task] Marking task completed: {} success={}", task_id.0, cmd.success);
+        log::info!(
+            "[task] Marking task completed: {} success={}",
+            task_id.0,
+            cmd.success
+        );
         let mut task = self.task_repo.find_by_id(&project_id, &task_id)?;
         let event = task.mark_completed(cmd.success);
         self.task_repo.save(&project_id, &task)?;

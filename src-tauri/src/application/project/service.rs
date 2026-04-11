@@ -39,7 +39,9 @@ impl ProjectApplicationService {
 
         self.project_repo.save_global_config(&config)?;
 
-        *self.current_project.lock()
+        *self
+            .current_project
+            .lock()
             .map_err(|e| ApplicationError::Persistence(e.to_string()))? = Some(cmd.path);
 
         Ok(())
@@ -52,20 +54,32 @@ impl ProjectApplicationService {
             .map_err(|e| ApplicationError::Persistence(e.to_string()))
     }
 
-    pub fn remove_recent_project(&self, cmd: RemoveRecentProjectCommand) -> Result<(), ApplicationError> {
+    pub fn remove_recent_project(
+        &self,
+        cmd: RemoveRecentProjectCommand,
+    ) -> Result<(), ApplicationError> {
         let mut config = self.project_repo.load_global_config();
         config.recent_projects.retain(|p| p != &cmd.path);
         self.project_repo.save_global_config(&config)?;
         Ok(())
     }
 
-    pub fn get_recent_projects(&self, cmd: GetRecentProjectsCommand) -> Result<Vec<String>, ApplicationError> {
+    pub fn get_recent_projects(
+        &self,
+        cmd: GetRecentProjectsCommand,
+    ) -> Result<Vec<String>, ApplicationError> {
         let config = self.project_repo.load_global_config();
-        Ok(config.recent_projects.into_iter().take(cmd.max_count).collect())
+        Ok(config
+            .recent_projects
+            .into_iter()
+            .take(cmd.max_count)
+            .collect())
     }
 
     pub fn get_project_config(&self) -> Result<ProjectConfig, ApplicationError> {
-        let path = self.current_project.lock()
+        let path = self
+            .current_project
+            .lock()
             .map_err(|e| ApplicationError::Persistence(e.to_string()))?
             .clone()
             .ok_or(ApplicationError::Domain(DomainError::NoProjectSelected))?;
@@ -73,13 +87,19 @@ impl ProjectApplicationService {
         Ok(self.project_repo.load_project_config(&project_id))
     }
 
-    pub fn set_project_config(&self, cmd: UpdateProjectConfigCommand) -> Result<(), ApplicationError> {
-        let path = self.current_project.lock()
+    pub fn set_project_config(
+        &self,
+        cmd: UpdateProjectConfigCommand,
+    ) -> Result<(), ApplicationError> {
+        let path = self
+            .current_project
+            .lock()
             .map_err(|e| ApplicationError::Persistence(e.to_string()))?
             .clone()
             .ok_or(ApplicationError::Domain(DomainError::NoProjectSelected))?;
         let project_id = ProjectId::from_path(&path);
-        self.project_repo.save_project_config(&project_id, &cmd.config)?;
+        self.project_repo
+            .save_project_config(&project_id, &cmd.config)?;
         Ok(())
     }
 }
@@ -87,8 +107,8 @@ impl ProjectApplicationService {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::sync::Mutex;
     use crate::domain::project::value_objects::GlobalConfig;
+    use std::sync::Mutex;
 
     struct InMemoryProjectRepo {
         global_config: Mutex<GlobalConfig>,
@@ -119,7 +139,11 @@ mod tests {
             ProjectConfig::default()
         }
 
-        fn save_project_config(&self, _project_id: &ProjectId, _config: &ProjectConfig) -> Result<(), DomainError> {
+        fn save_project_config(
+            &self,
+            _project_id: &ProjectId,
+            _config: &ProjectConfig,
+        ) -> Result<(), DomainError> {
             Ok(())
         }
     }
@@ -133,24 +157,33 @@ mod tests {
     #[test]
     fn remove_recent_project_removes_matching_path() {
         let svc = make_service(vec!["/a".into(), "/b".into(), "/c".into()]);
-        svc.remove_recent_project(RemoveRecentProjectCommand { path: "/b".into() }).unwrap();
-        let result = svc.get_recent_projects(GetRecentProjectsCommand { max_count: 10 }).unwrap();
+        svc.remove_recent_project(RemoveRecentProjectCommand { path: "/b".into() })
+            .unwrap();
+        let result = svc
+            .get_recent_projects(GetRecentProjectsCommand { max_count: 10 })
+            .unwrap();
         assert_eq!(result, vec!["/a", "/c"]);
     }
 
     #[test]
     fn remove_recent_project_nonexistent_path_is_noop() {
         let svc = make_service(vec!["/a".into(), "/b".into()]);
-        svc.remove_recent_project(RemoveRecentProjectCommand { path: "/z".into() }).unwrap();
-        let result = svc.get_recent_projects(GetRecentProjectsCommand { max_count: 10 }).unwrap();
+        svc.remove_recent_project(RemoveRecentProjectCommand { path: "/z".into() })
+            .unwrap();
+        let result = svc
+            .get_recent_projects(GetRecentProjectsCommand { max_count: 10 })
+            .unwrap();
         assert_eq!(result, vec!["/a", "/b"]);
     }
 
     #[test]
     fn remove_recent_project_only_removes_exact_match() {
         let svc = make_service(vec!["/a/b".into(), "/a".into(), "/a/bc".into()]);
-        svc.remove_recent_project(RemoveRecentProjectCommand { path: "/a".into() }).unwrap();
-        let result = svc.get_recent_projects(GetRecentProjectsCommand { max_count: 10 }).unwrap();
+        svc.remove_recent_project(RemoveRecentProjectCommand { path: "/a".into() })
+            .unwrap();
+        let result = svc
+            .get_recent_projects(GetRecentProjectsCommand { max_count: 10 })
+            .unwrap();
         assert_eq!(result, vec!["/a/b", "/a/bc"]);
     }
 }

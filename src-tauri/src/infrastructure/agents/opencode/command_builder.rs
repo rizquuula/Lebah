@@ -118,7 +118,10 @@ mod tests {
         let mut cfg = base_config();
         cfg.model = Some("kilo/anthropic/claude-opus-4.6".to_string());
         let a = args(&OpencodeCommandBuilder::build(&cfg));
-        let idx = a.iter().position(|s| s == "--model").expect("--model missing");
+        let idx = a
+            .iter()
+            .position(|s| s == "--model")
+            .expect("--model missing");
         assert_eq!(a[idx + 1], "kilo/anthropic/claude-opus-4.6");
     }
 
@@ -128,6 +131,25 @@ mod tests {
         cfg.prompt = "my prompt".to_string();
         let a = args(&OpencodeCommandBuilder::build(&cfg));
         assert_eq!(a.last().unwrap(), "my prompt");
+    }
+
+    #[test]
+    fn worktree_dir_used_as_project_path() {
+        // When session service creates a manual worktree, it sets project_path
+        // to the worktree directory. Verify --dir picks it up.
+        let mut cfg = base_config();
+        cfg.project_path = Some(crate::domain::project::value_objects::ProjectPath::new(
+            "/project/.claude/worktrees/feat-abc".to_string(),
+        ));
+        let cmd = OpencodeCommandBuilder::build(&cfg);
+        let a = args(&cmd);
+        let idx = a.iter().position(|s| s == "--dir").expect("--dir missing");
+        assert_eq!(a[idx + 1], "/project/.claude/worktrees/feat-abc");
+        // current_dir should also be set
+        assert_eq!(
+            cmd.get_current_dir().unwrap().to_str().unwrap(),
+            "/project/.claude/worktrees/feat-abc"
+        );
     }
 
     #[test]

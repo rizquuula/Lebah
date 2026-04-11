@@ -16,7 +16,14 @@ impl Project {
             project_id: id.clone(),
             path: path.clone(),
         };
-        (Project { id, path, config: ProjectConfig::default() }, event)
+        (
+            Project {
+                id,
+                path,
+                config: ProjectConfig::default(),
+            },
+            event,
+        )
     }
 
     pub fn with_config(mut self, config: ProjectConfig) -> Self {
@@ -31,9 +38,15 @@ impl Project {
         }
     }
 
-    pub fn id(&self) -> &ProjectId { &self.id }
-    pub fn path(&self) -> &ProjectPath { &self.path }
-    pub fn config(&self) -> &ProjectConfig { &self.config }
+    pub fn id(&self) -> &ProjectId {
+        &self.id
+    }
+    pub fn path(&self) -> &ProjectPath {
+        &self.path
+    }
+    pub fn config(&self) -> &ProjectConfig {
+        &self.config
+    }
 }
 
 #[cfg(test)]
@@ -45,7 +58,8 @@ mod tests {
     fn open_derives_id_from_path() {
         let path = ProjectPath::new("/my/project".to_string());
         let (project, _event) = Project::open(path.clone());
-        let expected_id = crate::domain::project::value_objects::ProjectId::from_path(path.as_str());
+        let expected_id =
+            crate::domain::project::value_objects::ProjectId::from_path(path.as_str());
         assert_eq!(project.id(), &expected_id);
         assert_eq!(project.path().as_str(), "/my/project");
     }
@@ -56,7 +70,10 @@ mod tests {
         let mut cfg = ProjectConfig::default();
         cfg.claude_path = Some("/custom/claude".to_string());
         let project = project.with_config(cfg);
-        assert_eq!(project.config().claude_path.as_deref(), Some("/custom/claude"));
+        assert_eq!(
+            project.config().claude_path.as_deref(),
+            Some("/custom/claude")
+        );
     }
 
     #[test]

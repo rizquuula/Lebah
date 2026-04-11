@@ -16,6 +16,14 @@ pub trait GitPort: Send + Sync + 'static {
 }
 
 pub trait WorktreePort: Send + Sync + 'static {
+    /// Create a git worktree at `.claude/worktrees/<name>` via `git worktree add`.
+    /// Returns the absolute path to the created worktree directory.
+    fn create(
+        &self,
+        project_path: &ProjectPath,
+        worktree: &WorktreeRef,
+    ) -> Result<String, ApplicationError>;
+
     fn remove(
         &self,
         project_path: &ProjectPath,

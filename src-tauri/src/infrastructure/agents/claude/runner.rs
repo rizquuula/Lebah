@@ -27,10 +27,7 @@ impl ClaudeRunner {
         }
     }
 
-    fn spawn_and_wire(
-        &self,
-        config: AgentRunConfig,
-    ) -> Result<AgentHandle, AgentError> {
+    fn spawn_and_wire(&self, config: AgentRunConfig) -> Result<AgentHandle, AgentError> {
         let mut cmd = ClaudeCommandBuilder::build(&config);
 
         log::info!(
@@ -50,10 +47,18 @@ impl ClaudeRunner {
         );
 
         let mut child = cmd.spawn().map_err(|e| {
-            log::error!("[claude] Failed to spawn process for task {}: {}", config.task_id.0, e);
+            log::error!(
+                "[claude] Failed to spawn process for task {}: {}",
+                config.task_id.0,
+                e
+            );
             AgentError::SpawnFailed(format!("Failed to spawn claude: {}", e))
         })?;
-        log::info!("[claude] Process spawned for task {}, pid={:?}", config.task_id.0, child.id());
+        log::info!(
+            "[claude] Process spawned for task {}, pid={:?}",
+            config.task_id.0,
+            child.id()
+        );
 
         let stdout = child.stdout.take();
         let stderr = child.stderr.take();
@@ -86,53 +91,70 @@ impl ClaudeRunner {
 
         let task_id_str = config.task_id.0.clone();
         let sessions_arc = Arc::clone(&self.sessions);
-        std::thread::spawn(move || {
-            loop {
-                std::thread::sleep(std::time::Duration::from_secs(2));
-                let mut sessions = match sessions_arc.lock() {
-                    Ok(s) => s,
-                    Err(_) => break,
-                };
-                if let Some(child) = sessions.get_mut(&task_id_str) {
-                    match child.try_wait() {
-                        Ok(Some(status)) => {
-                            log::info!("[claude] Process exited for task {}: status={}", task_id_str, status);
-                            sessions.remove(&task_id_str);
-                            drop(sessions);
-                            let _ = exit_tx.send(status.success());
-                            break;
-                        }
-                        Ok(None) => {}
-                        Err(e) => {
-                            log::error!("[claude] Error polling process for task {}: {}", task_id_str, e);
-                            sessions.remove(&task_id_str);
-                            drop(sessions);
-                            let _ = exit_tx.send(false);
-                            break;
-                        }
+        std::thread::spawn(move || loop {
+            std::thread::sleep(std::time::Duration::from_secs(2));
+            let mut sessions = match sessions_arc.lock() {
+                Ok(s) => s,
+                Err(_) => break,
+            };
+            if let Some(child) = sessions.get_mut(&task_id_str) {
+                match child.try_wait() {
+                    Ok(Some(status)) => {
+                        log::info!(
+                            "[claude] Process exited for task {}: status={}",
+                            task_id_str,
+                            status
+                        );
+                        sessions.remove(&task_id_str);
+                        drop(sessions);
+                        let _ = exit_tx.send(status.success());
+                        break;
                     }
-                } else {
-                    break;
+                    Ok(None) => {}
+                    Err(e) => {
+                        log::error!(
+                            "[claude] Error polling process for task {}: {}",
+                            task_id_str,
+                            e
+                        );
+                        sessions.remove(&task_id_str);
+                        drop(sessions);
+                        let _ = exit_tx.send(false);
+                        break;
+                    }
                 }
+            } else {
+                break;
             }
         });
 
         {
-            let mut sessions = self.sessions.lock()
+            let mut sessions = self
+                .sessions
+                .lock()
                 .map_err(|e| AgentError::Internal(e.to_string()))?;
             sessions.insert(config.task_id.0.clone(), child);
         }
 
         {
-            let mut configs = self.session_configs.lock()
+            let mut configs = self
+                .session_configs
+                .lock()
                 .map_err(|e| AgentError::Internal(e.to_string()))?;
-            configs.insert(config.task_id.0.clone(), SessionConfig {
-                config,
-                model_override: None,
-            });
+            configs.insert(
+                config.task_id.0.clone(),
+                SessionConfig {
+                    config,
+                    model_override: None,
+                },
+            );
         }
 
-        Ok(AgentHandle { stdout_rx, stderr_rx, exit_rx })
+        Ok(AgentHandle {
+            stdout_rx,
+            stderr_rx,
+            exit_rx,
+        })
     }
 }
 
@@ -154,10 +176,15 @@ impl AgentRunner for ClaudeRunner {
     fn start(&self, config: AgentRunConfig) -> Result<AgentHandle, AgentError> {
         log::info!("[claude] Starting session for task {}", config.task_id.0);
         {
-            let sessions = self.sessions.lock()
+            let sessions = self
+                .sessions
+                .lock()
                 .map_err(|e| AgentError::Internal(e.to_string()))?;
             if sessions.contains_key(&config.task_id.0) {
-                log::warn!("[claude] Session already active for task {}", config.task_id.0);
+                log::warn!(
+                    "[claude] Session already active for task {}",
+                    config.task_id.0
+                );
                 return Err(AgentError::SessionAlreadyActive(config.task_id.0.clone()));
             }
         }
@@ -165,10 +192,16 @@ impl AgentRunner for ClaudeRunner {
     }
 
     fn send_follow_up(&self, mut config: AgentRunConfig) -> Result<AgentHandle, AgentError> {
-        log::info!("[claude] Sending follow-up for task {}, prompt_len={}", config.task_id.0, config.prompt.len());
+        log::info!(
+            "[claude] Sending follow-up for task {}, prompt_len={}",
+            config.task_id.0,
+            config.prompt.len()
+        );
         // Merge model override if set
         {
-            let configs = self.session_configs.lock()
+            let configs = self
+                .session_configs
+                .lock()
                 .map_err(|e| AgentError::Internal(e.to_string()))?;
             if let Some(sc) = configs.get(&config.task_id.0) {
                 if let Some(ref m) = sc.model_override {
@@ -195,7 +228,9 @@ impl AgentRunner for ClaudeRunner {
 
     fn terminate(&self, task_id: &TaskId) -> Result<(), AgentError> {
         log::info!("[claude] Terminating session {}", task_id.0);
-        let mut sessions = self.sessions.lock()
+        let mut sessions = self
+            .sessions
+            .lock()
             .map_err(|e| AgentError::Internal(e.to_string()))?;
         if let Some(mut child) = sessions.remove(&task_id.0) {
             if let Err(e) = child.kill() {
@@ -214,8 +249,14 @@ impl AgentRunner for ClaudeRunner {
     }
 
     fn update_model(&self, task_id: &TaskId, model: &str) -> Result<(), AgentError> {
-        log::info!("[claude] Updating model for task {} to '{}'", task_id.0, model);
-        let mut configs = self.session_configs.lock()
+        log::info!(
+            "[claude] Updating model for task {} to '{}'",
+            task_id.0,
+            model
+        );
+        let mut configs = self
+            .session_configs
+            .lock()
             .map_err(|e| AgentError::Internal(e.to_string()))?;
         if let Some(sc) = configs.get_mut(&task_id.0) {
             sc.model_override = if model.is_empty() {
