@@ -13,6 +13,18 @@ const runningSessions = new Set<string>();
 // Track waiting merge task IDs so loadTasks() doesn't overwrite their status.
 const waitingMergeSessions = new Set<string>();
 
+// Captured task state for auto-advance (survives project switches)
+interface CapturedTaskInfo {
+  auto: boolean;
+  model: string | null;
+  yolo: boolean;
+  description: string;
+  use_plan: boolean;
+  worktree: string | null;
+  agent_name: string | null;
+  has_run: boolean;
+}
+
 // Queue for sequential merge processing
 interface MergeJob {
   id: string;
@@ -53,30 +65,33 @@ async function startNextWaitingMerge(): Promise<void> {
   const job = mergeWaitQueue.shift();
   if (!job) return;
   waitingMergeSessions.delete(job.id);
+  const taskInfo: CapturedTaskInfo = {
+    auto: true, model: job.model, yolo: job.yolo, description: job.description,
+    use_plan: job.usePlan, worktree: job.worktree, agent_name: job.agentName, has_run: job.hasRun,
+  };
   if (job.hasRun && job.template) {
-    await sendInputWithListener(job.id, job.template, job.model, job.yolo);
+    await sendInputWithListener(job.id, job.template, TaskColumn.Merge, taskInfo, job.model, job.yolo);
   } else {
     await runAgentSession(job.id, job.description, job.usePlan, job.yolo, job.worktree, job.model, job.agentName);
   }
 }
 
-async function handleAutoAdvance(id: string, taskColumn: TaskColumn): Promise<void> {
-  const task = get(tasks).find((t) => t.id === id);
-  if (!task || !task.auto) return;
+async function handleAutoAdvance(id: string, taskColumn: TaskColumn, taskInfo: CapturedTaskInfo): Promise<void> {
+  if (!taskInfo.auto) return;
 
   const cfg = get(projectConfig);
 
   if (taskColumn === TaskColumn.InProgress) {
     await moveTask(id, TaskColumn.Review, 0);
     const tpl = cfg.review_template ?? DEFAULT_REVIEW_TEMPLATE;
-    await sendInputWithListener(id, tpl, task.model, task.yolo);
+    await sendInputWithListener(id, tpl, TaskColumn.Review, taskInfo, taskInfo.model, taskInfo.yolo);
   } else if (taskColumn === TaskColumn.Review) {
     // moveTask to Merge already done by caller
     const tpl = cfg.merge_template ?? DEFAULT_MERGE_TEMPLATE;
     if (get(tasks).some((t) => t.column === TaskColumn.Merge && t.status === TaskStatus.Running && t.id !== id)) {
-      await queueMergeTask({ id, description: task.description, usePlan: task.use_plan, yolo: task.yolo, worktree: task.worktree, model: task.model, agentName: task.agent_name, hasRun: task.has_run, template: tpl });
+      await queueMergeTask({ id, description: taskInfo.description, usePlan: taskInfo.use_plan, yolo: taskInfo.yolo, worktree: taskInfo.worktree, model: taskInfo.model, agentName: taskInfo.agent_name, hasRun: taskInfo.has_run, template: tpl });
     } else {
-      await sendInputWithListener(id, tpl, task.model, task.yolo);
+      await sendInputWithListener(id, tpl, TaskColumn.Merge, taskInfo, taskInfo.model, taskInfo.yolo);
     }
   }
   // Merge → Completed already handled, no further action needed
@@ -146,6 +161,21 @@ export async function runAgentSession(
 ): Promise<void> {
   runningSessions.add(id);
 
+  // Capture task state now so the listener doesn't depend on the tasks store
+  // (which gets replaced when the user switches projects).
+  const currentTask = get(tasks).find((t) => t.id === id);
+  let capturedColumn = currentTask?.column;
+  const capturedInfo: CapturedTaskInfo = {
+    auto: currentTask?.auto ?? false,
+    model: model,
+    yolo: yolo,
+    description: description,
+    use_plan: usePlan,
+    worktree: worktree,
+    agent_name: agentName,
+    has_run: currentTask?.has_run ?? false,
+  };
+
   const unlisten = await listen<string>(`claude-output-${id}`, async (event) => {
     try {
       const msg = JSON.parse(event.payload);
@@ -153,21 +183,17 @@ export async function runAgentSession(
         unlisten();
         runningSessions.delete(id);
         const status: TaskStatus = msg.is_error ? TaskStatus.Failed : TaskStatus.Success;
-        let taskColumn: TaskColumn | undefined;
-        tasks.update((all) => {
-          const found = all.find((t) => t.id === id);
-          if (found) taskColumn = found.column;
-          return all.map((t) => (t.id === id ? { ...t, status } : t));
-        });
-        if (status === TaskStatus.Success && taskColumn) {
-          if (taskColumn === TaskColumn.Review) {
+        tasks.update((all) =>
+          all.map((t) => (t.id === id ? { ...t, status } : t)),
+        );
+        if (status === TaskStatus.Success && capturedColumn) {
+          if (capturedColumn === TaskColumn.Review) {
             await moveTask(id, TaskColumn.Merge, 0);
-
-          } else if (taskColumn === TaskColumn.Merge) {
+          } else if (capturedColumn === TaskColumn.Merge) {
             await moveTask(id, TaskColumn.Completed, 0);
             await startNextWaitingMerge();
           }
-          await handleAutoAdvance(id, taskColumn);
+          await handleAutoAdvance(id, capturedColumn, capturedInfo);
         }
       }
     } catch {}
@@ -201,6 +227,8 @@ export async function sendInput(id: string, input: string, model: string | null 
 export async function sendInputWithListener(
   id: string,
   input: string,
+  taskColumn: TaskColumn | null = null,
+  taskInfo: CapturedTaskInfo | null = null,
   model: string | null = null,
   yolo: boolean = false,
 ): Promise<void> {
@@ -209,6 +237,21 @@ export async function sendInputWithListener(
     all.map((t) => (t.id === id ? { ...t, status: TaskStatus.Running } : t)),
   );
 
+  // If caller didn't provide captured state, read from store now (works when same project is active).
+  if (taskColumn === null || taskInfo === null) {
+    const currentTask = get(tasks).find((t) => t.id === id);
+    if (taskColumn === null) taskColumn = currentTask?.column ?? null;
+    if (taskInfo === null && currentTask) {
+      taskInfo = {
+        auto: currentTask.auto, model: currentTask.model, yolo: currentTask.yolo,
+        description: currentTask.description, use_plan: currentTask.use_plan,
+        worktree: currentTask.worktree, agent_name: currentTask.agent_name, has_run: currentTask.has_run,
+      };
+    }
+  }
+  const col = taskColumn;
+  const info = taskInfo;
+
   const unlisten = await listen<string>(`claude-output-${id}`, async (event) => {
     try {
       const msg = JSON.parse(event.payload);
@@ -216,21 +259,19 @@ export async function sendInputWithListener(
         unlisten();
         runningSessions.delete(id);
         const status: TaskStatus = msg.is_error ? TaskStatus.Failed : TaskStatus.Success;
-        let taskColumn: TaskColumn | undefined;
-        tasks.update((all) => {
-          const t = all.find((t) => t.id === id);
-          if (t) taskColumn = t.column;
-          return all.map((t) => (t.id === id ? { ...t, status } : t));
-        });
-        if (status === TaskStatus.Success && taskColumn) {
-          if (taskColumn === TaskColumn.Review) {
+        tasks.update((all) =>
+          all.map((t) => (t.id === id ? { ...t, status } : t)),
+        );
+        if (status === TaskStatus.Success && col) {
+          if (col === TaskColumn.Review) {
             await moveTask(id, TaskColumn.Merge, 0);
-
-          } else if (taskColumn === TaskColumn.Merge) {
+          } else if (col === TaskColumn.Merge) {
             await moveTask(id, TaskColumn.Completed, 0);
             await startNextWaitingMerge();
           }
-          await handleAutoAdvance(id, taskColumn);
+          if (info) {
+            await handleAutoAdvance(id, col, info);
+          }
         }
       }
     } catch {}

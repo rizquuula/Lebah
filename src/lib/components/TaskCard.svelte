@@ -65,7 +65,7 @@
           if (task.column === TaskColumn.Merge && isAnyMergeRunning()) {
             await queueMergeTask({ id: task.id, description: task.description, usePlan: task.use_plan, yolo: task.yolo, worktree: task.worktree, model: task.model, agentName: task.agent_name, hasRun: task.has_run, template });
           } else {
-            try { await sendInputWithListener(task.id, template, task.model, task.yolo); }
+            try { await sendInputWithListener(task.id, template, null, null, task.model, task.yolo); }
             catch { showTerminal = true; }
           }
         }
