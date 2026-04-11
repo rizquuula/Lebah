@@ -4,11 +4,13 @@ use crate::application::errors::ApplicationError;
 use crate::application::event_bus::{DomainEvent, DomainEventBus};
 use crate::application::ports::{SessionManagerPort, WorktreePort};
 use crate::application::session::commands::*;
-use crate::application::task::commands::{MarkTaskCompletedCommand, MarkTaskStartedCommand, MarkTaskStoppedCommand};
+use crate::application::task::commands::{
+    MarkTaskCompletedCommand, MarkTaskStartedCommand, MarkTaskStoppedCommand,
+};
 use crate::application::task::service::TaskApplicationService;
 use crate::domain::agent::runner::{AgentHandle, AgentRunConfig, AgentRunner, PermissionMode};
-use crate::domain::repositories::OutputRepository;
 use crate::domain::project::value_objects::{ProjectId, ProjectPath};
+use crate::domain::repositories::OutputRepository;
 use crate::domain::session::events::SessionDomainEvent;
 use crate::domain::task::value_objects::{TaskId, WorktreeRef};
 use crate::infrastructure::agents::registry::AgentRegistry;
@@ -70,9 +72,28 @@ impl SessionApplicationService {
 
         // Mark task as started
         let _ = self.task_service.clear_output(&cmd.task_id);
-        self.task_service.mark_task_started(MarkTaskStartedCommand {
-            id: cmd.task_id.clone(),
-        })?;
+        self.task_service
+            .mark_task_started(MarkTaskStartedCommand {
+                id: cmd.task_id.clone(),
+            })?;
+
+        // Persist the initial prompt as a user_input event so the chat shows the
+        // full template (not just task.description) in the bubble.
+        let user_input_line = format!(
+            r#"{{"type":"user_input","text":{}}}"#,
+            serde_json::to_string(&cmd.description).unwrap_or_default()
+        );
+        let pre_project_path = project_path
+            .as_ref()
+            .map(|p| p.0.clone())
+            .unwrap_or_default();
+        self.event_bus.publish(DomainEvent::Session(
+            SessionDomainEvent::SessionOutputReceived {
+                task_id: task_id.clone(),
+                line: user_input_line,
+                project_path: pre_project_path,
+            },
+        ));
 
         let run_config = AgentRunConfig {
             task_id: task_id.clone(),
@@ -88,8 +109,15 @@ impl SessionApplicationService {
         };
 
         let handle = runner.start(run_config).map_err(|e| {
-            log::error!("[session] Failed to start session for task {}: {}", task_id.0, e);
-            let project_path_str = project_path.as_ref().map(|p| p.0.clone()).unwrap_or_default();
+            log::error!(
+                "[session] Failed to start session for task {}: {}",
+                task_id.0,
+                e
+            );
+            let project_path_str = project_path
+                .as_ref()
+                .map(|p| p.0.clone())
+                .unwrap_or_default();
             let _ = self.task_service.mark_task_completed(
                 MarkTaskCompletedCommand {
                     id: task_id.0.clone(),
@@ -99,7 +127,10 @@ impl SessionApplicationService {
             );
             e
         })?;
-        log::info!("[session] Session started successfully for task {}", task_id.0);
+        log::info!(
+            "[session] Session started successfully for task {}",
+            task_id.0
+        );
 
         // Apply worktree links in background after Claude CLI creates the worktree dir.
         // This must happen after runner.start() because the Claude CLI itself runs
@@ -115,8 +146,8 @@ impl SessionApplicationService {
                             .join(".claude")
                             .join("worktrees")
                             .join(&wt_name);
-                        let deadline = std::time::Instant::now()
-                            + std::time::Duration::from_secs(30);
+                        let deadline =
+                            std::time::Instant::now() + std::time::Duration::from_secs(30);
                         loop {
                             if wt_path.is_dir() {
                                 break;
@@ -143,10 +174,11 @@ impl SessionApplicationService {
         }
         let agent_name = runner.name().to_string();
 
-        self.event_bus.publish(DomainEvent::Session(SessionDomainEvent::SessionStarted {
-            task_id: task_id.clone(),
-            agent_name,
-        }));
+        self.event_bus
+            .publish(DomainEvent::Session(SessionDomainEvent::SessionStarted {
+                task_id: task_id.clone(),
+                agent_name,
+            }));
 
         // Wire the AgentHandle into the event bus
         let project_path_str = project_path.map(|p| p.0).unwrap_or_default();
@@ -160,16 +192,17 @@ impl SessionApplicationService {
         let runner = self.resolve_runner(None)?;
         let task_id = TaskId::from_string(cmd.task_id.clone());
         runner.terminate(&task_id)?;
-        self.task_service.mark_task_stopped(MarkTaskStoppedCommand {
-            id: cmd.task_id,
-        })?;
+        self.task_service
+            .mark_task_stopped(MarkTaskStoppedCommand { id: cmd.task_id })?;
         Ok(())
     }
 
     pub fn send_input(&self, cmd: SendInputCommand) -> Result<(), ApplicationError> {
         log::info!(
             "[session] Sending input to task {}: input_len={} model={:?}",
-            cmd.task_id, cmd.input.len(), cmd.model,
+            cmd.task_id,
+            cmd.input.len(),
+            cmd.model,
         );
         let runner = self.resolve_runner(None)?;
         let task_id = TaskId::from_string(cmd.task_id.clone());
@@ -181,11 +214,13 @@ impl SessionApplicationService {
             serde_json::to_string(&cmd.input).unwrap_or_default()
         );
         let pre_project_path = self.current_project_path()?.unwrap_or_default();
-        self.event_bus.publish(DomainEvent::Session(SessionDomainEvent::SessionOutputReceived {
-            task_id: task_id.clone(),
-            line: user_input_line,
-            project_path: pre_project_path,
-        }));
+        self.event_bus.publish(DomainEvent::Session(
+            SessionDomainEvent::SessionOutputReceived {
+                task_id: task_id.clone(),
+                line: user_input_line,
+                project_path: pre_project_path,
+            },
+        ));
 
         if let Some(ref m) = cmd.model {
             runner.update_model(&task_id, m)?;
@@ -195,7 +230,9 @@ impl SessionApplicationService {
         let run_config = AgentRunConfig {
             task_id: task_id.clone(),
             prompt: cmd.input,
-            project_path: project_path.clone().map(crate::domain::project::value_objects::ProjectPath::new),
+            project_path: project_path
+                .clone()
+                .map(crate::domain::project::value_objects::ProjectPath::new),
             worktree: None,
             model: cmd.model,
             permission_mode: if cmd.yolo {
@@ -210,7 +247,11 @@ impl SessionApplicationService {
         };
 
         let handle = runner.send_follow_up(run_config).map_err(|e| {
-            log::error!("[session] Failed to send follow-up for task {}: {}", task_id.0, e);
+            log::error!(
+                "[session] Failed to send follow-up for task {}: {}",
+                task_id.0,
+                e
+            );
             e
         })?;
         log::info!("[session] Follow-up started for task {}", task_id.0);
@@ -227,7 +268,11 @@ impl SessionApplicationService {
             return live;
         }
         // Fall back to persisted output
-        let project_path = self.current_project_path().ok().flatten().unwrap_or_default();
+        let project_path = self
+            .current_project_path()
+            .ok()
+            .flatten()
+            .unwrap_or_default();
         if project_path.is_empty() {
             return Vec::new();
         }
@@ -239,7 +284,10 @@ impl SessionApplicationService {
         self.agent_registry.list_runners()
     }
 
-    fn resolve_runner(&self, agent_name: Option<&str>) -> Result<Arc<dyn AgentRunner>, ApplicationError> {
+    fn resolve_runner(
+        &self,
+        agent_name: Option<&str>,
+    ) -> Result<Arc<dyn AgentRunner>, ApplicationError> {
         let runner = match agent_name {
             Some(name) => {
                 log::debug!("[session] Resolving agent runner: {}", name);
@@ -253,12 +301,7 @@ impl SessionApplicationService {
         runner.ok_or_else(|| ApplicationError::NotFound("No agent runner available".to_string()))
     }
 
-    fn wire_handle(
-        &self,
-        handle: AgentHandle,
-        task_id: TaskId,
-        project_path: String,
-    ) {
+    fn wire_handle(&self, handle: AgentHandle, task_id: TaskId, project_path: String) {
         log::debug!("[session] Wiring handle for task {}", task_id.0);
         let event_bus = Arc::clone(&self.event_bus);
         let task_id_c = task_id.clone();
@@ -266,14 +309,19 @@ impl SessionApplicationService {
 
         // Wire stdout
         std::thread::spawn(move || {
-            log::debug!("[session] Stdout reader thread started for task {}", task_id_c.0);
+            log::debug!(
+                "[session] Stdout reader thread started for task {}",
+                task_id_c.0
+            );
             for line in handle.stdout_rx {
                 log::debug!("[claude-json] {}", line);
-                event_bus.publish(DomainEvent::Session(SessionDomainEvent::SessionOutputReceived {
-                    task_id: task_id_c.clone(),
-                    line,
-                    project_path: pp.clone(),
-                }));
+                event_bus.publish(DomainEvent::Session(
+                    SessionDomainEvent::SessionOutputReceived {
+                        task_id: task_id_c.clone(),
+                        line,
+                        project_path: pp.clone(),
+                    },
+                ));
             }
         });
 
@@ -283,14 +331,19 @@ impl SessionApplicationService {
 
         // Wire stderr
         std::thread::spawn(move || {
-            log::debug!("[session] Stderr reader thread started for task {}", task_id_c2.0);
+            log::debug!(
+                "[session] Stderr reader thread started for task {}",
+                task_id_c2.0
+            );
             for line in handle.stderr_rx {
                 log::warn!("[session] stderr task={} {}", task_id_c2.0, line);
-                event_bus2.publish(DomainEvent::Session(SessionDomainEvent::SessionOutputReceived {
-                    task_id: task_id_c2.clone(),
-                    line,
-                    project_path: pp2.clone(),
-                }));
+                event_bus2.publish(DomainEvent::Session(
+                    SessionDomainEvent::SessionOutputReceived {
+                        task_id: task_id_c2.clone(),
+                        line,
+                        project_path: pp2.clone(),
+                    },
+                ));
             }
         });
 
@@ -300,7 +353,10 @@ impl SessionApplicationService {
 
         // Wire exit
         std::thread::spawn(move || {
-            log::debug!("[session] Exit watcher thread started for task {}", task_id_c3.0);
+            log::debug!(
+                "[session] Exit watcher thread started for task {}",
+                task_id_c3.0
+            );
             if let Some(success) = handle.exit_rx.into_iter().next() {
                 if success {
                     log::info!("[session] Task {} exited with success=true", task_id_c3.0);
