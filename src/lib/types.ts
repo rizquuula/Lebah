@@ -31,6 +31,7 @@ export interface Task {
   worktree: string | null;
   has_run: boolean;
   model: string | null;
+  agent_name: string | null;
   lines_added: number | null;
   lines_removed: number | null;
 }
@@ -63,6 +64,7 @@ export interface ProjectConfig {
   merge_template: string | null;
   inprogress_template: string | null;
   claude_path: string | null;
+  opencode_path: string | null;
   worktree_model: string | null;
   default_use_plan: boolean | null;
   default_yolo: boolean | null;
@@ -92,6 +94,11 @@ export type ChatEntry =
   | { kind: "file_output"; path: string; content: string }
   | { kind: "result"; success: boolean; cost: number; duration_ms: number; usage: UsageInfo }
   | { kind: "system"; text: string };
+
+export const AGENT_MODELS: Record<string, { type: 'select' | 'text'; options?: string[] }> = {
+  claude: { type: 'select', options: ['sonnet', 'opus', 'haiku'] },
+  opencode: { type: 'text' },
+};
 
 export const STATUS_COLORS: Record<TaskStatus, string> = {
   [TaskStatus.Idle]: "#6b7280",

@@ -33,9 +33,24 @@ fn load_claude_path(services: &AppServices) -> Option<String> {
         .and_then(|c| c.claude_path)
 }
 
+fn load_opencode_path(services: &AppServices) -> Option<String> {
+    services
+        .project_service
+        .get_project_config()
+        .ok()
+        .and_then(|c| c.opencode_path)
+}
+
+fn load_agent_path(services: &AppServices, agent_name: Option<&str>) -> Option<String> {
+    match agent_name {
+        Some("opencode") => load_opencode_path(services),
+        _ => load_claude_path(services),
+    }
+}
+
 #[allow(clippy::too_many_arguments)]
 #[tauri::command]
-pub fn run_claude_session(
+pub fn run_agent_session(
     id: String,
     description: String,
     use_plan: bool,
@@ -43,6 +58,7 @@ pub fn run_claude_session(
     claude_path: Option<String>,
     worktree: Option<String>,
     model: Option<String>,
+    agent_name: Option<String>,
     services: State<'_, AppServices>,
 ) -> Result<(), String> {
     let project_path = services.project_service.get_project().map_err(|e| e.to_string())?;
@@ -55,7 +71,7 @@ pub fn run_claude_session(
         PermissionMode::Full
     };
 
-    let effective_claude_path = claude_path.or_else(|| load_claude_path(&services));
+    let effective_agent_path = claude_path.or_else(|| load_agent_path(&services, agent_name.as_deref()));
     let env_vars = load_env_vars(&services);
 
     // Collect worktree links to be applied after Claude CLI creates the worktree dir
@@ -70,25 +86,32 @@ pub fn run_claude_session(
         Vec::new()
     };
 
-    log::info!("[cmd] run_claude_session: id={} plan={} yolo={} model={:?}", id, use_plan, yolo, model);
+    log::info!("[cmd] run_agent_session: id={} agent={:?} plan={} yolo={} model={:?}", id, agent_name, use_plan, yolo, model);
 
     let cmd = StartSessionCommand {
         task_id: id.clone(),
         description,
         permission_mode,
-        agent_path: effective_claude_path,
+        agent_path: effective_agent_path,
         worktree: worktree.map(WorktreeRef::new),
         project_path: project_path.map(ProjectPath::new),
         model,
-        agent_name: None,
+        agent_name,
         env_vars,
         worktree_links,
     };
 
     services.session_service.start_session(cmd).map_err(|e| {
-        log::error!("[cmd] run_claude_session failed for {}: {}", id, e);
+        log::error!("[cmd] run_agent_session failed for {}: {}", id, e);
         e.to_string()
     })
+}
+
+#[tauri::command]
+pub fn list_agents(
+    services: State<'_, AppServices>,
+) -> Result<Vec<String>, String> {
+    Ok(services.session_service.list_agents())
 }
 
 #[tauri::command]

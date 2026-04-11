@@ -1,6 +1,6 @@
 # Lebah
 
-Claude Code orchestration desktop app — a kanban board for managing Claude Code CLI sessions.
+AI coding agent orchestration desktop app — a kanban board for managing Claude Code and OpenCode CLI sessions.
 
 ## Tech Stack
 - **Backend**: Rust + Tauri v2
@@ -11,7 +11,7 @@ Claude Code orchestration desktop app — a kanban board for managing Claude Cod
 
 ## Versioning
 
-Current app version: **0.1.2**
+Current app version: **0.2.0**
 
 Version is defined in two places (must be kept in sync):
 - `src-tauri/tauri.conf.json` — `"version"` field
@@ -83,6 +83,7 @@ src-tauri/src/
 │   └── ports.rs
 ├── infrastructure/                # Concrete implementations
 │   ├── agents/claude/             # Claude CLI runner
+│   ├── agents/opencode/           # OpenCode CLI runner + output normalizer
 │   ├── persistence/               # File-based repositories
 │   ├── session/                   # Process session manager
 │   ├── event_handlers/            # Tauri event emitter, output persistence
@@ -103,9 +104,11 @@ src-tauri/src/
 - Do NOT add `Co-Authored-By` lines to commit messages
 
 ## Architecture
-- Each task has a UUID used as the `--session-id` for Claude Code CLI
+- Each task has a UUID used as the session ID for the selected agent CLI
+- Tasks support agent selection: Claude Code or OpenCode per task
 - Tasks flow through columns: To-Do → In Progress → Review → Merge → Completed
-- Claude sessions are spawned as child processes, output streamed via Tauri events
+- Agent sessions are spawned as child processes, output streamed via Tauri events
+- OpenCode output is normalized to Claude-compatible format via output_normalizer
 - Task status reflected by card border color: green=success, yellow=running, red=failed, orange=warning, blue=waiting (merge queue)
 - Task session failures due to conflicts are marked as Failed status
 - Session stderr output is logged at error level
@@ -137,13 +140,14 @@ Tasks support a `model` field to override the Claude model per task. The model c
 | Command | Description |
 |---|---|
 | `get_tasks` | Fetch all tasks from DB |
-| `create_task` | Create task with optional claude_path/claude_command/model |
+| `create_task` | Create task with optional claude_path/model/agent_name |
 | `update_task` | Update task fields |
 | `delete_task` | Delete task |
 | `move_task` | Move task to column with new sort order |
 | `reset_task_session` | Reset a task's session state |
-| `run_claude_session` | Spawn Claude process, stream output via events |
+| `run_agent_session` | Spawn agent process (Claude/OpenCode), stream output via events |
 | `stop_claude_session` | Terminate running session |
+| `list_agents` | List available agent backends |
 | `send_input` | Write to session stdin (supports model override) |
 | `get_output_buffer` | Get accumulated output for a session |
 | `set_project_path` | Set active project directory |
@@ -159,13 +163,14 @@ The app includes a settings modal with two tabs:
 
 ### General Tab
 - **Claude Code Path** — Override the default `claude` binary path
+- **OpenCode Path** — Override the default `opencode` binary path
 - **Worktree Generator Model** — Choose which Claude model to use for generating worktree names (haiku/sonnet/opus)
 - **Default Plan Mode** — Enable plan mode by default for new tasks
 - **Default Yolo Mode** — Enable yolo mode by default for new tasks
 - **Default Auto Mode** — Enable auto-advance by default for new tasks
 
 ### Environment Variables Tab
-- Configure per-project environment variables that are passed to Claude sessions
+- Configure per-project environment variables that are passed to agent sessions
 - Each variable has a key, value, and enabled state
 - Disabled variables are preserved but not passed to sessions (eye icon toggle)
 - Variables are sorted alphabetically by key name

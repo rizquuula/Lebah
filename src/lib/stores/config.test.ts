@@ -13,6 +13,7 @@ const NULL_CONFIG = {
   merge_template: null,
   inprogress_template: null,
   claude_path: null,
+  opencode_path: null,
   worktree_model: null,
   default_use_plan: null,
   default_yolo: null,

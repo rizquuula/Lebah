@@ -26,6 +26,13 @@ impl AgentRegistry {
     }
 
     pub fn default_runner(&self) -> Option<Arc<dyn AgentRunner>> {
-        self.runners.values().next().cloned()
+        self.runners
+            .get("claude")
+            .cloned()
+            .or_else(|| self.runners.values().next().cloned())
+    }
+
+    pub fn list_runners(&self) -> Vec<String> {
+        self.runners.keys().cloned().collect()
     }
 }

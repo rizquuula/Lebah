@@ -19,6 +19,7 @@ pub struct UpdateTaskCommand {
     pub sort_order: i32,
     pub agent_path: Option<String>,
     pub model: Option<String>,
+    pub agent_name: Option<String>,
 }
 
 pub struct DeleteTaskCommand {

@@ -26,6 +26,7 @@ function makeTask(overrides: Partial<Task> = {}): Task {
     worktree: null,
     has_run: false,
     model: null,
+    agent_name: null,
     lines_added: null,
     lines_removed: null,
     ...overrides,
@@ -73,6 +74,7 @@ describe("tasks store", () => {
         yolo: false,
         worktree: null,
         model: null,
+        agentName: null,
         hasRun: false,
         template: null,
       });
@@ -93,6 +95,7 @@ describe("tasks store", () => {
         yolo: false,
         worktree: null,
         model: null,
+        agentName: null,
         hasRun: false,
         template: null,
       });
@@ -112,6 +115,7 @@ describe("tasks store", () => {
         yolo: false,
         worktree: null,
         model: null,
+        agentName: null,
         hasRun: false,
         template: null,
       });
@@ -130,7 +134,7 @@ describe("tasks store", () => {
   describe("loadTasks", () => {
     it("preserves Running status for in-progress sessions", async () => {
       // Import tasks module fresh
-      const { loadTasks, runClaudeSession, tasks } = await import("./tasks");
+      const { loadTasks, runAgentSession, tasks } = await import("./tasks");
 
       // Set up task in store
       tasks.set([makeTask({ id: "s1", column: TaskColumn.InProgress, status: TaskStatus.Idle })]);
@@ -143,7 +147,7 @@ describe("tasks store", () => {
       mockInvoke.mockResolvedValue(undefined);
 
       // Start session (adds s1 to runningSessions)
-      const sessionPromise = runClaudeSession("s1", "do stuff", false, false);
+      const sessionPromise = runAgentSession("s1", "do stuff", false, false);
       await sessionPromise;
 
       // Now loadTasks returns stale Idle status from DB

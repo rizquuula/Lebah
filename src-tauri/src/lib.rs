@@ -15,6 +15,7 @@ use application::project::service::ProjectApplicationService;
 use application::session::service::SessionApplicationService;
 use application::task::service::TaskApplicationService;
 use infrastructure::agents::claude::runner::ClaudeRunner;
+use infrastructure::agents::opencode::runner::OpencodeRunner;
 use infrastructure::agents::registry::AgentRegistry;
 use infrastructure::event_handlers::output_persistence_handler::OutputPersistenceHandler;
 use infrastructure::event_handlers::session_status_handler::SessionStatusHandler;
@@ -84,6 +85,7 @@ pub fn run() {
             // --- Infrastructure: agent registry ---
             let mut registry = AgentRegistry::new();
             registry.register(Arc::new(ClaudeRunner::new()));
+            registry.register(Arc::new(OpencodeRunner::new()));
             let agent_registry = Arc::new(registry);
 
             // --- Application services ---
@@ -147,8 +149,9 @@ pub fn run() {
             update_task,
             delete_task,
             move_task,
-            run_claude_session,
+            run_agent_session,
             stop_claude_session,
+            list_agents,
             send_input,
             set_project_path,
             get_project_path,

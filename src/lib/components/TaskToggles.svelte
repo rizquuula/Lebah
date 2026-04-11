@@ -4,6 +4,8 @@
   export let auto: boolean = false;
   export let showPlan: boolean = true;
   export let showAuto: boolean = true;
+  export let disablePlan: boolean = false;
+  export let disableYolo: boolean = false;
   export let onTogglePlan: () => void;
   export let onToggleYolo: () => void;
   export let onToggleAuto: () => void = () => {};
@@ -11,19 +13,19 @@
 
 <div class="toggles">
   {#if showPlan}
-  <label class="toggle" title="Use Plan">
-    <div class="toggle-track" class:active={usePlan}>
+  <label class="toggle" class:disabled={disablePlan} title={disablePlan ? "Not supported by this agent" : "Use Plan"}>
+    <div class="toggle-track" class:active={usePlan && !disablePlan}>
       <div class="toggle-thumb"></div>
     </div>
-    <input type="checkbox" checked={usePlan} on:change={onTogglePlan} class="sr-only" />
+    <input type="checkbox" checked={usePlan} on:change={onTogglePlan} class="sr-only" disabled={disablePlan} />
     <span class="toggle-label">Plan</span>
   </label>
   {/if}
-  <label class="toggle" title="Skip permissions (--dangerously-skip-permissions)">
-    <div class="toggle-track" class:active={yolo} class:yolo={yolo}>
+  <label class="toggle" class:disabled={disableYolo} title={disableYolo ? "Not supported by this agent" : "Skip permissions (--dangerously-skip-permissions)"}>
+    <div class="toggle-track" class:active={yolo && !disableYolo} class:yolo={yolo && !disableYolo}>
       <div class="toggle-thumb"></div>
     </div>
-    <input type="checkbox" checked={yolo} on:change={onToggleYolo} class="sr-only" />
+    <input type="checkbox" checked={yolo} on:change={onToggleYolo} class="sr-only" disabled={disableYolo} />
     <span class="toggle-label">Yolo</span>
   </label>
   {#if showAuto}
@@ -103,4 +105,5 @@
     box-shadow: 0 0 6px rgba(148, 226, 213, 0.4);
   }
   .toggle-label { user-select: none; }
+  .toggle.disabled { opacity: 0.35; cursor: not-allowed; }
 </style>

@@ -86,9 +86,8 @@ impl TaskApplicationService {
         let mut task = self.task_repo.find_by_id(&project_id, &task_id)?;
         task.update_description(cmd.description);
         task.update_agent_config(AgentConfig {
-            agent_name: None,
+            agent_name: cmd.agent_name,
             agent_path: cmd.agent_path,
-
             model: cmd.model,
         });
         task.update_execution_flags(ExecutionFlags {

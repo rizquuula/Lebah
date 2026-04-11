@@ -19,6 +19,7 @@ pub struct TaskDto {
     pub worktree: Option<String>,
     pub has_run: bool,
     pub model: Option<String>,
+    pub agent_name: Option<String>,
     pub lines_added: Option<i32>,
     pub lines_removed: Option<i32>,
 }
@@ -40,6 +41,7 @@ impl From<Task> for TaskDto {
             worktree: t.worktree().map(|w| w.0.clone()),
             has_run: t.has_run(),
             model: t.agent_config().model.clone(),
+            agent_name: t.agent_config().agent_name.clone(),
             lines_added: t.lines_added(),
             lines_removed: t.lines_removed(),
         }
@@ -61,5 +63,6 @@ pub struct UpdateTaskInput {
     pub worktree: Option<String>,
     pub has_run: bool,
     pub model: Option<String>,
+    pub agent_name: Option<String>,
 }
 

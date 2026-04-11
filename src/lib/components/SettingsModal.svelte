@@ -14,6 +14,7 @@
   });
 
   let claudePath = $projectConfig.claude_path ?? "";
+  let opencodePath = $projectConfig.opencode_path ?? "";
   let worktreeModel = $projectConfig.worktree_model ?? "haiku";
   let defaultUsePlan = $projectConfig.default_use_plan ?? false;
   let defaultYolo = $projectConfig.default_yolo ?? true;
@@ -64,6 +65,7 @@
     const config: ProjectConfig = {
       ...$projectConfig,
       claude_path: claudePath.trim() || null,
+      opencode_path: opencodePath.trim() || null,
       worktree_model: worktreeModel || null,
       default_use_plan: defaultUsePlan,
       default_yolo: defaultYolo,
@@ -108,6 +110,9 @@
       {#if activeTab === "general"}
         <label class="field-label" for="s-claude-path">Claude Code Path</label>
         <input id="s-claude-path" type="text" bind:value={claudePath} placeholder="claude (default)" class="text-input" />
+
+        <label class="field-label" for="s-opencode-path">OpenCode Path</label>
+        <input id="s-opencode-path" type="text" bind:value={opencodePath} placeholder="opencode (default)" class="text-input" />
 
         <label class="field-label" for="s-worktree-model">Worktree Generator Model</label>
         <select id="s-worktree-model" bind:value={worktreeModel} class="text-input">

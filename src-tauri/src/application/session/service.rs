@@ -235,6 +235,10 @@ impl SessionApplicationService {
         self.output_repo.load_all(&project_id, &tid)
     }
 
+    pub fn list_agents(&self) -> Vec<String> {
+        self.agent_registry.list_runners()
+    }
+
     fn resolve_runner(&self, agent_name: Option<&str>) -> Result<Arc<dyn AgentRunner>, ApplicationError> {
         let runner = match agent_name {
             Some(name) => {

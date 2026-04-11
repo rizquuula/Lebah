@@ -3,7 +3,7 @@
   import { listen, type UnlistenFn } from "@tauri-apps/api/event";
   import { sendInputWithListener, getOutputBuffer } from "../stores/tasks";
   import type { Task, ChatEntry, UsageInfo } from "../types";
-  import { STATUS_COLORS } from "../types";
+  import { STATUS_COLORS, AGENT_MODELS } from "../types";
   import TerminalChat from "./TerminalChat.svelte";
 
   export let task: Task;
@@ -11,6 +11,7 @@
   export let readonly: boolean = false;
 
   let selectedModel = task.model ?? "sonnet";
+  $: agentModelConfig = AGENT_MODELS[task.agent_name ?? "claude"] ?? AGENT_MODELS.claude;
   let entries: ChatEntry[] = [{ kind: "user", text: task.description }];
   let unlisten: UnlistenFn | null = null;
   let inputValue = "";
@@ -208,16 +209,20 @@
         bind:this={inputEl}
         bind:value={inputValue}
         on:keydown={handleKeydown}
-        placeholder="Send input to Claude... (Enter to send)"
+        placeholder="Send input... (Enter to send)"
         class="stdin-input"
         autocomplete="off"
         spellcheck="false"
       />
-      <select class="model-select" bind:value={selectedModel} title="Model">
-        <option value="sonnet">sonnet</option>
-        <option value="opus">opus</option>
-        <option value="haiku">haiku</option>
-      </select>
+      {#if agentModelConfig.type === 'select'}
+        <select class="model-select" bind:value={selectedModel} title="Model">
+          {#each agentModelConfig.options ?? [] as opt}
+            <option value={opt}>{opt}</option>
+          {/each}
+        </select>
+      {:else}
+        <input class="model-input" bind:value={selectedModel} placeholder="provider/model" title="Model" />
+      {/if}
       <button class="btn-send" on:click={handleSend} title="Send (Enter)">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
           <line x1="22" y1="2" x2="11" y2="13"/>
@@ -291,6 +296,13 @@
     cursor: pointer; outline: none;
   }
   .model-select:focus { border-color: rgba(137,180,250,0.5); }
+  .model-input {
+    background: rgba(30,30,46,0.9); color: #cdd6f4;
+    border: 1px solid rgba(137,180,250,0.2); border-radius: 7px;
+    height: 30px; padding: 0 6px; font-size: 0.75rem; font-family: inherit;
+    outline: none; width: 140px;
+  }
+  .model-input:focus { border-color: rgba(137,180,250,0.5); }
   .btn-send {
     background: rgba(137,180,250,0.15); color: #89b4fa;
     border: 1px solid rgba(137,180,250,0.2); border-radius: 7px;

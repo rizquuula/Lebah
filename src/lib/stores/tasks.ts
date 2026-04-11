@@ -21,6 +21,7 @@ interface MergeJob {
   yolo: boolean;
   worktree: string | null;
   model: string | null;
+  agentName: string | null;
   hasRun: boolean;
   template: string | null;
 }
@@ -55,7 +56,7 @@ async function startNextWaitingMerge(): Promise<void> {
   if (job.hasRun && job.template) {
     await sendInputWithListener(job.id, job.template, job.model, job.yolo);
   } else {
-    await runClaudeSession(job.id, job.description, job.usePlan, job.yolo, job.worktree, job.model);
+    await runAgentSession(job.id, job.description, job.usePlan, job.yolo, job.worktree, job.model, job.agentName);
   }
 }
 
@@ -73,7 +74,7 @@ async function handleAutoAdvance(id: string, taskColumn: TaskColumn): Promise<vo
     // moveTask to Merge already done by caller
     const tpl = cfg.merge_template ?? DEFAULT_MERGE_TEMPLATE;
     if (get(tasks).some((t) => t.column === TaskColumn.Merge && t.status === TaskStatus.Running && t.id !== id)) {
-      await queueMergeTask({ id, description: task.description, usePlan: task.use_plan, yolo: task.yolo, worktree: task.worktree, model: task.model, hasRun: task.has_run, template: tpl });
+      await queueMergeTask({ id, description: task.description, usePlan: task.use_plan, yolo: task.yolo, worktree: task.worktree, model: task.model, agentName: task.agent_name, hasRun: task.has_run, template: tpl });
     } else {
       await sendInputWithListener(id, tpl, task.model, task.yolo);
     }
@@ -102,12 +103,14 @@ export async function createTask(
   claudePath: string | null = null,
   worktree: string | null = null,
   model: string | null = null,
+  agentName: string | null = null,
 ): Promise<Task> {
   const task = await invoke<Task>("create_task", {
     description,
     claudePath,
     worktree,
     model,
+    agentName,
   });
   await loadTasks();
   return task;
@@ -132,13 +135,14 @@ export async function moveTask(
   await loadTasks();
 }
 
-export async function runClaudeSession(
+export async function runAgentSession(
   id: string,
   description: string,
   usePlan: boolean,
   yolo: boolean,
   worktree: string | null = null,
   model: string | null = null,
+  agentName: string | null = null,
 ): Promise<void> {
   runningSessions.add(id);
 
@@ -170,7 +174,7 @@ export async function runClaudeSession(
   });
 
   try {
-    await invoke("run_claude_session", { id, description, usePlan, yolo, claudePath: null, worktree, model });
+    await invoke("run_agent_session", { id, description, usePlan, yolo, claudePath: null, worktree, model, agentName });
     await loadTasks();
   } catch {
     unlisten();
@@ -184,8 +188,8 @@ export async function getOutputBuffer(id: string): Promise<string[]> {
   return invoke<string[]>("get_output_buffer", { id });
 }
 
-export async function stopClaudeSession(id: string): Promise<void> {
-  await invoke("stop_claude_session", { id });
+export async function stopAgentSession(id: string): Promise<void> {
+  await invoke("stop_claude_session", { id }); // Command name unchanged — agent-agnostic stop
   runningSessions.delete(id);
   await loadTasks();
 }

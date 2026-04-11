@@ -53,6 +53,8 @@ pub struct ProjectConfig {
     #[serde(default)]
     pub claude_path: Option<String>,
     #[serde(default)]
+    pub opencode_path: Option<String>,
+    #[serde(default)]
     pub worktree_model: Option<String>,
     #[serde(default)]
     pub default_use_plan: Option<bool>,
@@ -85,6 +87,7 @@ impl Default for ProjectConfig {
                 "Help me do this task:\n\n <TASK_DESCRIPTION> \n\nUse all best practices, no need to ask me for confirmation if you know the recommendation. \n\nMake comprehensive plan and tasks first before executing.\n\nDo not forget to add and update tests, we are on TDD".to_string(),
             ),
             claude_path: None,
+            opencode_path: None,
             worktree_model: Some("haiku".to_string()),
             default_use_plan: Some(false),
             default_yolo: Some(true),

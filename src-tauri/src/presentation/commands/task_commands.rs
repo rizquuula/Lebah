@@ -20,6 +20,7 @@ pub fn create_task(
     claude_path: Option<String>,
     worktree: Option<String>,
     model: Option<String>,
+    agent_name: Option<String>,
     services: State<'_, AppServices>,
 ) -> Result<TaskDto, String> {
     let defaults = ExecutionFlags::default();
@@ -35,7 +36,7 @@ pub fn create_task(
     let cmd = CreateTaskCommand {
         description,
         agent_config: AgentConfig {
-            agent_name: None,
+            agent_name,
             agent_path: claude_path,
             model,
         },
@@ -66,6 +67,7 @@ pub fn update_task(
         sort_order: task.sort_order,
         agent_path: task.claude_path,
         model: task.model,
+        agent_name: task.agent_name,
     };
     services.task_service.update_task(cmd).map_err(|e| {
         log::error!("[cmd] update_task failed: {}", e);

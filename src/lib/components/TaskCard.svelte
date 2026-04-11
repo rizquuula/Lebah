@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { updateTask, moveTask, runClaudeSession, stopClaudeSession, deleteTask, resetTaskSession, sendInputWithListener, isAnyMergeRunning, queueMergeTask, cancelMergeWait } from "../stores/tasks";
+  import { updateTask, moveTask, runAgentSession, stopAgentSession, deleteTask, resetTaskSession, sendInputWithListener, isAnyMergeRunning, queueMergeTask, cancelMergeWait } from "../stores/tasks";
   import { projectConfig } from "../stores/config";
   import { setError } from "../stores/errors";
   import { STATUS_COLORS, DEFAULT_REVIEW_TEMPLATE, DEFAULT_MERGE_TEMPLATE, DEFAULT_INPROGRESS_TEMPLATE, TaskColumn, TaskStatus, type Task } from "../types";
@@ -54,7 +54,7 @@
     isPlaying = true;
     try {
       if (task.status === TaskStatus.Running) {
-        await stopClaudeSession(task.id);
+        await stopAgentSession(task.id);
       } else if (task.column === TaskColumn.Merge && task.status === TaskStatus.Waiting) {
         // Already queued — clicking play cancels the waiting status
         cancelMergeWait(task.id);
@@ -63,7 +63,7 @@
         const template = getTemplate();
         if (template) {
           if (task.column === TaskColumn.Merge && isAnyMergeRunning()) {
-            await queueMergeTask({ id: task.id, description: task.description, usePlan: task.use_plan, yolo: task.yolo, worktree: task.worktree, model: task.model, hasRun: task.has_run, template });
+            await queueMergeTask({ id: task.id, description: task.description, usePlan: task.use_plan, yolo: task.yolo, worktree: task.worktree, model: task.model, agentName: task.agent_name, hasRun: task.has_run, template });
           } else {
             try { await sendInputWithListener(task.id, template, task.model, task.yolo); }
             catch { showTerminal = true; }
@@ -75,9 +75,9 @@
         const template = getTemplate();
         const description = template ?? task.description;
         if (task.column === TaskColumn.Merge && isAnyMergeRunning()) {
-          await queueMergeTask({ id: task.id, description: task.description, usePlan: task.use_plan, yolo: task.yolo, worktree: task.worktree, model: task.model, hasRun: task.has_run, template });
+          await queueMergeTask({ id: task.id, description: task.description, usePlan: task.use_plan, yolo: task.yolo, worktree: task.worktree, model: task.model, agentName: task.agent_name, hasRun: task.has_run, template });
         } else {
-          try { await runClaudeSession(task.id, description, task.use_plan, task.yolo, task.worktree, task.model); }
+          try { await runAgentSession(task.id, description, task.use_plan, task.yolo, task.worktree, task.model, task.agent_name); }
           catch { showTerminal = true; }
         }
       }
@@ -108,7 +108,7 @@
     isResetting = true;
     try {
       const t = await resetTaskSession(task.id);
-      await runClaudeSession(t.id, t.description, t.use_plan, t.yolo, t.worktree, t.model);
+      await runAgentSession(t.id, t.description, t.use_plan, t.yolo, t.worktree, t.model, t.agent_name);
     } catch { showTerminal = true; }
     finally { isResetting = false; }
   }
@@ -127,7 +127,7 @@
     showConfirmCancel = false;
     isCanceling = true;
     try {
-      if (task.status === TaskStatus.Running) await stopClaudeSession(task.id);
+      if (task.status === TaskStatus.Running) await stopAgentSession(task.id);
       await updateTask({ ...task, status: TaskStatus.Canceled, column: TaskColumn.Completed });
       await moveTask(task.id, TaskColumn.Completed, 0);
     } catch (e) { setError(`Failed to cancel task: ${e}`); }
@@ -267,6 +267,8 @@
         yolo={task.yolo}
         auto={task.auto}
         showPlan={task.column !== TaskColumn.Review && task.column !== TaskColumn.Merge}
+        disablePlan={task.agent_name === "opencode"}
+        disableYolo={task.agent_name === "opencode"}
         onTogglePlan={() => updateTask({ ...task, use_plan: !task.use_plan })}
         onToggleYolo={() => updateTask({ ...task, yolo: !task.yolo })}
         onToggleAuto={() => updateTask({ ...task, auto: !task.auto })}
@@ -275,7 +277,9 @@
   {/if}
 
   <div class="meta">
-    <span class="uuid" title={task.id}>{task.model || "sonnet"}</span>
+    <span class="uuid" title={task.id}>
+      {#if task.agent_name && task.agent_name !== "claude"}<span class="agent-badge">{task.agent_name}</span>{/if}{task.model || "sonnet"}
+    </span>
     {#if task.lines_added != null && task.lines_removed != null}
       <span class="line-changes">
         <span class="lines-added">+{task.lines_added}</span>
@@ -528,4 +532,16 @@
   }
   .lines-added { color: #a6e3a1; }
   .lines-removed { color: #f38ba8; }
+  .agent-badge {
+    background: rgba(203, 166, 247, 0.15);
+    color: #cba6f7;
+    border: 1px solid rgba(203, 166, 247, 0.25);
+    border-radius: 4px;
+    padding: 0 4px;
+    margin-right: 4px;
+    font-size: 9px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+  }
 </style>

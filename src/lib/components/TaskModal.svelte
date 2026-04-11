@@ -1,7 +1,7 @@
 <script lang="ts">
   import { invoke } from "@tauri-apps/api/core";
   import { createTask, updateTask } from "../stores/tasks";
-  import { TaskColumn } from "../types";
+  import { TaskColumn, AGENT_MODELS } from "../types";
   import type { Task } from "../types";
 
   export let task: Task | null = null;
@@ -13,11 +13,14 @@
   let worktree = task?.worktree ?? "";
   let worktreeError = "";
   let model = task?.model ?? "sonnet";
+  let agentName = task?.agent_name ?? "claude";
   let generatingWorktree = false;
   let pendingSave = false;
 
   // Allow editing worktree only for new tasks or tasks in Todo column
   $: canEditWorktree = !task || task.column === TaskColumn.Todo;
+  $: agentModelConfig = AGENT_MODELS[agentName] ?? AGENT_MODELS.claude;
+  $: supportsWorktree = agentName === "claude";
 
   async function generateWorktreeName() {
     worktreeError = "";
@@ -53,9 +56,10 @@
           description: description.trim(),
           worktree: canEditWorktree ? worktreeVal : task.worktree,
           model: modelVal,
+          agent_name: agentName || null,
         });
       } else {
-        await createTask(description.trim(), null, worktreeVal, modelVal);
+        await createTask(description.trim(), null, worktreeVal, modelVal, agentName || null);
       }
       onClose();
     } catch (e) {
@@ -68,7 +72,7 @@
 
     const worktreeVal = worktree.trim().replace(/\//g, '-') || null;
 
-    if (!task && !worktreeVal) {
+    if (!task && !worktreeVal && supportsWorktree) {
       pendingSave = true;
       await generateWorktreeName();
       return;
@@ -95,13 +99,24 @@
         rows="4"
       ></textarea>
 
-      <label class="field-label" for="task-model">Model</label>
-      <select id="task-model" bind:value={model} class="text-input">
-        <option value="sonnet">sonnet</option>
-        <option value="opus">opus</option>
-        <option value="haiku">haiku</option>
+      <label class="field-label" for="task-agent">Agent</label>
+      <select id="task-agent" bind:value={agentName} class="text-input">
+        <option value="claude">Claude Code</option>
+        <option value="opencode">OpenCode</option>
       </select>
 
+      <label class="field-label" for="task-model">Model</label>
+      {#if agentModelConfig.type === 'select'}
+        <select id="task-model" bind:value={model} class="text-input">
+          {#each agentModelConfig.options ?? [] as opt}
+            <option value={opt}>{opt}</option>
+          {/each}
+        </select>
+      {:else}
+        <input id="task-model" type="text" bind:value={model} placeholder="provider/model (e.g. kilo/anthropic/claude-opus-4.6)" class="text-input" />
+      {/if}
+
+      {#if supportsWorktree}
       <label class="field-label" for="task-worktree">Worktree Name</label>
       {#if canEditWorktree}
         <div class="worktree-row">
@@ -131,6 +146,7 @@
         {/if}
       {:else}
         <div class="text-input readonly-field">{worktree ?? "—"}</div>
+      {/if}
       {/if}
 
       <div class="actions">
