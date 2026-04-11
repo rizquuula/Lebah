@@ -75,9 +75,9 @@ export interface ProjectConfig {
   worktree_links: string[] | null;
 }
 
-export const DEFAULT_REVIEW_TEMPLATE = "Help me to check for test, lint and build error if we not yet do it. Do git commit in the worktree, no need for reading changed files to commit, just use knowledge in session and commit all changes.";
-export const DEFAULT_MERGE_TEMPLATE = "Pull from main branch in the local repository and check for conflict. Fix the conflict gracefully and run build after conflict resolution. Then merge this worktree to the main local branch. Make comprehensive tasks first before executing.";
-export const DEFAULT_INPROGRESS_TEMPLATE = "Help me do this task:\n\n <TASK_DESCRIPTION> \n\nUse all best practices, no need to ask me. Make comprehensive tasks first before executing.";
+export const DEFAULT_REVIEW_TEMPLATE = "Help me to check for test, lint and build error just on the changed code in this session. \n\nDo git commit for all changes with [lebah] in the of git description. No need for reading changed files to commit just use knowledge in session.";
+export const DEFAULT_MERGE_TEMPLATE = "Try to merge from main branch in the local repository, no need to pull from remote and check for conflict. \n\nFix the conflict comprehensively and gracefully, especially in our new changes in this tree.\n\nRun build and test only after conflict resolution, if no conflict you can skip the build and test process. \n\nYou final mission is to merge this worktree to the main local branch.";
+export const DEFAULT_INPROGRESS_TEMPLATE = "Help me do this task:\n\n <TASK_DESCRIPTION> \n\nUse all best practices, no need to ask me for confirmation if you know the recommendation. \n\nMake comprehensive plan and tasks first before executing, but for simple task don't overdo it.\n\nDo not forget to add and update tests, we are on TDD.\n\nNo need to do heavy task such as full test and full build, just check or fmt is ok.";
 
 export interface UsageInfo {
   input_tokens: number;
