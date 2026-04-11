@@ -158,7 +158,7 @@
     if (!text) return;
     inputValue = "";
     try {
-      await sendInputWithListener(task.id, text, selectedModel, task.yolo);
+      await sendInputWithListener(task.id, text, null, null, selectedModel, task.yolo);
     } catch (err) {
       entries = [...entries, { kind: "system", text: `Send failed: ${err}` }];
     }
