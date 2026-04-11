@@ -12,7 +12,7 @@
 
   let selectedModel = task.model ?? "sonnet";
   $: agentModelConfig = AGENT_MODELS[task.agent_name ?? "claude"] ?? AGENT_MODELS.claude;
-  let entries: ChatEntry[] = [{ kind: "user", text: task.description }];
+  let entries: ChatEntry[] = [];
   let unlisten: UnlistenFn | null = null;
   let inputValue = "";
   let inputEl: HTMLInputElement;
@@ -135,8 +135,8 @@
     });
     try {
       const buffered = await getOutputBuffer(task.id);
-      // Start with the task description as the initial user message
-      entries = [{ kind: "user", text: task.description }];
+      // Reset entries — the initial user_input comes from the backend output stream
+      entries = [];
       if (buffered.length > 0) {
         // Parse all buffered lines to reconstruct the chat history
         for (const raw of buffered) {

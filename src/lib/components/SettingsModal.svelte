@@ -116,9 +116,9 @@
 
         <label class="field-label" for="s-worktree-model">Worktree Generator Model</label>
         <select id="s-worktree-model" bind:value={worktreeModel} class="text-input">
-          <option value="haiku">haiku</option>
-          <option value="sonnet">sonnet</option>
           <option value="opus">opus</option>
+          <option value="sonnet">sonnet</option>
+          <option value="haiku">haiku</option>
         </select>
 
         <div class="toggles-section">

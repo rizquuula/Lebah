@@ -100,13 +100,31 @@ impl SessionApplicationService {
                                 id: task_id.0.clone(),
                                 success: false,
                             },
-                            &proj.as_str().to_string(),
+                            proj.as_str(),
                         );
                         return Err(e);
                     }
                 }
             }
         }
+
+        // Persist the initial prompt as a user_input event so the chat shows the
+        // full template (not just task.description) in the bubble.
+        let user_input_line = format!(
+            r#"{{"type":"user_input","text":{}}}"#,
+            serde_json::to_string(&cmd.description).unwrap_or_default()
+        );
+        let pre_project_path = project_path
+            .as_ref()
+            .map(|p| p.0.clone())
+            .unwrap_or_default();
+        self.event_bus.publish(DomainEvent::Session(
+            SessionDomainEvent::SessionOutputReceived {
+                task_id: task_id.clone(),
+                line: user_input_line,
+                project_path: pre_project_path,
+            },
+        ));
 
         let run_config = AgentRunConfig {
             task_id: task_id.clone(),
