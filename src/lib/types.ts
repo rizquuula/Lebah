@@ -96,7 +96,7 @@ export type ChatEntry =
   | { kind: "system"; text: string };
 
 export const AGENT_MODELS: Record<string, { type: 'select' | 'text'; options?: string[] }> = {
-  claude: { type: 'select', options: ['sonnet', 'opus', 'haiku'] },
+  claude: { type: 'select', options: ['opus', 'sonnet', 'haiku'] },
   opencode: { type: 'text' },
 };
 
