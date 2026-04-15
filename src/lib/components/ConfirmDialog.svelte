@@ -8,12 +8,12 @@
 </script>
 
 <div class="confirm-overlay" role="presentation" on:click={onCancel} on:keydown={(e) => e.key === 'Escape' && onCancel()}>
-  <div class="confirm-dialog" role="dialog" aria-modal="true" tabindex="-1" on:click|stopPropagation on:keydown|stopPropagation>
-    <p class="confirm-title">{title}</p>
+  <div class="confirm-dialog" data-testid="confirm-dialog" role="dialog" aria-modal="true" tabindex="-1" on:click|stopPropagation on:keydown|stopPropagation>
+    <p class="confirm-title" data-testid="confirm-title">{title}</p>
     <p class="confirm-detail">{detail}</p>
     <div class="confirm-actions">
-      <button class="btn-cancel" disabled={loading} on:click={onCancel}>Cancel</button>
-      <button class="btn-confirm" disabled={loading} on:click={onConfirm}>
+      <button class="btn-cancel" data-testid="confirm-cancel-btn" disabled={loading} on:click={onCancel}>Cancel</button>
+      <button class="btn-confirm" data-testid="confirm-ok-btn" disabled={loading} on:click={onConfirm}>
         {loading ? "…" : confirmLabel}
       </button>
     </div>

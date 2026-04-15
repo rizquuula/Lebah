@@ -212,7 +212,7 @@
 <!-- svelte-ignore a11y_click_events_have_key_events -->
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 <div class="overlay" on:click={onClose} on:keydown={handleOverlayKey}>
-  <div class="modal" on:click|stopPropagation>
+  <div class="modal" data-testid="terminal-modal" on:click|stopPropagation>
     <div class="modal-glow" style="--border-color: {borderColor}"></div>
 
     <div class="header">
@@ -222,7 +222,7 @@
       </div>
       <div class="header-right">
         <span class="status-label" style="color: {borderColor}">{task.status}</span>
-        <button class="btn-close" on:click={onClose} title="Close (Esc)">
+        <button class="btn-close" data-testid="terminal-close-btn" on:click={onClose} title="Close (Esc)">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
             <line x1="18" y1="6" x2="6" y2="18"/>
             <line x1="6" y1="6" x2="18" y2="18"/>
@@ -231,13 +231,14 @@
       </div>
     </div>
 
-    <TerminalChat {entries} />
+    <div data-testid="terminal-messages"><TerminalChat {entries} /></div>
 
     {#if !readonly}
     <div class="input-bar">
       <span class="prompt">›</span>
       <input
         bind:this={inputEl}
+        data-testid="terminal-input"
         bind:value={inputValue}
         on:keydown={handleKeydown}
         placeholder="Send input... (Enter to send)"
@@ -254,7 +255,7 @@
       {:else}
         <input class="model-input" bind:value={selectedModel} placeholder="provider/model" title="Model" />
       {/if}
-      <button class="btn-send" on:click={handleSend} title="Send (Enter)">
+      <button class="btn-send" data-testid="terminal-send-btn" on:click={handleSend} title="Send (Enter)">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
           <line x1="22" y1="2" x2="11" y2="13"/>
           <polygon points="22 2 15 22 11 13 2 9 22 2"/>

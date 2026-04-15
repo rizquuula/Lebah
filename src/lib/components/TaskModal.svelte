@@ -84,7 +84,7 @@
 <!-- svelte-ignore a11y_click_events_have_key_events -->
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 <div class="overlay" on:click={onClose}>
-  <div class="modal" on:click|stopPropagation>
+  <div class="modal" data-testid="task-modal" on:click|stopPropagation>
     <div class="modal-glow"></div>
     <h3>{task ? "Edit Task" : "New Task"}</h3>
     {#if columnLabel && !task}
@@ -94,26 +94,27 @@
       <label class="field-label" for="task-description">Description</label>
       <textarea
         id="task-description"
+        data-testid="task-desc-input"
         bind:value={description}
         placeholder="Describe the task for Claude..."
         rows="4"
       ></textarea>
 
       <label class="field-label" for="task-agent">Agent</label>
-      <select id="task-agent" bind:value={agentName} class="text-input">
+      <select id="task-agent" data-testid="task-agent-select" bind:value={agentName} class="text-input">
         <option value="claude">Claude Code</option>
         <option value="opencode">OpenCode</option>
       </select>
 
       <label class="field-label" for="task-model">Model</label>
       {#if agentModelConfig.type === 'select'}
-        <select id="task-model" bind:value={model} class="text-input">
+        <select id="task-model" data-testid="task-model-select" bind:value={model} class="text-input">
           {#each agentModelConfig.options ?? [] as opt}
             <option value={opt}>{opt}</option>
           {/each}
         </select>
       {:else}
-        <input id="task-model" type="text" bind:value={model} placeholder="provider/model (e.g. kilo/anthropic/claude-opus-4.6)" class="text-input" />
+        <input id="task-model" data-testid="task-model-input" type="text" bind:value={model} placeholder="provider/model (e.g. kilo/anthropic/claude-opus-4.6)" class="text-input" />
       {/if}
 
       <label class="field-label" for="task-worktree">Worktree Name</label>
@@ -121,6 +122,7 @@
         <div class="worktree-row">
           <input
             id="task-worktree"
+            data-testid="task-worktree-input"
             type="text"
             bind:value={worktree}
             placeholder="feat-my-feature"
@@ -131,6 +133,7 @@
           <button
             type="button"
             class="btn-generate"
+            data-testid="task-generate-worktree-btn"
             on:click={generateWorktreeName}
             disabled={generatingWorktree || !description.trim()}
             title="Generate worktree name with AI"
@@ -141,15 +144,15 @@
           </button>
         </div>
         {#if worktreeError}
-          <div class="field-error">{worktreeError}</div>
+          <div class="field-error" data-testid="task-worktree-error">{worktreeError}</div>
         {/if}
       {:else}
         <div class="text-input readonly-field">{worktree ?? "—"}</div>
       {/if}
 
       <div class="actions">
-        <button type="button" class="btn-cancel" on:click={onClose}>Cancel</button>
-        <button type="submit" class="btn-save" disabled={generatingWorktree}>
+        <button type="button" class="btn-cancel" data-testid="task-modal-cancel-btn" on:click={onClose}>Cancel</button>
+        <button type="submit" class="btn-save" data-testid="task-save-btn" disabled={generatingWorktree}>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
             <polyline points="20 6 9 17 4 12"/>
           </svg>

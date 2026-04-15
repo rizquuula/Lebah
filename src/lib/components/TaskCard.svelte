@@ -135,7 +135,7 @@
   }
 </script>
 
-<div class="card" class:running={isRunning} style="--border-color: {borderColor}; --glow-color: {glowColor}">
+<div class="card" data-testid="task-card" data-task-id={task.id} data-task-status={task.status} class:running={isRunning} style="--border-color: {borderColor}; --glow-color: {glowColor}">
   <div class="card-border-top"></div>
   <div class="timestamp-block">
     <span class="timestamp">{displayDate}</span>
@@ -150,17 +150,17 @@
       <circle cx="9" cy="19" r="1.5"/><circle cx="15" cy="19" r="1.5"/>
     </svg>
   </div>
-  <p class="description">{task.description}</p>
+  <p class="description" data-testid="task-description">{task.description}</p>
 
   <div class="controls">
     {#if task.column === TaskColumn.Todo}
-      <button class="btn-icon arrow-right" title="Move to In Progress" disabled={isMoving} on:click={handleMoveToInProgress}>
+      <button class="btn-icon arrow-right" data-testid="task-move-next-btn" title="Move to In Progress" disabled={isMoving} on:click={handleMoveToInProgress}>
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
           <line x1="5" y1="12" x2="19" y2="12"/><polyline points="13 6 19 12 13 18"/>
         </svg>
       </button>
     {:else if task.column === TaskColumn.InProgress}
-      <button class="btn-icon play" class:active={isRunning} class:waiting={isWaiting}
+      <button class="btn-icon play" data-testid="task-run-btn" class:active={isRunning} class:waiting={isWaiting}
         title={isRunning ? "Stop" : isWaiting ? "Waiting (click to cancel)" : "Run"}
         disabled={isPlaying || isResetting} on:click={handlePlay}>
         {#if isRunning}
@@ -171,21 +171,21 @@
           <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor"><path d="M2 1.5l9 4.5-9 4.5V1.5z"/></svg>
         {/if}
       </button>
-      <button class="btn-icon chat-btn" class:active={showTerminal} title={CHAT_BUTTON_TITLE}
+      <button class="btn-icon chat-btn" data-testid="task-chat-btn" class:active={showTerminal} title={CHAT_BUTTON_TITLE}
         on:click={() => (showTerminal = !showTerminal)}>
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
         </svg>
       </button>
       {#if task.status === TaskStatus.Success}
-        <button class="btn-icon arrow-right" title="Move to Review" disabled={isMoving} on:click={handleMoveToReview}>
+        <button class="btn-icon arrow-right" data-testid="task-move-review-btn" title="Move to Review" disabled={isMoving} on:click={handleMoveToReview}>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
             <line x1="5" y1="12" x2="19" y2="12"/><polyline points="13 6 19 12 13 18"/>
           </svg>
         </button>
       {/if}
     {:else if task.column !== TaskColumn.Completed}
-      <button class="btn-icon play" class:active={isRunning} class:waiting={isWaiting}
+      <button class="btn-icon play" data-testid="task-run-btn" class:active={isRunning} class:waiting={isWaiting}
         title={isRunning ? "Stop" : isWaiting ? "Waiting (click to cancel)" : "Run"}
         disabled={isPlaying || isResetting} on:click={handlePlay}>
         {#if isRunning}
@@ -196,14 +196,14 @@
           <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor"><path d="M2 1.5l9 4.5-9 4.5V1.5z"/></svg>
         {/if}
       </button>
-      <button class="btn-icon chat-btn" class:active={showTerminal} title={CHAT_BUTTON_TITLE}
+      <button class="btn-icon chat-btn" data-testid="task-chat-btn" class:active={showTerminal} title={CHAT_BUTTON_TITLE}
         on:click={() => (showTerminal = !showTerminal)}>
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
         </svg>
       </button>
     {:else if task.column === TaskColumn.Completed}
-      <button class="btn-icon chat-btn" class:active={showTerminal} title={CHAT_BUTTON_TITLE}
+      <button class="btn-icon chat-btn" data-testid="task-chat-btn" class:active={showTerminal} title={CHAT_BUTTON_TITLE}
         on:click={() => (showTerminal = !showTerminal)}>
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
@@ -211,7 +211,7 @@
       </button>
     {/if}
     {#if task.column !== TaskColumn.Todo}
-      <button class="btn-icon" title="View details" on:click={() => (showDetailModal = true)}>
+      <button class="btn-icon" data-testid="task-detail-btn" title="View details" on:click={() => (showDetailModal = true)}>
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
           <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
           <circle cx="12" cy="12" r="3"/>
@@ -220,7 +220,7 @@
     {/if}
     <div class="actions">
       {#if task.column === TaskColumn.Todo}
-        <button class="btn-icon" title="Edit" on:click={() => (showEditModal = true)}>
+        <button class="btn-icon" data-testid="task-edit-btn" title="Edit" on:click={() => (showEditModal = true)}>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
             <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
             <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
@@ -228,7 +228,7 @@
         </button>
       {/if}
       <div class="delete-wrapper">
-        <button class="btn-icon delete" title="Delete" disabled={isDeleting}
+        <button class="btn-icon delete" data-testid="task-delete-btn" title="Delete" disabled={isDeleting}
           on:click={() => (showConfirmDelete = true)}>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
             <polyline points="3 6 5 6 21 6"/>
@@ -237,7 +237,7 @@
         </button>
         {#if task.column !== "Completed"}
           <div class="cancel-popup">
-            <button class="btn-icon cancel" title="Cancel task" disabled={isCanceling}
+            <button class="btn-icon cancel" data-testid="task-cancel-btn" title="Cancel task" disabled={isCanceling}
               on:click={() => (showConfirmCancel = true)}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
                 <circle cx="12" cy="12" r="10"/>
@@ -246,7 +246,7 @@
               </svg>
             </button>
             {#if task.column === TaskColumn.InProgress}
-              <button class="btn-icon reset-fresh" title="Fresh reset" disabled={isResetting}
+              <button class="btn-icon reset-fresh" data-testid="task-reset-btn" title="Fresh reset" disabled={isResetting}
                 on:click={() => (showConfirmReset = true)}>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <polyline points="1 4 1 10 7 10"/>
@@ -286,7 +286,7 @@
         <span class="lines-removed">-{task.lines_removed}</span>
       </span>
     {/if}
-    <span class="status" style="color: {borderColor}">{task.status}</span>
+    <span class="status" data-testid="task-status" style="color: {borderColor}">{task.status}</span>
   </div>
 </div>
 

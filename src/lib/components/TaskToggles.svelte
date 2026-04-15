@@ -17,7 +17,7 @@
     <div class="toggle-track" class:active={usePlan && !disablePlan}>
       <div class="toggle-thumb"></div>
     </div>
-    <input type="checkbox" checked={usePlan} on:change={onTogglePlan} class="sr-only" disabled={disablePlan} />
+    <input type="checkbox" data-testid="toggle-plan" checked={usePlan} on:change={onTogglePlan} class="sr-only" disabled={disablePlan} />
     <span class="toggle-label">Plan</span>
   </label>
   {/if}
@@ -25,7 +25,7 @@
     <div class="toggle-track" class:active={yolo && !disableYolo} class:yolo={yolo && !disableYolo}>
       <div class="toggle-thumb"></div>
     </div>
-    <input type="checkbox" checked={yolo} on:change={onToggleYolo} class="sr-only" disabled={disableYolo} />
+    <input type="checkbox" data-testid="toggle-yolo" checked={yolo} on:change={onToggleYolo} class="sr-only" disabled={disableYolo} />
     <span class="toggle-label">Yolo</span>
   </label>
   {#if showAuto}
@@ -33,7 +33,7 @@
     <div class="toggle-track" class:active={auto} class:auto={auto}>
       <div class="toggle-thumb"></div>
     </div>
-    <input type="checkbox" checked={auto} on:change={onToggleAuto} class="sr-only" />
+    <input type="checkbox" data-testid="toggle-auto" checked={auto} on:change={onToggleAuto} class="sr-only" />
     <span class="toggle-label">Auto</span>
   </label>
   {/if}

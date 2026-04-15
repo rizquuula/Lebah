@@ -1,4 +1,4 @@
-.PHONY: help setup dev build run run-released clean clean-soft setup-rust setup-node setup-tauri tree test
+.PHONY: help setup dev build run run-released clean clean-soft setup-rust setup-node setup-tauri tree test e2e e2e-install e2e-ui
 .DEFAULT_GOAL := help
 
 help:
@@ -13,6 +13,9 @@ help:
 	@echo "  run          Build (no bundles) and run"
 	@echo "  run-released Run the existing release build without rebuilding"
 	@echo "  test    Run all checks (Rust tests, Svelte type check, Cargo check)"
+	@echo "  e2e          Run Playwright E2E suite (headless)"
+	@echo "  e2e-ui       Run Playwright E2E suite in UI mode"
+	@echo "  e2e-install  Install Playwright browsers (first-time setup)"
 	@echo "  clean       Clean all build artifacts and dependencies"
 	@echo "  clean-soft  Clear caches only (Vite, Cargo incremental)"
 	@echo ""
@@ -60,6 +63,15 @@ test:
 	@echo "Running Svelte type check..."
 	npx svelte-check --tsconfig tsconfig.json
 	@echo "All checks passed!"
+
+e2e-install:
+	npm run e2e:install
+
+e2e:
+	npm run e2e
+
+e2e-ui:
+	npm run e2e:ui
 
 clean-soft:
 	@echo "Clearing caches..."

@@ -27,3 +27,8 @@ Thumbs.db
 *.db-journal
 *.db-wal
 *.db-shm
+
+# Playwright
+playwright-report/
+test-results/
+playwright/.cache/

@@ -89,7 +89,7 @@
 <!-- svelte-ignore a11y_click_events_have_key_events -->
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 <div class="overlay" on:click={onClose}>
-  <div class="modal" on:click|stopPropagation>
+  <div class="modal" data-testid="settings-modal" on:click|stopPropagation>
     <div class="modal-glow"></div>
     <div class="header">
       <h3>Settings</h3>
@@ -101,21 +101,21 @@
     </div>
 
     <div class="tabs">
-      <button class="tab" class:active={activeTab === "general"} on:click={() => activeTab = "general"}>General</button>
-      <button class="tab" class:active={activeTab === "env"} on:click={() => activeTab = "env"}>Environment Variables</button>
-      <button class="tab" class:active={activeTab === "links"} on:click={() => activeTab = "links"}>Worktree Links</button>
+      <button class="tab" data-testid="settings-tab-general" class:active={activeTab === "general"} on:click={() => activeTab = "general"}>General</button>
+      <button class="tab" data-testid="settings-tab-env" class:active={activeTab === "env"} on:click={() => activeTab = "env"}>Environment Variables</button>
+      <button class="tab" data-testid="settings-tab-links" class:active={activeTab === "links"} on:click={() => activeTab = "links"}>Worktree Links</button>
     </div>
 
     <div class="tab-content">
       {#if activeTab === "general"}
         <label class="field-label" for="s-claude-path">Claude Code Path</label>
-        <input id="s-claude-path" type="text" bind:value={claudePath} placeholder="claude (default)" class="text-input" />
+        <input id="s-claude-path" data-testid="settings-claude-path" type="text" bind:value={claudePath} placeholder="claude (default)" class="text-input" />
 
         <label class="field-label" for="s-opencode-path">OpenCode Path</label>
-        <input id="s-opencode-path" type="text" bind:value={opencodePath} placeholder="opencode (default)" class="text-input" />
+        <input id="s-opencode-path" data-testid="settings-opencode-path" type="text" bind:value={opencodePath} placeholder="opencode (default)" class="text-input" />
 
         <label class="field-label" for="s-worktree-model">Worktree Generator Model</label>
-        <select id="s-worktree-model" bind:value={worktreeModel} class="text-input">
+        <select id="s-worktree-model" data-testid="settings-worktree-model" bind:value={worktreeModel} class="text-input">
           <option value="opus">opus</option>
           <option value="sonnet">sonnet</option>
           <option value="haiku">haiku</option>
@@ -124,28 +124,28 @@
         <div class="toggles-section">
           <label class="toggle-row">
             <span class="toggle-label">Default Plan Mode</span>
-            <input type="checkbox" bind:checked={defaultUsePlan} class="toggle-input" />
+            <input type="checkbox" data-testid="settings-default-plan" bind:checked={defaultUsePlan} class="toggle-input" />
             <span class="toggle-switch"></span>
           </label>
           <label class="toggle-row">
             <span class="toggle-label">Default YOLO Mode</span>
-            <input type="checkbox" bind:checked={defaultYolo} class="toggle-input" />
+            <input type="checkbox" data-testid="settings-default-yolo" bind:checked={defaultYolo} class="toggle-input" />
             <span class="toggle-switch"></span>
           </label>
           <label class="toggle-row">
             <span class="toggle-label">Default Auto Mode</span>
-            <input type="checkbox" bind:checked={defaultAuto} class="toggle-input" />
+            <input type="checkbox" data-testid="settings-default-auto" bind:checked={defaultAuto} class="toggle-input" />
             <span class="toggle-switch"></span>
           </label>
         </div>
       {:else if activeTab === "env"}
-        <div class="env-list">
+        <div class="env-list" data-testid="env-list">
           {#each envVars as envVar, i}
-            <div class="env-row" class:env-row-disabled={!envVar.enabled}>
-              <input type="text" bind:value={envVar.key} placeholder="KEY" class="text-input env-key" class:input-disabled={!envVar.enabled} />
+            <div class="env-row" data-testid="env-row" class:env-row-disabled={!envVar.enabled}>
+              <input type="text" data-testid="env-key-input" bind:value={envVar.key} placeholder="KEY" class="text-input env-key" class:input-disabled={!envVar.enabled} />
               <span class="env-eq">=</span>
-              <input type="text" bind:value={envVar.value} placeholder="value" class="text-input env-val" class:input-disabled={!envVar.enabled} />
-              <button type="button" class="btn-eye" class:btn-eye-disabled={!envVar.enabled} on:click={() => { envVar.enabled = !envVar.enabled; envVars = envVars; }} title={envVar.enabled ? "Disable variable" : "Enable variable"}>
+              <input type="text" data-testid="env-value-input" bind:value={envVar.value} placeholder="value" class="text-input env-val" class:input-disabled={!envVar.enabled} />
+              <button type="button" class="btn-eye" data-testid="env-toggle-btn" class:btn-eye-disabled={!envVar.enabled} on:click={() => { envVar.enabled = !envVar.enabled; envVars = envVars; }} title={envVar.enabled ? "Disable variable" : "Enable variable"}>
                 {#if envVar.enabled}
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
@@ -159,7 +159,7 @@
                   </svg>
                 {/if}
               </button>
-              <button type="button" class="btn-remove" on:click={() => removeEnvVar(i)} title="Remove">
+              <button type="button" class="btn-remove" data-testid="env-remove-btn" on:click={() => removeEnvVar(i)} title="Remove">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
                   <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
                 </svg>
@@ -167,7 +167,7 @@
             </div>
           {/each}
         </div>
-        <button type="button" class="btn-add" on:click={addEnvVar}>+ Add Variable</button>
+        <button type="button" class="btn-add" data-testid="env-add-btn" on:click={addEnvVar}>+ Add Variable</button>
       {:else}
         <p class="links-hint">
           Paths listed here (relative to the project root) will be symlinked into each
@@ -196,8 +196,8 @@
     </div>
 
     <div class="actions">
-      <button class="btn-cancel" on:click={onClose}>Cancel</button>
-      <button class="btn-save" on:click={handleSave}>
+      <button class="btn-cancel" data-testid="settings-cancel-btn" on:click={onClose}>Cancel</button>
+      <button class="btn-save" data-testid="settings-save-btn" on:click={handleSave}>
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
           <polyline points="20 6 9 17 4 12"/>
         </svg>

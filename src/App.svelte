@@ -87,7 +87,7 @@
 
     <div class="project-bar">
       <RecentProjectDropdown />
-      <button class="btn-open" on:click={handleOpenProject}>
+      <button class="btn-open" data-testid="open-project-btn" on:click={handleOpenProject}>
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/>
         </svg>
@@ -97,6 +97,7 @@
       {#if $projectPath}
         <span
           class="project-path"
+          data-testid="project-path-display"
           class:copied={pathCopied}
           title={pathCopied ? 'Copied!' : 'Double-click to copy path'}
           on:dblclick={handleCopyPath}
@@ -106,23 +107,24 @@
       {/if}
 
       {#if $gitStatus}
-        <div class="git-info">
+        <div class="git-info" data-testid="git-status">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <circle cx="18" cy="18" r="3"/><circle cx="6" cy="6" r="3"/>
             <path d="M6 21V9a9 9 0 009 9"/>
           </svg>
-          <span class="branch-name">{$gitStatus.branch}</span>
+          <span class="branch-name" data-testid="git-branch">{$gitStatus.branch}</span>
           {#if $gitStatus.ahead > 0}
-            <span class="git-badge ahead" title="{$gitStatus.ahead} ahead">↑{$gitStatus.ahead}</span>
+            <span class="git-badge ahead" data-testid="git-ahead" title="{$gitStatus.ahead} ahead">↑{$gitStatus.ahead}</span>
           {/if}
           {#if $gitStatus.behind > 0}
-            <span class="git-badge behind" title="{$gitStatus.behind} behind">↓{$gitStatus.behind}</span>
+            <span class="git-badge behind" data-testid="git-behind" title="{$gitStatus.behind} behind">↓{$gitStatus.behind}</span>
           {/if}
           {#if $gitStatus.changed_files > 0}
-            <span class="git-badge changes" title="{$gitStatus.changed_files} changed files">●{$gitStatus.changed_files}</span>
+            <span class="git-badge changes" data-testid="git-changes" title="{$gitStatus.changed_files} changed files">●{$gitStatus.changed_files}</span>
           {/if}
           <button
             class="btn-push"
+            data-testid="git-push-btn"
             on:click={handleGitPush}
             disabled={isPushing}
             title="Push to remote"
@@ -140,12 +142,12 @@
         </div>
       {/if}
 
-      <button class="btn-settings" on:click={() => showTerminal = !showTerminal} title="Terminal">
+      <button class="btn-settings" data-testid="terminal-toggle-btn" on:click={() => showTerminal = !showTerminal} title="Terminal">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/>
         </svg>
       </button>
-      <button class="btn-settings" on:click={() => showSettings = true} title="Settings">
+      <button class="btn-settings" data-testid="settings-btn" on:click={() => showSettings = true} title="Settings">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/>
         </svg>
@@ -156,7 +158,7 @@
   </header>
   <Notification />
   {#if $lastError}
-    <button class="error-banner" on:click={clearError}>
+    <button class="error-banner" data-testid="error-banner" on:click={clearError}>
       <span>{$lastError}</span>
       <span class="error-close" aria-hidden="true">✕</span>
     </button>

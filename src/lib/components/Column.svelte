@@ -62,9 +62,9 @@
   <div class="column-header-glow"></div>
   <div class="header">
     <h2>{label}</h2>
-    <span class="count">{items.length}</span>
+    <span class="count" data-testid="column-count">{items.length}</span>
     {#if column === TaskColumn.Todo}
-      <button class="btn-add" on:click={onAddTask} title="Add task" aria-label="Add task">
+      <button class="btn-add" data-testid="add-task-btn" on:click={onAddTask} title="Add task" aria-label="Add task">
         <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
           <path d="M7 1v12M1 7h12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
         </svg>
@@ -72,18 +72,18 @@
     {/if}
     {#if hasTemplate}
       <div class="template-wrapper">
-        <button class="btn-add" on:click={openTemplatePopover} title="Template message" aria-label="Template message">
+        <button class="btn-add" data-testid="template-editor-btn" on:click={openTemplatePopover} title="Template message" aria-label="Template message">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
             <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
           </svg>
         </button>
         {#if showTemplatePopover}
-          <div class="template-popover">
-            <textarea bind:value={editingTemplate} rows="4"></textarea>
+          <div class="template-popover" data-testid="template-popover">
+            <textarea data-testid="template-textarea" bind:value={editingTemplate} rows="4"></textarea>
             <div class="template-actions">
-              <button class="btn-tpl-cancel" on:click={() => (showTemplatePopover = false)}>Cancel</button>
-              <button class="btn-tpl-reset" on:click={resetTemplate} title="Reset to default">Reset</button>
-              <button class="btn-tpl-save" on:click={saveTemplate}>Save</button>
+              <button class="btn-tpl-cancel" data-testid="template-cancel-btn" on:click={() => (showTemplatePopover = false)}>Cancel</button>
+              <button class="btn-tpl-reset" data-testid="template-reset-btn" on:click={resetTemplate} title="Reset to default">Reset</button>
+              <button class="btn-tpl-save" data-testid="template-save-btn" on:click={saveTemplate}>Save</button>
             </div>
           </div>
         {/if}
@@ -93,6 +93,7 @@
 
   <div
     class="task-list"
+    data-testid="task-list"
     use:dragHandleZone={{ items, flipDurationMs: 250, dropTargetStyle: { outline: "2px dashed rgba(137, 180, 250, 0.4)", borderRadius: "8px" } }}
     on:consider={handleDndConsider}
     on:finalize={handleDndFinalize}

@@ -26,9 +26,9 @@
   }
 </script>
 
-<div class="board">
+<div class="board" data-testid="board">
   {#each COLUMNS as col, i}
-    <div class="column-wrapper" style="animation-delay: {i * 80}ms">
+    <div class="column-wrapper" data-testid="column-{col.key}" style="animation-delay: {i * 80}ms">
       <Column
         column={col.key}
         label={col.label}
