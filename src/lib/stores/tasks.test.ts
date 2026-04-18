@@ -163,6 +163,61 @@ describe("tasks store", () => {
       void capturedUnlisten;
     });
 
+    it("preserves Waiting status for queued merge sessions", async () => {
+      mockInvoke.mockResolvedValue(undefined);
+      const { queueMergeTask, loadTasks, tasks } = await import("./tasks");
+      tasks.set([makeTask({ id: "w1", column: TaskColumn.Merge })]);
+
+      await queueMergeTask({
+        id: "w1", description: "d", usePlan: false, yolo: false,
+        worktree: null, model: null, agentName: null, hasRun: false, template: null,
+      });
+
+      mockInvoke.mockResolvedValueOnce([
+        makeTask({ id: "w1", column: TaskColumn.Merge, status: TaskStatus.Idle }),
+      ]);
+      await loadTasks();
+
+      expect(get(tasks).find((t) => t.id === "w1")?.status).toBe(TaskStatus.Waiting);
+    });
+
+    it("applies recentlyCompleted terminal status over stale DB status", async () => {
+      const { loadTasks, runAgentSession, tasks } = await import("./tasks");
+      tasks.set([makeTask({ id: "r1", column: TaskColumn.InProgress, status: TaskStatus.Idle })]);
+
+      // Capture the handler so we can simulate a mid-loadTasks session completion.
+      let capturedHandler: ((event: { payload: string }) => void) | null = null;
+      mockListen.mockImplementation((_event: string, handler: (event: { payload: string }) => void) => {
+        capturedHandler = handler;
+        return Promise.resolve(() => {});
+      });
+      mockInvoke.mockResolvedValue(undefined);
+
+      await runAgentSession("r1", "desc", false, false);
+
+      // Session completes: listener fires (removes from runningSessions, records status)
+      capturedHandler!({ payload: JSON.stringify({ type: "result", is_error: false }) });
+      // Let microtasks settle so the listener's async body runs
+      await Promise.resolve();
+      await Promise.resolve();
+
+      // loadTasks returns stale Running from DB; overlay should substitute Success
+      // from recentlyCompleted and clear the entry.
+      mockInvoke.mockResolvedValueOnce([
+        makeTask({ id: "r1", column: TaskColumn.InProgress, status: TaskStatus.Running }),
+      ]);
+      await loadTasks();
+
+      expect(get(tasks).find((t) => t.id === "r1")?.status).toBe(TaskStatus.Success);
+
+      // Entry is consumed: a subsequent loadTasks does not re-apply Success.
+      mockInvoke.mockResolvedValueOnce([
+        makeTask({ id: "r1", column: TaskColumn.InProgress, status: TaskStatus.Idle }),
+      ]);
+      await loadTasks();
+      expect(get(tasks).find((t) => t.id === "r1")?.status).toBe(TaskStatus.Idle);
+    });
+
     it("sets tasks to empty array on backend error", async () => {
       const { loadTasks, tasks } = await import("./tasks");
       tasks.set([makeTask()]);

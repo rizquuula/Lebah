@@ -13,6 +13,12 @@ const runningSessions = new Set<string>();
 // Track waiting merge task IDs so loadTasks() doesn't overwrite their status.
 const waitingMergeSessions = new Set<string>();
 
+// Terminal statuses recorded by session listeners that may have fired while a
+// different project was active or concurrently with a loadTasks() await. The
+// next loadTasks() for a matching task applies and persists the status,
+// preventing stuck Running state after a project switch.
+const recentlyCompleted = new Map<string, TaskStatus>();
+
 // Captured task state for auto-advance (survives project switches)
 interface CapturedTaskInfo {
   auto: boolean;
@@ -104,6 +110,14 @@ export async function loadTasks() {
       result.map((t) => {
         if (runningSessions.has(t.id)) return { ...t, status: TaskStatus.Running };
         if (waitingMergeSessions.has(t.id)) return { ...t, status: TaskStatus.Waiting };
+        const pending = recentlyCompleted.get(t.id);
+        if (pending !== undefined) {
+          recentlyCompleted.delete(t.id);
+          if (t.status !== pending) {
+            invoke("update_task", { task: { ...t, status: pending } }).catch(() => {});
+          }
+          return { ...t, status: pending };
+        }
         return t;
       }),
     );
@@ -183,6 +197,7 @@ export async function runAgentSession(
         unlisten();
         runningSessions.delete(id);
         const status: TaskStatus = msg.is_error ? TaskStatus.Failed : TaskStatus.Success;
+        recentlyCompleted.set(id, status);
         tasks.update((all) =>
           all.map((t) => (t.id === id ? { ...t, status } : t)),
         );
@@ -259,6 +274,7 @@ export async function sendInputWithListener(
         unlisten();
         runningSessions.delete(id);
         const status: TaskStatus = msg.is_error ? TaskStatus.Failed : TaskStatus.Success;
+        recentlyCompleted.set(id, status);
         tasks.update((all) =>
           all.map((t) => (t.id === id ? { ...t, status } : t)),
         );
