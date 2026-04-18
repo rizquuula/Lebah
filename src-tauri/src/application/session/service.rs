@@ -4,6 +4,7 @@ use crate::application::errors::ApplicationError;
 use crate::application::event_bus::{DomainEvent, DomainEventBus};
 use crate::application::ports::{SessionManagerPort, WorktreePort};
 use crate::application::session::commands::*;
+use crate::application::session::handle_pump::{pump_handle, PumpConfig, StreamKind};
 use crate::application::task::commands::{
     MarkTaskCompletedCommand, MarkTaskStartedCommand, MarkTaskStoppedCommand,
 };
@@ -350,71 +351,52 @@ impl SessionApplicationService {
     fn wire_handle(&self, handle: AgentHandle, task_id: TaskId, project_path: String) {
         log::debug!("[session] Wiring handle for task {}", task_id.0);
         let event_bus = Arc::clone(&self.event_bus);
-        let task_id_c = task_id.clone();
-        let pp = project_path.clone();
+        let AgentHandle {
+            stdout_rx,
+            stderr_rx,
+            exit_rx,
+        } = handle;
 
-        // Wire stdout
         std::thread::spawn(move || {
-            log::debug!(
-                "[session] Stdout reader thread started for task {}",
-                task_id_c.0
+            log::debug!("[session] Pump thread started for task {}", task_id.0);
+            let task_id_out = task_id.clone();
+            let pp_out = project_path.clone();
+            let event_bus_out = Arc::clone(&event_bus);
+            let task_id_end = task_id.clone();
+
+            pump_handle(
+                stdout_rx,
+                stderr_rx,
+                exit_rx,
+                PumpConfig::default(),
+                move |kind, line| {
+                    match kind {
+                        StreamKind::Stdout => log::debug!("[claude-json] {}", line),
+                        StreamKind::Stderr => {
+                            log::warn!("[session] stderr task={} {}", task_id_out.0, line)
+                        }
+                    }
+                    event_bus_out.publish(DomainEvent::Session(
+                        SessionDomainEvent::SessionOutputReceived {
+                            task_id: task_id_out.clone(),
+                            line,
+                            project_path: pp_out.clone(),
+                        },
+                    ));
+                },
+                move |success| {
+                    if success {
+                        log::info!("[session] Task {} exited with success=true", task_id_end.0);
+                    } else {
+                        log::error!("[session] Task {} exited with success=false", task_id_end.0);
+                    }
+                    event_bus.publish(DomainEvent::Session(SessionDomainEvent::SessionEnded {
+                        task_id: task_id_end,
+                        success,
+                        project_path,
+                    }));
+                },
             );
-            for line in handle.stdout_rx {
-                log::debug!("[claude-json] {}", line);
-                event_bus.publish(DomainEvent::Session(
-                    SessionDomainEvent::SessionOutputReceived {
-                        task_id: task_id_c.clone(),
-                        line,
-                        project_path: pp.clone(),
-                    },
-                ));
-            }
-        });
-
-        let event_bus2 = Arc::clone(&self.event_bus);
-        let task_id_c2 = task_id.clone();
-        let pp2 = project_path.clone();
-
-        // Wire stderr
-        std::thread::spawn(move || {
-            log::debug!(
-                "[session] Stderr reader thread started for task {}",
-                task_id_c2.0
-            );
-            for line in handle.stderr_rx {
-                log::warn!("[session] stderr task={} {}", task_id_c2.0, line);
-                event_bus2.publish(DomainEvent::Session(
-                    SessionDomainEvent::SessionOutputReceived {
-                        task_id: task_id_c2.clone(),
-                        line,
-                        project_path: pp2.clone(),
-                    },
-                ));
-            }
-        });
-
-        let event_bus3 = Arc::clone(&self.event_bus);
-        let task_id_c3 = task_id;
-        let pp3 = project_path;
-
-        // Wire exit
-        std::thread::spawn(move || {
-            log::debug!(
-                "[session] Exit watcher thread started for task {}",
-                task_id_c3.0
-            );
-            if let Some(success) = handle.exit_rx.into_iter().next() {
-                if success {
-                    log::info!("[session] Task {} exited with success=true", task_id_c3.0);
-                } else {
-                    log::error!("[session] Task {} exited with success=false", task_id_c3.0);
-                }
-                event_bus3.publish(DomainEvent::Session(SessionDomainEvent::SessionEnded {
-                    task_id: task_id_c3.clone(),
-                    success,
-                    project_path: pp3.clone(),
-                }));
-            }
         });
     }
 }
